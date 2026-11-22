@@ -79,3 +79,24 @@ def paths_are_same(path_a: str, path_b: str) -> bool:
     return os.path.normcase(os.path.realpath(os.path.abspath(path_a))) == os.path.normcase(
         os.path.realpath(os.path.abspath(path_b))
     )
+
+
+def create_next_workspace(parent_dir: str, workspace_name: str) -> str:
+    """Create a new run workspace, choosing a suffix if previous runs exist.
+
+    Existing workspaces are never reused or overwritten. mkdir provides the
+    atomic collision check when concurrent batch workers start.
+    """
+    for attempt in range(1, 10001):
+        candidate = (
+            workspace_name
+            if attempt == 1
+            else f"{workspace_name}_attempt_{attempt}"
+        )
+        try:
+            return create_new_workspace(parent_dir, candidate)
+        except FileExistsError:
+            continue
+    raise FileExistsError(
+        f"Could not allocate a unique workspace for {workspace_name!r}."
+    )

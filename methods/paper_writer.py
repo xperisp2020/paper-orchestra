@@ -28,7 +28,7 @@ from methods.agents.content_refinement_agent import ContentRefinementAgent
 from utils.common_utils import (
     create_log_folder,
 )
-from utils.safe_workspace import create_new_workspace, ensure_paths_absent, publish_file_no_overwrite
+from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, publish_file_no_overwrite
 
 
 def write_single_paper(
@@ -216,7 +216,7 @@ def process_paper_task(
         paper_id = paper["paper_id"]
         print(f"Starting processing for paper '{paper_id}'...")
 
-        paper_dest_dir = create_new_workspace(output_dir, str(paper_id))
+        paper_dest_dir = create_next_workspace(output_dir, str(paper_id))
         final_paper_path = osp.join(paper_dest_dir, "final_paper.pdf")
 
         result = {

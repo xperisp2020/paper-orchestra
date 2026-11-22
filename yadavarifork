@@ -680,3 +680,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - بررسی ZIP بسته نشان داد فقط platforms/qwindows.dll به‌عنوان platform plugin توزیع شده؛ qoffscreen.dll در بسته نیست. بنابراین offscreen در runner مستقل گزینه مناسبی نیست، زیرا آن runner نصب Qt جداگانه ندارد.
 - اصلاح: clean-runner smoke اکنون QT_QPA_PLATFORM=windows را برای plugin واقعاً توزیع‌شده تنظیم می‌کند، پنجره را hidden اجرا می‌کند و timeout سی‌ثانیه‌ای دارد تا هیچ process معلقی runner را برای مدت نامحدود نگه ندارد.
 - نتیجه آزمون clean-runner پس از این اصلاح در انتظار است.
+
+
+### 6.55 اصلاح ازسرگیری batch پس از شکست و جلوگیری از برخورد workspace — 2026-11-22
+- بازبینی مسیر batch پس از ایزوله‌سازی retry داخلی کشف کرد process_paper_task هنوز برای هر paper_id دقیقاً همان پوشه را با create_new_workspace می‌ساخت. اگر اجرای قبلی با status=failed/error متوقف شده باشد، اجرای مجدد به‌جای تلاش تازه با FileExistsError متوقف می‌شود.
+- اصلاح: create_next_workspace افزوده شد؛ ابتدا نام اصلی را امتحان می‌کند و در صورت وجود، suffixهای _attempt_2، _attempt_3 و ... را با mkdir اتمی بررسی می‌کند. پوشه‌های اجرای ناموفق حذف یا بازنویسی نمی‌شوند.
+- هر دو writer batch از allocator جدید استفاده می‌کنند؛ این رفتار برای اجرای مجدد یک paper و برخورد هم‌زمان نام‌ها در چند worker طراحی شده است.
+- سه آزمون جدید افزوده شد: تخصیص پوشه retry با حفظ artifact قبلی، عبور از چند نام اشغال‌شده و اتصال هر دو process_paper_task به allocator.
+- نتیجه CI این تغییر هنوز مشخص نیست.

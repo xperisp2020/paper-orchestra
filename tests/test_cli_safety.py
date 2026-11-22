@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from paper_writing_cli import prepare_raw_materials
-from utils.safe_workspace import create_new_workspace, ensure_paths_absent, paths_are_same, publish_file_no_overwrite
+from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, paths_are_same, publish_file_no_overwrite
 
 
 class RawMaterialsSafetyTests(unittest.TestCase):
@@ -206,6 +206,33 @@ class RetryIsolationRegressionTests(unittest.TestCase):
             self.assertIn('create_new_workspace(base_dir, f"attempt_{cur_try + 1}")', source)
             self.assertNotIn("shutil.rmtree(content_refinement_workdir)", source)
             self.assertIn("content_refinement_workdir = osp.join(attempt_dir", source)
+
+
+class BatchResumeWorkspaceTests(unittest.TestCase):
+    def test_retry_allocates_new_workspace_and_preserves_failed_run(self):
+        with tempfile.TemporaryDirectory() as output:
+            first = create_next_workspace(output, "paper-42")
+            marker = os.path.join(first, "partial-output.txt")
+            with open(marker, "w", encoding="utf-8") as f:
+                f.write("diagnostic artifact")
+            second = create_next_workspace(output, "paper-42")
+            self.assertEqual(os.path.basename(first), "paper-42")
+            self.assertEqual(os.path.basename(second), "paper-42_attempt_2")
+            with open(marker, encoding="utf-8") as f:
+                self.assertEqual(f.read(), "diagnostic artifact")
+
+    def test_concurrent_name_collision_is_skipped(self):
+        with tempfile.TemporaryDirectory() as output:
+            os.mkdir(os.path.join(output, "paper-7"))
+            os.mkdir(os.path.join(output, "paper-7_attempt_2"))
+            path = create_next_workspace(output, "paper-7")
+            self.assertEqual(os.path.basename(path), "paper-7_attempt_3")
+
+    def test_batch_workers_use_collision_safe_workspace_allocator(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        for relative in ("methods/paper_writer.py", "methods/paper_writer_with_plotting.py"):
+            source = (repo_root / relative).read_text(encoding="utf-8")
+            self.assertIn('create_next_workspace(output_dir, str(paper_id))', source)
 
 class SecretLoggingTests(unittest.TestCase):
     def test_semantic_scholar_api_key_is_not_printed_anywhere(self):
