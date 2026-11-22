@@ -144,7 +144,7 @@ class PdfOutputSafetyTests(unittest.TestCase):
             self.assertTrue(os.path.exists(source))
 
 
-    def test_failed_copy_does_not_remove_replacement_destination(self):
+    def test_failed_copy_preserves_source_and_partial_destination(self):
         with tempfile.TemporaryDirectory() as temp:
             source = os.path.join(temp, "generated.pdf")
             destination = os.path.join(temp, "final.pdf")
@@ -155,24 +155,14 @@ class PdfOutputSafetyTests(unittest.TestCase):
                 output_file.write(b"partial output")
                 raise OSError("simulated copy failure")
 
-            original_unlink = os.unlink
-
-            def replace_during_cleanup(path, *args, **kwargs):
-                if os.fspath(path) == destination:
-                    original_unlink(path, *args, **kwargs)
-                    with open(destination, "wb") as replacement:
-                        replacement.write(b"user replacement")
-                    raise OSError("destination was replaced during cleanup")
-                return original_unlink(path, *args, **kwargs)
-
             with patch("utils.safe_workspace.shutil.copyfileobj", side_effect=fail_copy):
-                with patch("utils.safe_workspace.os.unlink", side_effect=replace_during_cleanup):
-                    with self.assertRaises(OSError):
-                        publish_file_no_overwrite(source, destination)
+                with self.assertRaises(OSError):
+                    publish_file_no_overwrite(source, destination)
 
             with open(destination, "rb") as f:
-                self.assertEqual(f.read(), b"user replacement")
-            self.assertTrue(os.path.exists(source))
+                self.assertEqual(f.read(), b"partial output")
+            with open(source, "rb") as f:
+                self.assertEqual(f.read(), b"generated")
 
     def test_source_is_retained_as_recoverable_intermediate(self):
         with tempfile.TemporaryDirectory() as temp:

@@ -55,14 +55,8 @@ def publish_file_no_overwrite(source_path: str, destination_path: str) -> str:
                 output.flush()
                 os.fsync(output.fileno())
         except Exception:
-            try:
-                current = os.stat(destination, follow_symlinks=False)
-                if (current.st_dev, current.st_ino) == (
-                    destination_identity.st_dev, destination_identity.st_ino
-                ):
-                    os.unlink(destination)
-            except OSError:
-                pass
+            # Keep a possibly partial destination rather than risk a pathname
+            # TOCTOU race deleting a replacement created by another process.
             raise
 
     # Keep the generated source as a recoverable intermediate. Deleting by
