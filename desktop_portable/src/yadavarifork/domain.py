@@ -91,6 +91,7 @@ class ProjectStore:
         """Yield a transaction-scoped connection and always release its file handle."""
         connection = sqlite3.connect(self.database)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys=ON")
         try:
             yield connection
             connection.commit()
@@ -130,6 +131,12 @@ class ProjectStore:
         clean_title = title.strip()
         if not clean_title:
             raise ValueError("Project title cannot be empty")
+        if language not in {"fa", "en"}:
+            raise ValueError("Unsupported project language")
+        if ai_mode not in {"no_api", "free_tier", "paid"}:
+            raise ValueError("Unsupported AI mode")
+        if workflow not in {"proposal", "research"}:
+            raise ValueError("Unsupported project workflow")
         with self._connect() as db:
             cursor = db.execute(
                 "INSERT INTO projects(title, language, ai_mode, workflow) VALUES (?, ?, ?, ?)",

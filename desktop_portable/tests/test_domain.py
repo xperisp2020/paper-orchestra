@@ -45,6 +45,17 @@ class ProjectStoreTests(unittest.TestCase):
         self.store.save_section(project.project_id, "problem_statement", "Evidence-based text")
         self.assertEqual(self.store.load_sections(project.project_id)["problem_statement"], "Evidence-based text")
 
+
+    def test_reject_invalid_project_configuration(self):
+        for args in (
+            ("Test", "xx", "no_api", "proposal"),
+            ("Test", "en", "unknown", "proposal"),
+            ("Test", "en", "no_api", "unknown"),
+        ):
+            with self.subTest(args=args):
+                with self.assertRaises(ValueError):
+                    self.store.create_project(*args)
+
     def test_reject_unknown_section(self):
         project = self.store.create_project("Test", "en", "no_api", "proposal")
         with self.assertRaises(ValueError):
