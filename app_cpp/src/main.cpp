@@ -331,9 +331,9 @@ public:
         for (const QString &key : finalDetailKeys())
             smokeFinalDetails.insert(key, QStringLiteral("Smoke test: ") + key);
         smokeFinalDetails.insert(QStringLiteral("student_information"),
-            QStringLiteral("Smoke test: student_information\\nSecond line"));
+            QStringLiteral("Smoke test: student_information\nSecond line"));
         smokeFinalDetails.insert(QStringLiteral("supervisor_information"),
-            QStringLiteral("Smoke test: supervisor_information\\nSecond line"));
+            QStringLiteral("Smoke test: supervisor_information\nSecond line"));
         if (!saveFinalDetails(smokeFinalDetails))
             return 62;
         WelcomeWindow reopenedProposal(store_);
