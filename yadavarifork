@@ -1004,3 +1004,14 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - smoke child برای newline واقعی C++ اصلاح شد؛ تست environment همچنان باید ثابت کند مقدار sentinel کلید API در خروجی فرزند mask می‌شود.
 - اجرای موتور اکنون فقط در دسته paid فعال است؛ مسیرهای no_api و free_tier بدون provider routing معتبر اجازه اجرای Gemini Pro Preview ندارند.
 - CIهای C++ و Python برای commitهای جدید در حال اجرا هستند؛ موفقیت نهایی هنوز اعلام نمی‌شود.
+
+
+### 6.89.4 تأیید CI پل اولیه موتور پژوهش
+- CI نهایی C++ شماره 45049152503 روی commit کد 43eff38f06a66e29d3769050af45126dd6f7afbc با conclusion=success کامل شد.
+- مراحل Configure، Build، Smoke، Assemble portable، upload بسته‌ها و verify-portable-artifact روی clean Windows runner همگی موفق شدند. smoke جدید اجرای فرزند QProcess، انتقال environment و redaction کلید آزمایشی GEMINI_API_KEY را تأیید کرد.
+- آزمون‌های Python safety شماره 45049157477 روی Ubuntu و Windows هر دو success شدند؛ شامل تست‌های جدید JSONL lifecycle event.
+- yadavarifork-windows-portable: ID=14764554103, size=25115078 bytes, sha256:08b81caaecbc2b37cf6dca9cd4ee6c5721e6d9d675e3a81051b703b492360704, expires=2027-02-20T17:23:12Z.
+- yadavarifork-windows-installer: ID=14764414949, size=17989639 bytes, sha256:4b51d964745b744a7d318b6cca1b98f4fd990cd1bfd937b4d4182521e2d8f781, expires=2027-02-20T17:23:12Z.
+- این تأیید فقط به پل فرایندی، رویدادهای CLI، redaction، build و بسته‌بندی مربوط است؛ اجرای واقعی pipeline چندعاملی با API واقعی، بررسی وابستگی‌های کامل Python/LaTeX، resume/checkpoint و history چند-run هنوز تأیید نشده‌اند.
+- اجرای موتور از UI عمداً فقط در حالت paid فعال است؛ no_api و free_tier مسدودند تا routing واقعی برای طرح رایگان اضافه شود. Python/dependencies هنوز bundled نیستند.
+- خطاهای CI ناشی از commitهای میانیِ ترتیبی (CMake پیش از ثبت فایل‌های منبع پل) با اجرای نهایی روی commit کامل پوشش داده شدند؛ اجرای نهایی همه گیت‌ها را گذراند.
