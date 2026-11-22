@@ -560,3 +560,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - بررسی نشان داد شکست از mock آزمون بود، نه شکست کپی/انتشار در helper. آزمون مقصد اکنون جایگزینی را دقیقاً هنگام cleanup پس از بسته‌شدن handle شبیه‌سازی می‌کند؛ آزمون source نیز replacement را در ownership-check پس از بسته‌شدن handle انجام می‌دهد.
 - هیچ محدودیت قفل فایل در محصول تضعیف نشده است؛ آزمون‌ها با رفتار واقعی Windows سازگار شدند.
 - نتیجه ماتریس مجدد در انتظار است.
+
+
+### 6.39 حذف race حذف source در publish — 2026-11-22
+- Windows matrix روی commit c195efc42ee20942d3f5e580f6ed0be100b8cdcf موفق شد، اما Ubuntu آزمون source-replacement را شکست داد؛ بررسی نشان داد unlink با pathname پس از stat یک race ذاتی TOCTOU دارد.
+- اصلاح ایمن‌تر: publish_file_no_overwrite اکنون فقط فایل مقصد را با O_EXCL می‌سازد و source تولیدشده را به‌عنوان intermediate قابل بازیابی نگه می‌دارد؛ هیچ حذف pathname-based از source انجام نمی‌شود.
+- آزمون قبلی race حذف source با آزمون حفظ byte-for-byte source جایگزین شد. آزمون replacement مقصد هنگام cleanup همچنان برای حفاظت از فایل جایگزین‌شده فعال است.
+- پیامد: ممکن است فایل intermediate اضافه در workspace باقی بماند؛ این trade-off آگاهانه برای تضمین عدم حذف داده است. پاک‌سازی workspace خصوصی باید در caller و با مالکیت مشخص انجام شود.
+- نتیجه CI مجدد در انتظار است.

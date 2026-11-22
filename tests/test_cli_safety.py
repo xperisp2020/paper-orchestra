@@ -116,14 +116,16 @@ class PdfPathCompatibilityTests(unittest.TestCase):
 
 
 class PdfOutputSafetyTests(unittest.TestCase):
-    def test_publish_creates_destination_and_removes_owned_source(self):
+    def test_publish_creates_destination_and_preserves_source(self):
         with tempfile.TemporaryDirectory() as temp:
             source = os.path.join(temp, "generated.pdf")
             destination = os.path.join(temp, "published", "final.pdf")
             with open(source, "wb") as f:
                 f.write(b"%PDF-generated")
             self.assertEqual(publish_file_no_overwrite(source, destination), destination)
-            self.assertFalse(os.path.exists(source))
+            self.assertTrue(os.path.exists(source))
+            with open(source, "rb") as f:
+                self.assertEqual(f.read(), b"%PDF-generated")
             with open(destination, "rb") as f:
                 self.assertEqual(f.read(), b"%PDF-generated")
 
@@ -172,32 +174,15 @@ class PdfOutputSafetyTests(unittest.TestCase):
                 self.assertEqual(f.read(), b"user replacement")
             self.assertTrue(os.path.exists(source))
 
-    def test_replaced_source_is_not_deleted_after_publish(self):
+    def test_source_is_retained_as_recoverable_intermediate(self):
         with tempfile.TemporaryDirectory() as temp:
             source = os.path.join(temp, "generated.pdf")
             destination = os.path.join(temp, "final.pdf")
             with open(source, "wb") as f:
                 f.write(b"generated")
-
-            original_stat = os.stat
-            original_unlink = os.unlink
-            source_checks = 0
-
-            def replace_source_before_ownership_check(path, *args, **kwargs):
-                nonlocal source_checks
-                if os.fspath(path) == source and kwargs.get("follow_symlinks") is False:
-                    source_checks += 1
-                    if source_checks == 2:
-                        original_unlink(source)
-                        with open(source, "wb") as replacement:
-                            replacement.write(b"user replacement")
-                return original_stat(path, *args, **kwargs)
-
-            with patch("utils.safe_workspace.os.stat", side_effect=replace_source_before_ownership_check):
-                publish_file_no_overwrite(source, destination)
-
+            publish_file_no_overwrite(source, destination)
             with open(source, "rb") as f:
-                self.assertEqual(f.read(), b"user replacement")
+                self.assertEqual(f.read(), b"generated")
             with open(destination, "rb") as f:
                 self.assertEqual(f.read(), b"generated")
 

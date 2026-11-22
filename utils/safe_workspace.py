@@ -65,17 +65,9 @@ def publish_file_no_overwrite(source_path: str, destination_path: str) -> str:
                 pass
             raise
 
-    # Delete only the exact source inode opened above; preserve any replacement.
-    try:
-        current_source = os.stat(source, follow_symlinks=False)
-        if (current_source.st_dev, current_source.st_ino) == (
-            source_identity.st_dev, source_identity.st_ino
-        ):
-            os.unlink(source)
-    except OSError:
-        # Publication succeeded; a leftover intermediate is safer than deleting
-        # a file whose ownership can no longer be established.
-        pass
+    # Keep the generated source as a recoverable intermediate. Deleting by
+    # pathname after a stat check has an unavoidable TOCTOU race on some
+    # filesystems; callers can clean their own private workspace explicitly.
     return destination
 
 
