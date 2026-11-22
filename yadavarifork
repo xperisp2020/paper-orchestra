@@ -983,3 +983,8 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - smoke test جدید، فرایند فرزند واقعی را با QProcess اجرا و دریافت stdout/exit code را بررسی می‌کند.
 - محدودیت عمدی این مرحله: Python، requirements و LaTeX هنوز bundled نیستند؛ اجرای موفق CLI در دستگاه کاربر به نصب صحیح Python/dependencies/LaTeX و کلید معتبر وابسته است. پروتکل progress فعلاً خروجی متنی زنده است، نه eventهای ساختاریافته؛ resume/checkpoint و run history چندگانه هنوز پیاده نشده‌اند.
 - CI این commit باید configure/build/smoke/portable/installer/clean-runner را تأیید کند؛ تا دریافت conclusion موفق، این مرحله تأییدشده نیست.
+
+
+### 6.89.1 اصلاح بافر خروجی زنده
+- بازبینی پس از ثبت اولیه نشان داد delimiter خط در بافر QProcess به‌صورت backslash+n literal درج شده بود؛ در نتیجه خطوط فقط هنگام پایان فرایند flush می‌شدند و نمایش واقعاً زنده نبود.
+- delimiterهای newline و carriage return به کاراکترهای واقعی C++ اصلاح شدند. این تغییر کوچک در commit a52591afe043a952e359d6ad3110d01f29a74c65 ثبت شد؛ CI جدید باید آن را تأیید کند.
