@@ -6,6 +6,7 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QStackedWidget>
+#include <QStringList>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -96,15 +97,28 @@ public:
         if (layoutDirection() != Qt::RightToLeft)
             return false;
 
-        aiMode_->setCurrentIndex(1);
-        taskMode_->setCurrentIndex(1);
-        next_->click();
-        next_->click();
-        next_->click();
-        if (pages_->currentIndex() != 3 || !summary_->text().contains(QStringLiteral("انجام پژوهش")))
-            return false;
-        back_->click();
-        return pages_->currentIndex() == 2;
+        const QStringList aiIds{QStringLiteral("no_api"), QStringLiteral("free_tier"), QStringLiteral("paid")};
+        const QStringList taskIds{QStringLiteral("proposal"), QStringLiteral("research")};
+        for (int aiIndex = 0; aiIndex < aiIds.size(); ++aiIndex) {
+            for (int taskIndex = 0; taskIndex < taskIds.size(); ++taskIndex) {
+                aiMode_->setCurrentIndex(aiIndex);
+                taskMode_->setCurrentIndex(taskIndex);
+                pages_->setCurrentIndex(1);
+                next_->click();
+                next_->click();
+                if (pages_->currentIndex() != 3 || !summary_->text().contains(aiMode_->currentText())
+                    || !summary_->text().contains(taskMode_->currentText())) return false;
+                back_->click();
+                if (pages_->currentIndex() != 2) return false;
+                back_->click();
+                if (pages_->currentIndex() != 1) return false;
+            }
+        }
+        language_->setCurrentIndex(1);
+        pages_->setCurrentIndex(3);
+        updateSummary();
+        if (!summary_->text().contains(QStringLiteral("Language: English"))) return false;
+        return true;
     }
 
 private:
