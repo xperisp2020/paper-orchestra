@@ -13,6 +13,8 @@ on:
     paths:
       - 'app_cpp/**'
       - 'packaging/windows/**'
+      - 'scripts/setup_research_runtime.ps1'
+      - 'requirements-research.txt'
       - '.github/workflows/cpp-portable-ci.yml'
   workflow_dispatch:
 
