@@ -1,13 +1,33 @@
 import ast
+import io
+import json
 import os
 import tempfile
 from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from paper_writing_cli import prepare_raw_materials
+from paper_writing_cli import emit_event, prepare_raw_materials
 from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, paths_are_same, publish_file_no_overwrite
 from utils.security_utils import redact_secrets
+
+
+class CliJsonlEventTests(unittest.TestCase):
+    def test_lifecycle_event_is_valid_jsonl(self):
+        stream = io.StringIO()
+        with patch("sys.stdout", stream):
+            emit_event(True, "pipeline_started", stage="paper_generation", mode="without_plotting")
+        event = json.loads(stream.getvalue())
+        self.assertEqual(event["event"], "pipeline_started")
+        self.assertEqual(event["stage"], "paper_generation")
+        self.assertEqual(event["mode"], "without_plotting")
+        self.assertIn("timestamp", event)
+
+    def test_events_are_silent_when_not_requested(self):
+        stream = io.StringIO()
+        with patch("sys.stdout", stream):
+            emit_event(False, "pipeline_completed", output_dir="/tmp/run")
+        self.assertEqual(stream.getvalue(), "")
 
 
 class RawMaterialsSafetyTests(unittest.TestCase):
