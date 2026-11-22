@@ -149,15 +149,24 @@ class PdfOutputSafetyTests(unittest.TestCase):
             with open(source, "wb") as f:
                 f.write(b"generated")
 
-            def replace_then_fail(input_file, output_file):
-                os.unlink(destination)
-                with open(destination, "wb") as replacement:
-                    replacement.write(b"user replacement")
+            def fail_copy(input_file, output_file):
+                output_file.write(b"partial output")
                 raise OSError("simulated copy failure")
 
-            with patch("utils.safe_workspace.shutil.copyfileobj", side_effect=replace_then_fail):
-                with self.assertRaises(OSError):
-                    publish_file_no_overwrite(source, destination)
+            original_unlink = os.unlink
+
+            def replace_during_cleanup(path, *args, **kwargs):
+                if os.fspath(path) == destination:
+                    original_unlink(path, *args, **kwargs)
+                    with open(destination, "wb") as replacement:
+                        replacement.write(b"user replacement")
+                    raise OSError("destination was replaced during cleanup")
+                return original_unlink(path, *args, **kwargs)
+
+            with patch("utils.safe_workspace.shutil.copyfileobj", side_effect=fail_copy):
+                with patch("utils.safe_workspace.os.unlink", side_effect=replace_during_cleanup):
+                    with self.assertRaises(OSError):
+                        publish_file_no_overwrite(source, destination)
 
             with open(destination, "rb") as f:
                 self.assertEqual(f.read(), b"user replacement")
@@ -170,13 +179,21 @@ class PdfOutputSafetyTests(unittest.TestCase):
             with open(source, "wb") as f:
                 f.write(b"generated")
 
-            def replace_source_then_copy(input_file, output_file):
-                os.unlink(source)
-                with open(source, "wb") as replacement:
-                    replacement.write(b"user replacement")
-                output_file.write(input_file.read())
+            original_stat = os.stat
+            original_unlink = os.unlink
+            source_checks = 0
 
-            with patch("utils.safe_workspace.shutil.copyfileobj", side_effect=replace_source_then_copy):
+            def replace_source_before_ownership_check(path, *args, **kwargs):
+                nonlocal source_checks
+                if os.fspath(path) == source and kwargs.get("follow_symlinks") is False:
+                    source_checks += 1
+                    if source_checks == 2:
+                        original_unlink(source)
+                        with open(source, "wb") as replacement:
+                            replacement.write(b"user replacement")
+                return original_stat(path, *args, **kwargs)
+
+            with patch("utils.safe_workspace.os.stat", side_effect=replace_source_before_ownership_check):
                 publish_file_no_overwrite(source, destination)
 
             with open(source, "rb") as f:
