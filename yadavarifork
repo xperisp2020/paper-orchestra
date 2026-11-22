@@ -1144,3 +1144,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI Python: https://github.com/xperisp2020/paper-orchestra/actions/runs/45054872427
 - CI ویندوزی تغییر متن راهنمای Qt شماره 45054780391 هنوز در حال اجراست.
 - محدودیت: اسکریپت bootstrap در runner اجرا نشده تا بسته‌های بزرگ Python از اینترنت نصب نشوند؛ تنها محتوای اسکریپت، requirements و safety tests بررسی شده‌اند. نصب واقعی Python/LaTeX و اجرای end-to-end موتور همچنان نیازمند آزمون محیط کاربری است.
+
+
+### 6.98.1 تأیید CI ویندوز برای راهنمای runtime پژوهش
+- C++ Windows portable CI شماره 45054780391 روی commit 9d3fb920a6d46c80263b94566df6209ebccc742b با conclusion=success کامل شد.
+- Configure، Build، Smoke، portable packaging، Inno Setup compile و verify-portable-artifact روی clean Windows runner همگی موفق شدند.
+- Artifactها: portable ID=14767351613 (25,127,531 bytes)، installer ID=14767660090 (17,996,798 bytes)، انقضا 2027-02-20T18:23:14Z.
+- CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45054780391
+- این CI تغییر راهنمای Qt و رابط را تأیید می‌کند؛ اسکریپت bootstrap عمداً در runner اجرا نشده و نصب واقعی runtime همچنان تأیید نشده است.
