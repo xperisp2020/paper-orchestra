@@ -1119,3 +1119,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Clean runner هر دو artifact را دریافت و بررسی کرد: portable ID=14766414189، حجم=25,127,087 bytes؛ installer ID=14766621962، حجم=17,997,738 bytes. انقضا 2027-02-20T18:12:55Z.
 - CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45053779663
 - این نتیجه گیت‌های build/smoke/manifest/portable/installer/clean-runner را تأیید می‌کند؛ اجرای end-to-end pipeline با API واقعی و تولید مقاله واقعی هنوز انجام نشده است.
+
+
+### 6.96 پاک‌سازی خطاهای JSONL برای جلوگیری از نشت credential در CLI مستقیم
+- ممیزی امنیتی نشان داد ResearchEngineRunner در UI خروجی را redacted می‌کند، اما اجرای مستقیم CLI می‌توانست مقدار credential موجود در متن exception را در فیلد error رویداد JSONL چاپ کند.
+- emit_event اکنون فقط فیلد error را با redact_secrets پاک‌سازی می‌کند و سایر جزئیات رویداد را بدون تغییر نگه می‌دارد.
+- آزمون جدید Authorization: Bearer را در JSONL بررسی می‌کند. Python safety CI شماره 45054260722 روی Ubuntu و Windows هر دو success شد.
+- CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45054260722
