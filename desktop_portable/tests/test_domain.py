@@ -28,6 +28,12 @@ class ProjectStoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.store.save_section(project.project_id, "invented", "x")
 
+    def test_database_file_is_not_locked_after_store_operation(self):
+        project = self.store.create_project("Close connection", "en", "no_api", "proposal")
+        self.assertTrue(project.project_id > 0)
+        self.store.database.unlink()
+        self.assertFalse(self.store.database.exists())
+
     def test_reject_empty_project_title(self):
         with self.assertRaises(ValueError):
             self.store.create_project("  ", "fa", "no_api", "proposal")
