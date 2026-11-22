@@ -40,6 +40,7 @@
 #include <QJsonObject>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QThread>
 
 class WelcomeWindow final : public QMainWindow {
 public:
@@ -652,6 +653,25 @@ public:
             !bridgeText.contains(QStringLiteral("GEMINI_API_KEY=[REDACTED]")) ||
             bridgeText.contains(QStringLiteral("bridge-smoke-secret")))
             return 70;
+
+        ResearchEngineRunner cancellableBridge;
+        bool cancellationFinished = false;
+        QObject::connect(&cancellableBridge, &ResearchEngineRunner::finished,
+                         &cancellableBridge, [&](int, bool) { cancellationFinished = true; });
+        if (!cancellableBridge.start(QCoreApplication::applicationFilePath(),
+                                     {QStringLiteral("--bridge-child-sleep-test")},
+                                     QDir::tempPath()))
+            return 71;
+        QEventLoop cancellationLoop;
+        QObject::connect(&cancellableBridge, &ResearchEngineRunner::finished,
+                         &cancellationLoop, &QEventLoop::quit);
+        QTimer::singleShot(100, &cancellationLoop, [&cancellableBridge] {
+            cancellableBridge.cancel();
+        });
+        QTimer::singleShot(8000, &cancellationLoop, &QEventLoop::quit);
+        cancellationLoop.exec();
+        if (!cancellationFinished || cancellableBridge.isRunning())
+            return 72;
         return 0;
     }
 
@@ -1687,6 +1707,11 @@ int main(int argc, char *argv[]) {
     if (app.arguments().contains(QStringLiteral("--bridge-child-test"))) {
         std::cout << "bridge-child-ok\n";
         std::cout << "GEMINI_API_KEY=" << qEnvironmentVariable("GEMINI_API_KEY").toStdString() << '\n';
+        return 0;
+    }
+    if (app.arguments().contains(QStringLiteral("--bridge-child-sleep-test"))) {
+        std::cout << "bridge-child-sleeping\\n" << std::flush;
+        QThread::msleep(30000);
         return 0;
     }
     if (app.arguments().contains(QStringLiteral("--smoke-test"))) {
