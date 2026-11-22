@@ -29,7 +29,17 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: Smoke test
-        run: ctest --test-dir build -C Release --output-on-failure
+        shell: pwsh
+        run: |
+          ctest --test-dir build -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) {
+            $exe = Join-Path $PWD 'build/Release/yadavarifork.exe'
+            $env:QT_QPA_PLATFORM = 'offscreen'
+            & $exe --smoke-test
+            $smokeExit = $LASTEXITCODE
+            Write-Host "Direct smoke test exit code: $smokeExit"
+            exit 1
+          }
       - name: Assemble portable directory
         shell: pwsh
         run: |
