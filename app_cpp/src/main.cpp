@@ -108,13 +108,20 @@ public:
         editorStatus_ = new QLabel;
         editorStatus_->setWordWrap(true);
         static_cast<QVBoxLayout *>(editorPage->layout())->addWidget(editorStatus_);
+        editorNotice_ = new QLabel;
+        editorNotice_->setObjectName(QStringLiteral("proposalAdministrativeNotice"));
+        editorNotice_->setWordWrap(true);
+        static_cast<QVBoxLayout *>(editorPage->layout())->addWidget(editorNotice_);
         auto *exportRow = new QHBoxLayout;
+        finalDetailsButton_ = new QPushButton;
+        finalDetailsButton_->setObjectName(QStringLiteral("proposalFinalDetailsButton"));
         saveSection_ = new QPushButton;
         saveSection_->setObjectName(QStringLiteral("saveSectionButton"));
         exportPdf_ = new QPushButton;
         exportDocx_ = new QPushButton;
         exportPng_ = new QPushButton;
         printDocument_ = new QPushButton;
+        exportRow->addWidget(finalDetailsButton_);
         exportRow->addWidget(saveSection_);
         exportRow->addWidget(exportPdf_);
         exportRow->addWidget(exportDocx_);
@@ -234,6 +241,9 @@ public:
         connect(saveSection_, &QPushButton::clicked, this, [this] {
             saveSelectedSection();
         });
+        connect(finalDetailsButton_, &QPushButton::clicked, this, [this] {
+            collectFinalDetails(true);
+        });
         connect(exportPdf_, &QPushButton::clicked, this, [this] { exportPdf(); });
         connect(exportDocx_, &QPushButton::clicked, this, [this] { exportDocx(); });
         connect(exportPng_, &QPushButton::clicked, this, [this] { exportPng(); });
@@ -309,6 +319,28 @@ public:
         if (saved.value(QStringLiteral("problem_statement")) !=
             QStringLiteral("Persisted by GUI smoke test"))
             return 29;
+        for (const QString &key : finalDetailKeys()) {
+            if (!saved.value(key).isEmpty())
+                return 60;
+        }
+        for (const QString &key : administrativeSectionKeys()) {
+            if (!saved.value(key).isEmpty())
+                return 61;
+        }
+        QMap<QString, QString> smokeFinalDetails;
+        for (const QString &key : finalDetailKeys())
+            smokeFinalDetails.insert(key, QStringLiteral("Smoke test: ") + key);
+        if (!saveFinalDetails(smokeFinalDetails))
+            return 62;
+        const auto detailsSaved = store_.loadSections(*projectId_, &storageError);
+        for (const QString &key : finalDetailKeys()) {
+            if (detailsSaved.value(key) != smokeFinalDetails.value(key))
+                return 63;
+        }
+        for (const QString &key : administrativeSectionKeys()) {
+            if (!detailsSaved.value(key).isEmpty())
+                return 64;
+        }
 
         if (!DocumentExport::validateProposalLayout(&storageError)) {
             std::cerr << "Proposal page layout validation failed: " << storageError.toStdString() << std::endl;
@@ -468,7 +500,8 @@ public:
         WelcomeWindow reopenedProposal(store_);
         if (!reopenedProposal.openProjectById(*projectId_) ||
             reopenedProposal.pages_->currentIndex() != 4 ||
-            reopenedProposal.sectionList_->count() != ProjectStore::proposalSectionKeys().size())
+            reopenedProposal.sectionList_->count() !=
+                ProjectStore::proposalSectionKeys().size() - finalDetailKeys().size())
             return 54;
         reopenedProposal.sectionEditor_->setPlainText(QStringLiteral("Saved when proposal window closes."));
         if (!reopenedProposal.close())
@@ -591,6 +624,12 @@ private:
         headings_[3]->setText(persian ? QStringLiteral("بازبینی انتخاب‌ها") : QStringLiteral("Review selections"));
         headings_[4]->setText(persian ? QStringLiteral("ویرایش پروپوزال") : QStringLiteral("Proposal editor"));
         headings_[5]->setText(persian ? QStringLiteral("کارگاه پژوهش محلی") : QStringLiteral("Local research workspace"));
+        editorNotice_->setText(persian
+            ? QStringLiteral("مشخصات دانشجو و استاد در مرحله نهایی دریافت می‌شود. بخش‌های اداری، تأییدیه‌ها، امضاها و شماره‌های بایگانی عمداً خالی می‌مانند تا بعداً توسط شما تکمیل شوند.")
+            : QStringLiteral("Student and supervisor details are collected at the final step. Administrative fields, approvals, signatures and archive numbers are intentionally left blank for you to complete later."));
+        finalDetailsButton_->setText(persian
+            ? QStringLiteral("تکمیل مشخصات فردی و استاد")
+            : QStringLiteral("Complete student and supervisor details"));
 
         language_->setItemText(0, QStringLiteral("فارسی"));
         language_->setItemText(1, QStringLiteral("English"));
@@ -662,6 +701,8 @@ private:
         sectionList_->clear();
         const QStringList keys = ProjectStore::proposalSectionKeys();
         for (const QString &key : keys) {
+            if (finalDetailKeys().contains(key))
+                continue;
             auto *item = new QListWidgetItem(sectionLabel(key, persian));
             item->setData(Qt::UserRole, key);
             sectionList_->addItem(item);
@@ -787,6 +828,7 @@ private:
             return false;
         }
         projectId_ = project->id;
+        finalDetailsReviewed_ = false;
         projectTitle_->setText(project->title);
         language_->setCurrentIndex(language_->findData(project->language));
         aiMode_->setCurrentIndex(aiMode_->findData(project->aiMode));
@@ -816,6 +858,7 @@ private:
         proposalSectionDirty_ = false;
         researchSectionDirty_ = false;
         projectId_.reset();
+        finalDetailsReviewed_ = false;
         language_->setEnabled(true);
         aiMode_->setEnabled(true);
         taskMode_->setEnabled(true);
@@ -996,6 +1039,87 @@ private:
         refreshResearchSources();
     }
 
+    QStringList finalDetailKeys() const {
+        return {
+            QStringLiteral("degree"), QStringLiteral("field"), QStringLiteral("specialization"),
+            QStringLiteral("supervisor"), QStringLiteral("consultant"),
+            QStringLiteral("student_name"), QStringLiteral("student_id"),
+            QStringLiteral("student_information"), QStringLiteral("supervisor_information")
+        };
+    }
+
+    QStringList administrativeSectionKeys() const {
+        return {
+            QStringLiteral("archive_number"), QStringLiteral("approval_date"),
+            QStringLiteral("supervisor_confirmation"), QStringLiteral("consultant_confirmation"),
+            QStringLiteral("project_information"), QStringLiteral("student_commitment"),
+            QStringLiteral("supervisor_commitment"), QStringLiteral("researcher_commitment"),
+            QStringLiteral("committee_opinion"), QStringLiteral("scientific_evaluation"),
+            QStringLiteral("group_council_minutes"),
+            QStringLiteral("faculty_research_council_opinion"), QStringLiteral("final_approval")
+        };
+    }
+
+    bool saveFinalDetails(const QMap<QString, QString> &values) {
+        if (!projectId_)
+            return false;
+        for (const QString &key : finalDetailKeys()) {
+            QString error;
+            if (!store_.saveSection(*projectId_, key, values.value(key), &error)) {
+                editorStatus_->setText(error);
+                return false;
+            }
+        }
+        finalDetailsReviewed_ = true;
+        editorStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
+            ? QStringLiteral("مشخصات فردی و استاد ذخیره شد.")
+            : QStringLiteral("Student and supervisor details saved."));
+        return true;
+    }
+
+    bool collectFinalDetails(bool forceDialog) {
+        if (!projectId_)
+            return false;
+        if (finalDetailsReviewed_ && !forceDialog)
+            return true;
+        if (!saveActiveProposalSection())
+            return false;
+        QString error;
+        const auto current = store_.loadSections(*projectId_, &error);
+        if (!error.isEmpty()) {
+            editorStatus_->setText(error);
+            return false;
+        }
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        QDialog dialog(this);
+        dialog.setWindowTitle(persian
+            ? QStringLiteral("مشخصات پایانی دانشجو و استاد")
+            : QStringLiteral("Final student and supervisor details"));
+        auto *form = new QFormLayout(&dialog);
+        auto *intro = new QLabel(persian
+            ? QStringLiteral("این اطلاعات در پایان تکمیل پروپوزال دریافت می‌شود. مواردی را که اکنون نمی‌دانید خالی بگذارید؛ می‌توانید بعداً دوباره ویرایش کنید.")
+            : QStringLiteral("These details are collected at the end of proposal preparation. Leave unknown items empty; you can edit them later."));
+        intro->setWordWrap(true);
+        form->addRow(intro);
+        QMap<QString, QLineEdit *> inputs;
+        for (const QString &key : finalDetailKeys()) {
+            auto *input = new QLineEdit(&dialog);
+            input->setText(current.value(key));
+            inputs.insert(key, input);
+            form->addRow(sectionLabel(key, persian), input);
+        }
+        auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+        form->addRow(buttons);
+        connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+        if (dialog.exec() != QDialog::Accepted)
+            return false;
+        QMap<QString, QString> values;
+        for (auto it = inputs.cbegin(); it != inputs.cend(); ++it)
+            values.insert(it.key(), it.value()->text().trimmed());
+        return saveFinalDetails(values);
+    }
+
     QMap<QString, QString> currentSectionLabels() const {
         QMap<QString, QString> labels;
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
@@ -1017,6 +1141,8 @@ private:
     }
 
     void exportPdf() {
+        if (!collectFinalDetails(false))
+            return;
         QString error;
         const auto sections = currentSections(&error);
         if (!error.isEmpty()) { editorStatus_->setText(error); return; }
@@ -1034,6 +1160,8 @@ private:
     }
 
     void exportDocx() {
+        if (!collectFinalDetails(false))
+            return;
         QString error;
         const auto sections = currentSections(&error);
         if (!error.isEmpty()) { editorStatus_->setText(error); return; }
@@ -1051,6 +1179,8 @@ private:
     }
 
     void exportPng() {
+        if (!collectFinalDetails(false))
+            return;
         QString error;
         const auto sections = currentSections(&error);
         if (!error.isEmpty()) { editorStatus_->setText(error); return; }
@@ -1068,6 +1198,8 @@ private:
     }
 
     void printDocument() {
+        if (!collectFinalDetails(false))
+            return;
         QString error;
         const auto sections = currentSections(&error);
         if (!error.isEmpty()) { editorStatus_->setText(error); return; }
@@ -1095,6 +1227,7 @@ private:
         projectId_ = store_.createProject(
             projectTitle_->text(), language_->currentData().toString(),
             aiMode_->currentData().toString(), taskMode_->currentData().toString(), &error);
+        finalDetailsReviewed_ = false;
         if (!projectId_) {
             summaryStatus_->setText(error.isEmpty()
                 ? (persian ? QStringLiteral("ایجاد پروژه ناموفق بود.") : QStringLiteral("Project creation failed."))
@@ -1149,9 +1282,11 @@ private:
     QListWidget *sectionList_{};
     QTextEdit *sectionEditor_{};
     QLabel *editorStatus_{};
+    QLabel *editorNotice_{};
     QPushButton *back_{};
     QPushButton *next_{};
     QPushButton *saveSection_{};
+    QPushButton *finalDetailsButton_{};
     QPushButton *exportPdf_{};
     QPushButton *exportDocx_{};
     QPushButton *exportPng_{};
@@ -1172,6 +1307,7 @@ private:
     QString currentResearchSectionKey_;
     bool proposalSectionDirty_{false};
     bool researchSectionDirty_{false};
+    bool finalDetailsReviewed_{false};
     bool loadingProposalSection_{false};
     bool loadingResearchSection_{false};
 };
