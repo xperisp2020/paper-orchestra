@@ -973,3 +973,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - security_utils.py تابع redact_secrets دارد، اما bridge باید پیش از اجرا نیز از قراردادن credential در command-line args، manifest، SQLite یا log جلوگیری کند. credential فقط از environment/secure store به process منتقل شود.
 - تصمیم طراحی گام بعد: کلاس Qt مبتنی بر QProcess با اجرای asynchronous، argv جداگانه و بدون shell، working directory اختصاصی و safe-path validation، progress از stdout/stderr با قالب JSONL، cancellation، redaction، manifest/run ID و تشخیص prerequisiteهای Python/dependencies/LaTeX. اجرای AI باید تا آماده‌شدن prerequisiteها disabled/با پیام شفاف بماند.
 - این بخش ممیزی معماری است و به معنی اتصال یا اجرای واقعی موتور نیست. توسعه bridge، بسته‌بندی runtime و آزمون integration هنوز انجام نشده‌اند.
+
+
+### 6.89 پل اولیه و امن اجرای موتور پژوهش در Qt — در انتظار CI
+- کلاس مستقل ResearchEngineRunner بر پایه QProcess اضافه شد: اجرای asynchronous با executable و argv جداگانه (بدون shell)، working directory مشخص، انتقال environment، دریافت زنده stdout/stderr ادغام‌شده، لغو با terminate و fallback به kill، و redaction مقادیر کلیدهای شناخته‌شده و الگوهای Bearer/API key از خروجی.
+- UI پژوهش اکنون فرم انتخاب Python، اسکریپت CLI، پوشه raw materials و قالب LaTeX دارد؛ ورودی‌های لازم idea_sparse.md و experimental_log.md و فایل‌های template.tex و guidelines.md پیش از اجرا بررسی می‌شوند.
+- خروجی هر اجرا در مسیر یکتای data/research_runs ذخیره می‌شود و مسیر آخرین run در metadata پروژه ثبت می‌شود. از overwrite مسیر موجود خودداری می‌شود.
+- کلیدهای Gemini فقط از environment به فرایند فرزند منتقل می‌شوند؛ هیچ کلیدی در آرگومان‌ها یا SQLite قرار نمی‌گیرد. در صورت نبود کلید، اجرا متوقف و راهنمایی نمایش داده می‌شود.
+- smoke test جدید، فرایند فرزند واقعی را با QProcess اجرا و دریافت stdout/exit code را بررسی می‌کند.
+- محدودیت عمدی این مرحله: Python، requirements و LaTeX هنوز bundled نیستند؛ اجرای موفق CLI در دستگاه کاربر به نصب صحیح Python/dependencies/LaTeX و کلید معتبر وابسته است. پروتکل progress فعلاً خروجی متنی زنده است، نه eventهای ساختاریافته؛ resume/checkpoint و run history چندگانه هنوز پیاده نشده‌اند.
+- CI این commit باید configure/build/smoke/portable/installer/clean-runner را تأیید کند؛ تا دریافت conclusion موفق، این مرحله تأییدشده نیست.
