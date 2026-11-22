@@ -31,6 +31,7 @@ from methods.agents.plotting_agent import PlottingAgent
 from utils.common_utils import (
     create_log_folder,
 )
+from utils.safe_workspace import create_new_workspace
 
 
 def write_single_paper(
@@ -51,10 +52,12 @@ def write_single_paper(
     time_log = {}
     time_log["Start_Time_Absolute"] = time.time()
 
-    if osp.exists(latex_writeup_dir):
-        shutil.rmtree(latex_writeup_dir)
-    if osp.exists(pdf_file):
-        os.remove(pdf_file)
+    content_refinement_workdir = osp.join(base_dir, "content_refinement_workdir")
+    for existing_output in (latex_writeup_dir, pdf_file, content_refinement_workdir):
+        if osp.lexists(existing_output):
+            raise FileExistsError(
+                f"Refusing to overwrite existing generated output: {existing_output}"
+            )
 
     materials_dir = osp.join(base_dir, "raw_materials")
 
@@ -285,8 +288,7 @@ def process_paper_task(
         paper_id = paper["paper_id"]
         print(f"Starting processing for paper '{paper_id}'...")
 
-        paper_dest_dir = osp.join(output_dir, paper_id)
-        os.makedirs(paper_dest_dir, exist_ok=True)
+        paper_dest_dir = create_new_workspace(output_dir, str(paper_id))
         final_paper_path = osp.join(paper_dest_dir, "final_paper.pdf")
 
         result = {
@@ -296,9 +298,6 @@ def process_paper_task(
         }
 
         if True:
-            shutil.rmtree(paper_dest_dir, ignore_errors=True)
-            os.makedirs(paper_dest_dir, exist_ok=True)
-
             content_dest_dir = osp.join(paper_dest_dir, "raw_materials")
             os.makedirs(content_dest_dir, exist_ok=True)
             print(

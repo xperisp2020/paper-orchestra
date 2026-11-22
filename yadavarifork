@@ -355,3 +355,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - بازبینی حذف فایل‌ها: os.remove در frontend/app.py فقط روی کپی موقت داخل tempfile.TemporaryDirectory اعمال می‌شود و فایل‌های ورودی کاربر را حذف نمی‌کند. os.remove در utils/pdf_utils.py فایل PDF تولیدشده در cwd را قبل از کامپایل جایگزین می‌کند و نیازمند بررسی بیشتر مالکیت workspace است.
 - ریسک مهم باز: methods/paper_writer.py و methods/paper_writer_with_plotting.py در ابتدای write_single_paper دایرکتوری latex_writeup و final_paper.pdf را حذف می‌کنند؛ همچنین content_refinement_workdir را پاک می‌کنند. در پردازش batch، paper_dest_dir به‌طور کامل حذف می‌شود و این می‌تواند raw_materials و خروجی قبلی کاربر را از بین ببرد. این مورد هنوز اصلاح نشده و در چرخه بعدی اولویت بالاست.
 - این ثبت تفکیک می‌کند: 5 آزمون قبلی موفق بوده‌اند؛ اصلاح citation_f1 و آزمون جامع‌تر هنوز منتظر CI جدید است.
+
+
+### 6.11 اصلاح جلوگیری از حذف پوشه خروجی کامل در پردازش دسته‌ای — 2026-11-22
+- CI اصلاح افشای دوم کلید روی commit 9178e81b46ef66fbf677bba760c9c62db6060c08 با run 45031611979 موفق شد؛ لاگ Python 3.12.16 نتیجه 5 آزمون و OK را ثبت می‌کند. آزمون AST تمام فایل‌های Python را بررسی کرد و دیگر هیچ print حاوی نام کلید Semantic Scholar پیدا نکرد.
+- ممیزی کد نشان داد process_paper_task در هر دو مسیر paper_writer.py و paper_writer_with_plotting.py کل پوشه paper_dest_dir را با shutil.rmtree حذف می‌کرد؛ این پوشه می‌تواند شامل raw_materials، PDF و خروجی‌های قبلی کاربر باشد.
+- اصلاح: helper جدید utils/safe_workspace.py فقط یک پوشه فرزند تازه با نام تک‌جزئی ایجاد می‌کند؛ اگر مقصد موجود باشد، os.mkdir با FileExistsError متوقف می‌شود و هیچ فایلی حذف/جایگزین نمی‌شود. نام‌های مسیر traversal و نام‌های خالی/نقطه رد می‌شوند.
+- هر دو process_paper_task اکنون workspace تازه را از helper می‌گیرند و rmtree روی paper_dest_dir حذف شده است.
+- هر دو write_single_paper پیش از شروع، وجود latex_writeup، final_paper.pdf یا content_refinement_workdir قبلی را بررسی می‌کنند و در صورت وجود، بدون حذف آن‌ها متوقف می‌شوند. پاک‌سازی content_refinement_workdir در retry فقط پس از preflight و درون همان اجرای تازه باقی مانده است؛ نیازمند آزمون چرخه retry است.
+- سه آزمون جدید اضافه شد: حفظ workspace موجود، رد نام مسیر traversal و ایجاد workspace جدید. نتیجه CI این commit هنوز مشخص نیست.
+- موارد باز برای چرخه بعد: تست retry pipeline و بررسی پاک‌سازی workspace در crash؛ بازبینی os.remove در pdf_utils.compile_latex برای اطمینان از مالکیت فایل موقت؛ تست مسیرهای Windows و symlink.

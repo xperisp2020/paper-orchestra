@@ -5,6 +5,7 @@ from pathlib import Path
 import unittest
 
 from paper_writing_cli import prepare_raw_materials
+from utils.safe_workspace import create_new_workspace
 
 
 class RawMaterialsSafetyTests(unittest.TestCase):
@@ -49,6 +50,33 @@ class RawMaterialsSafetyTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 prepare_raw_materials(source, target)
 
+
+
+
+class WorkspaceSafetyTests(unittest.TestCase):
+    def test_existing_workspace_is_preserved_and_rejected(self):
+        with tempfile.TemporaryDirectory() as parent:
+            existing = os.path.join(parent, "paper-1")
+            os.makedirs(existing)
+            marker = os.path.join(existing, "keep.txt")
+            with open(marker, "w", encoding="utf-8") as f:
+                f.write("preserve")
+            with self.assertRaises(FileExistsError):
+                create_new_workspace(parent, "paper-1")
+            with open(marker, encoding="utf-8") as f:
+                self.assertEqual(f.read(), "preserve")
+
+    def test_workspace_name_cannot_escape_parent(self):
+        with tempfile.TemporaryDirectory() as parent:
+            for invalid in ("../outside", ".", "..", ""):
+                with self.subTest(name=invalid):
+                    with self.assertRaises(ValueError):
+                        create_new_workspace(parent, invalid)
+
+    def test_new_workspace_is_created(self):
+        with tempfile.TemporaryDirectory() as parent:
+            path = create_new_workspace(parent, "paper-2")
+            self.assertTrue(os.path.isdir(path))
 
 
 class SecretLoggingTests(unittest.TestCase):
