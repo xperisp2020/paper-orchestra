@@ -878,3 +878,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI run 45045092496 روی commit d93282e5352a338114e6f48e6baf47d907f4e486 در مرحله Build شکست خورد؛ خطای MSVC C2065 در خطوط 335–336: متغیر reopenedProposal پیش از declaration استفاده شده بود. مرحله Configure موفق بود و تست‌های بعدی به علت توقف Build اجرا نشدند.
 - علت مشخص شد: assertion جدید بازیابی وضعیت مشخصات نهایی قبل از محل ساخت پنجره smoke درج شده بود. declaration به قبل از اولین استفاده منتقل و declaration تکراری حذف شد.
 - commit اصلاح خطای ترتیب declaration: 4b446e9452ea0c50375313f848f591684aa002db. CI جدید برای این commit باید نتیجه build و smoke را تأیید کند؛ تا آن زمان اصلاح تأییدشده محسوب نمی‌شود.
+
+
+### 6.80 تأیید CI اصلاح بازگشایی مشخصات نهایی — 2026-11-22
+- CI run ID=45045262272 روی commit کد 4b446e9452ea0c50375313f848f591684aa002db با conclusion=success کامل شد.
+- job build-windows موفق: Configure، Build و Smoke test همگی success؛ بسته‌بندی portable و ساخت installer نیز انجام شد.
+- job verify-portable-artifact موفق: هر دو artifact دانلود و روی clean runner بررسی شدند؛ گام Extract and verify on a clean runner موفق بود.
+- Artifact portable: ID=14763268489، حجم=25,085,656 bytes، SHA256=c414626110e3197da7f36774f4bb38654b00323460655f8d1b5b18f21e3663d5، run=45045262272، expires=2027-02-20.
+- Artifact installer: ID=14763740250، حجم=17,968,360 bytes، SHA256=a1939738f5804c433eef1a86469568589379412071d4655c6fbc6f0776e30b71، همان run و انقضا.
+- نتیجه این CI خطای C2065 ناشی از ترتیب declaration در smoke test را رفع‌شده و آزمون بازیابی وضعیت مشخصات نهایی هنگام بازگشایی پروژه را در smoke تأیید می‌کند.
+- محدودیت: clean-runner موفقیت بسته‌ها را تأیید می‌کند؛ نصب فیزیکی روی دستگاه کاربر و آزمون Word 2010 واقعی همچنان انجام نشده است.
