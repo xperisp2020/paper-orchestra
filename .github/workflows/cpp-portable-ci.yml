@@ -30,3 +30,22 @@ jobs:
         run: cmake --build build --config Release --parallel
       - name: Smoke test
         run: ctest --test-dir build -C Release --output-on-failure
+      - name: Assemble portable directory
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'build/Release/yadavarifork.exe'
+          if (!(Test-Path $exe)) { throw "Application executable not found: $exe" }
+          $deploy = Get-Command windeployqt -ErrorAction Stop
+          & $deploy.Source --release --no-translations $exe
+          if ($LASTEXITCODE -ne 0) { throw "windeployqt failed with exit code $LASTEXITCODE" }
+          Copy-Item app_cpp/README.md build/Release/README.txt
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          & $exe --smoke-test
+          if ($LASTEXITCODE -ne 0) { throw "Deployed executable smoke test failed with exit code $LASTEXITCODE" }
+          Compress-Archive -Path 'build/Release/*' -DestinationPath 'build/yadavarifork-windows-portable.zip' -Force
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yadavarifork-windows-portable
+          path: build/yadavarifork-windows-portable.zip
+          if-no-files-found: error
