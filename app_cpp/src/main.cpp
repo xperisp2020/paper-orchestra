@@ -36,6 +36,7 @@
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QProcessEnvironment>
+#include <QStandardPaths>
 #include <QTimer>
 
 class WelcomeWindow final : public QMainWindow {
