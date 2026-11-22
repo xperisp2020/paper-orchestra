@@ -345,3 +345,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - آزمون‌های ایمنی بهبود یافتند: فایل‌ها با context manager خوانده می‌شوند و یک آزمون AST افزوده شد تا فراخوانی print شامل S2_API_KEY یا نام متغیر محیطی کلید نباشد.
 - workflow مستقل Python safety tests افزوده شد تا روی push شاخه work/yadavarifork، pull requestهای مرتبط و اجرای دستی، آزمون unittest با Python 3.12 اجرا شود.
 - این commit فقط زیرساخت آزمون و اصلاح منطق مسیر است؛ نتیجه تست هنوز تا اجرای GitHub Actions نامشخص است.
+
+
+### 6.10 نتیجه اجرای آزمون و کشف افشای دوم کلید — 2026-11-22
+- CI مستقل Python با run ID=45031390593 روی commit 636e55f5f04eab7b51a2d265c2095a7ff609fb7f با نتیجه success پایان یافت.
+- لاگ runner Python 3.12.16 صریحاً 5 آزمون را نشان داد: چهار سناریوی محافظت raw_materials و یک آزمون AST برای جلوگیری از چاپ کلید؛ نتیجه 5/5 و OK.
+- بازبینی گسترده‌تر تمام فایل‌های Python آشکار کرد autoraters/citation_f1.py نیز کلید SEMANTIC_SCHOLAR_API_KEY را در import-time چاپ می‌کرد. بنابراین دامنه آزمون امنیتی از فقط utils/scholar_utils.py به تمام فایل‌های Python گسترش یافت.
+- اصلاح: print حاوی کلید از autoraters/citation_f1.py حذف شد؛ آزمون AST اکنون تمام فایل‌های .py مخزن را اسکن می‌کند.
+- بازبینی حذف فایل‌ها: os.remove در frontend/app.py فقط روی کپی موقت داخل tempfile.TemporaryDirectory اعمال می‌شود و فایل‌های ورودی کاربر را حذف نمی‌کند. os.remove در utils/pdf_utils.py فایل PDF تولیدشده در cwd را قبل از کامپایل جایگزین می‌کند و نیازمند بررسی بیشتر مالکیت workspace است.
+- ریسک مهم باز: methods/paper_writer.py و methods/paper_writer_with_plotting.py در ابتدای write_single_paper دایرکتوری latex_writeup و final_paper.pdf را حذف می‌کنند؛ همچنین content_refinement_workdir را پاک می‌کنند. در پردازش batch، paper_dest_dir به‌طور کامل حذف می‌شود و این می‌تواند raw_materials و خروجی قبلی کاربر را از بین ببرد. این مورد هنوز اصلاح نشده و در چرخه بعدی اولویت بالاست.
+- این ثبت تفکیک می‌کند: 5 آزمون قبلی موفق بوده‌اند؛ اصلاح citation_f1 و آزمون جامع‌تر هنوز منتظر CI جدید است.

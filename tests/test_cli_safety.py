@@ -52,14 +52,17 @@ class RawMaterialsSafetyTests(unittest.TestCase):
 
 
 class SecretLoggingTests(unittest.TestCase):
-    def test_semantic_scholar_api_key_is_not_printed(self):
-        source = Path(__file__).resolve().parents[1] / "utils" / "scholar_utils.py"
-        tree = ast.parse(source.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "print":
-                rendered = ast.unparse(node)
-                self.assertNotIn("S2_API_KEY", rendered)
-                self.assertNotIn("SEMANTIC_SCHOLAR_API_KEY", rendered)
+    def test_semantic_scholar_api_key_is_not_printed_anywhere(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        for source in repo_root.rglob("*.py"):
+            if ".git" in source.parts:
+                continue
+            tree = ast.parse(source.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "print":
+                    rendered = ast.unparse(node)
+                    self.assertNotIn("S2_API_KEY", rendered, str(source))
+                    self.assertNotIn("SEMANTIC_SCHOLAR_API_KEY", rendered, str(source))
 
 
 if __name__ == "__main__":
