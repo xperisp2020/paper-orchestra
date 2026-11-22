@@ -105,7 +105,12 @@ jobs:
             if (!(Test-Path (Join-Path $root $required))) { throw "Required portable file is missing: $required" }
           }
           if (Test-Path (Join-Path $root 'yadavarifork_smoke.exe')) { throw "Test-only executable leaked into portable package." }
-          $env:QT_QPA_PLATFORM = 'offscreen'
-          $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -NoNewWindow -Wait -PassThru
+          $env:QT_QPA_PLATFORM = 'windows'
+          $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru
+          if (!$process.WaitForExit(30000)) {
+            $process.Kill()
+            throw "Clean-runner portable smoke test timed out after 30 seconds."
+          }
+          $process.Refresh()
           if ($process.ExitCode -ne 0) { throw "Clean-runner portable smoke test failed with exit code $($process.ExitCode)." }
           Write-Host "Clean-runner portable smoke test passed."

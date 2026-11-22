@@ -673,3 +673,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - plotting agent اکنون نتایج و تصویرها را در attempt جاری ذخیره/resolve می‌کند تا retry از تصاویر اجرای قبلی استفاده نکند.
 - سه آزمون رگرسیون افزوده شد: یکتایی و حفظ attemptها و بررسی استاتیک اتصال هر دو writer به workspace مجزا و حذف rmtree مربوط به refinement.
 - محدودیت: اجرای end-to-end چندایجنتی به API/provider و وابستگی‌های خارجی نیاز دارد؛ CI فعلی آزمون unit/ساختار را اجرا می‌کند، نه فراخوانی مدل‌های واقعی. نتیجه CI این تغییر هنوز نامشخص است.
+
+
+### 6.54 تنظیم platform صحیح و timeout برای smoke روی runner مستقل — 2026-11-22
+- اجرای job verify-portable-artifact در run 45038719296 پس از استخراج بسته وارد مرحله smoke شد اما تکمیل آن مشاهده نشد.
+- بررسی ZIP بسته نشان داد فقط platforms/qwindows.dll به‌عنوان platform plugin توزیع شده؛ qoffscreen.dll در بسته نیست. بنابراین offscreen در runner مستقل گزینه مناسبی نیست، زیرا آن runner نصب Qt جداگانه ندارد.
+- اصلاح: clean-runner smoke اکنون QT_QPA_PLATFORM=windows را برای plugin واقعاً توزیع‌شده تنظیم می‌کند، پنجره را hidden اجرا می‌کند و timeout سی‌ثانیه‌ای دارد تا هیچ process معلقی runner را برای مدت نامحدود نگه ندارد.
+- نتیجه آزمون clean-runner پس از این اصلاح در انتظار است.
