@@ -219,13 +219,14 @@ public:
             cancelResearchEngine_->setEnabled(false);
             const bool success = normalExit && exitCode == 0;
             bool outputRecorded = false;
-            if (success && !currentResearchRunOutput_.isEmpty() &&
+            if (success && currentResearchRunProjectId_ && !currentResearchRunOutput_.isEmpty() &&
                 QFileInfo(currentResearchRunOutput_).isDir()) {
                 outputRecorded = store_.saveProjectMetadata(
-                    *projectId_, QStringLiteral("research_engine_last_output"),
+                    *currentResearchRunProjectId_, QStringLiteral("research_engine_last_output"),
                     currentResearchRunOutput_, nullptr);
             }
             currentResearchRunOutput_.clear();
+            currentResearchRunProjectId_.reset();
             const QString resultMessage = success
                 ? (outputRecorded
                     ? (language_->currentData().toString() == QStringLiteral("fa")
@@ -243,6 +244,7 @@ public:
             runResearchEngine_->setEnabled(true);
             cancelResearchEngine_->setEnabled(false);
             currentResearchRunOutput_.clear();
+            currentResearchRunProjectId_.reset();
             researchStatus_->setText(researchStatus_->text() + QStringLiteral("\n") + message);
         });
         pages_->addWidget(researchPage);
@@ -1277,9 +1279,11 @@ private:
             QStringLiteral("--events_jsonl")
         };
         currentResearchRunOutput_ = output;
+        currentResearchRunProjectId_ = projectId_;
         researchStatus_->clear();
         if (!engineRunner_->start(python, arguments, QFileInfo(script).absolutePath(), environment)) {
             currentResearchRunOutput_.clear();
+            currentResearchRunProjectId_.reset();
             runResearchEngine_->setEnabled(true);
             cancelResearchEngine_->setEnabled(false);
             fail(persian ? QStringLiteral("راه‌اندازی فرایند موتور ناموفق بود؛ مسیر Python و دسترسی‌ها را بررسی کنید.") :
@@ -1670,6 +1674,7 @@ private:
     QString currentProposalSectionKey_;
     QString currentResearchSectionKey_;
     QString currentResearchRunOutput_;
+    std::optional<qint64> currentResearchRunProjectId_;
     bool proposalSectionDirty_{false};
     bool researchSectionDirty_{false};
     bool finalDetailsReviewed_{false};
