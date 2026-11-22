@@ -27,23 +27,89 @@ QString xmlEscape(const QString &value) {
     return value.toHtmlEscaped();
 }
 
+struct ProposalPage {
+    QString title;
+    QStringList sectionKeys;
+};
+
+QList<ProposalPage> proposalPages(bool rtl) {
+    const auto pageTitle = [rtl](int number) {
+        return rtl ? QStringLiteral("صفحه %1").arg(number)
+                   : QStringLiteral("Page %1").arg(number);
+    };
+    return {
+        {pageTitle(1), {QStringLiteral("title_fa"), QStringLiteral("title_en"),
+                        QStringLiteral("degree"), QStringLiteral("field"),
+                        QStringLiteral("specialization"), QStringLiteral("supervisor"),
+                        QStringLiteral("consultant"), QStringLiteral("student_name"),
+                        QStringLiteral("student_id"), QStringLiteral("archive_number"),
+                        QStringLiteral("approval_date")}},
+        {pageTitle(2), {QStringLiteral("student_information"),
+                        QStringLiteral("supervisor_information"),
+                        QStringLiteral("academic_records")}},
+        {pageTitle(3), {QStringLiteral("previous_theses")}},
+        {pageTitle(4), {QStringLiteral("thesis_specifications"),
+                        QStringLiteral("main_question"), QStringLiteral("problem_statement"),
+                        QStringLiteral("necessity"), QStringLiteral("literature_review")}},
+        {pageTitle(5), {QStringLiteral("innovation"), QStringLiteral("keywords"),
+                        QStringLiteral("objectives"), QStringLiteral("beneficiaries"),
+                        QStringLiteral("questions"), QStringLiteral("hypotheses"),
+                        QStringLiteral("definitions")}},
+        {pageTitle(6), {QStringLiteral("references_fa"), QStringLiteral("references_en"),
+                        QStringLiteral("references"), QStringLiteral("azad_challenge"),
+                        QStringLiteral("azad_goals"), QStringLiteral("azad_strategy"),
+                        QStringLiteral("azad_constellation"), QStringLiteral("azad_landscape"),
+                        QStringLiteral("research_program"), QStringLiteral("research_goal"),
+                        QStringLiteral("research_relation")}},
+        {pageTitle(7), {QStringLiteral("methodology"), QStringLiteral("data_collection"),
+                        QStringLiteral("research_tools"), QStringLiteral("analysis"),
+                        QStringLiteral("timeline")}},
+        {pageTitle(8), {QStringLiteral("variables"), QStringLiteral("personnel_cost")}},
+        {pageTitle(9), {QStringLiteral("materials_equipment")}},
+        {pageTitle(10), {QStringLiteral("miscellaneous_costs"), QStringLiteral("total_costs"),
+                         QStringLiteral("budget")}},
+        {pageTitle(11), {QStringLiteral("supervisor_confirmation"),
+                         QStringLiteral("consultant_confirmation"),
+                         QStringLiteral("project_information")}},
+        {pageTitle(12), {QStringLiteral("student_commitment")}},
+        {pageTitle(13), {QStringLiteral("supervisor_commitment"),
+                         QStringLiteral("researcher_commitment")}},
+        {pageTitle(14), {QStringLiteral("committee_opinion"),
+                         QStringLiteral("scientific_evaluation")}},
+        {pageTitle(15), {QStringLiteral("group_council_minutes")}},
+        {pageTitle(16), {QStringLiteral("faculty_research_council_opinion"),
+                         QStringLiteral("final_approval")}}
+    };
+}
+
 QString buildHtml(const QMap<QString, QString> &sections,
                   const QMap<QString, QString> &labels,
                   const QString &title, const QString &language) {
     const bool rtl = language == QStringLiteral("fa");
     QString html = QStringLiteral(
         "<!doctype html><html><head><meta charset=\"utf-8\"><style>"
-        "body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.55;}"
+        "body{font-family:Arial,sans-serif;font-size:10.5pt;line-height:1.45;margin:0;}"
         "h1{font-size:20pt;text-align:center;margin-bottom:18pt;}"
-        "h2{font-size:13pt;margin-top:16pt;border-bottom:1px solid #888;}"
-        "p{white-space:pre-wrap;margin:4pt 0;}"
+        "h2{font-size:12.5pt;margin-top:10pt;margin-bottom:5pt;border-bottom:1px solid #888;}"
+        "h3{font-size:11pt;margin:8pt 0 4pt;}"
+        "p{white-space:pre-wrap;margin:3pt 0;}"
+        ".proposal-page{page-break-before:always;break-before:page;}"
+        ".proposal-page:first-of-type{page-break-before:auto;break-before:auto;}"
         "</style></head><body dir=\"%1\">").arg(rtl ? QStringLiteral("rtl") : QStringLiteral("ltr"));
     html += QStringLiteral("<h1>%1</h1>").arg(title.toHtmlEscaped());
-    for (const QString &key : ProjectStore::proposalSectionKeys()) {
-        html += QStringLiteral("<h2>%1</h2>").arg(labels.value(key, key).toHtmlEscaped());
-        const QStringList paragraphs = sections.value(key).split(QLatin1Char('\n'), Qt::KeepEmptyParts);
-        for (const QString &paragraph : paragraphs)
-            html += QStringLiteral("<p>%1</p>").arg(paragraph.toHtmlEscaped());
+    const auto pages = proposalPages(rtl);
+    for (qsizetype pageIndex = 0; pageIndex < pages.size(); ++pageIndex) {
+        if (pageIndex > 0)
+            html += QStringLiteral("<div class=\"proposal-page\">");
+        html += QStringLiteral("<h2>%1</h2>").arg(pages.at(pageIndex).title.toHtmlEscaped());
+        for (const QString &key : pages.at(pageIndex).sectionKeys) {
+            html += QStringLiteral("<h3>%1</h3>").arg(labels.value(key, key).toHtmlEscaped());
+            const QStringList paragraphs = sections.value(key).split(QLatin1Char('\n'), Qt::KeepEmptyParts);
+            for (const QString &paragraph : paragraphs)
+                html += QStringLiteral("<p>%1</p>").arg(paragraph.toHtmlEscaped());
+        }
+        if (pageIndex > 0)
+            html += QStringLiteral("</div>");
     }
     html += QStringLiteral("</body></html>");
     return html;
@@ -158,11 +224,17 @@ QByteArray buildDocumentXml(const QMap<QString, QString> &sections,
                             const QString &title, const QString &language) {
     const bool rtl = language == QStringLiteral("fa");
     QString body = wordParagraph(title, rtl, true);
-    for (const QString &key : ProjectStore::proposalSectionKeys()) {
-        body += wordParagraph(labels.value(key, key), rtl, true);
-        const QStringList paragraphs = sections.value(key).split(QLatin1Char('\n'), Qt::KeepEmptyParts);
-        for (const QString &paragraph : paragraphs)
-            body += wordParagraph(paragraph, rtl);
+    const auto pages = proposalPages(rtl);
+    for (qsizetype pageIndex = 0; pageIndex < pages.size(); ++pageIndex) {
+        if (pageIndex > 0)
+            body += QStringLiteral("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>");
+        body += wordParagraph(pages.at(pageIndex).title, rtl, true);
+        for (const QString &key : pages.at(pageIndex).sectionKeys) {
+            body += wordParagraph(labels.value(key, key), rtl, true);
+            const QStringList paragraphs = sections.value(key).split(QLatin1Char('\n'), Qt::KeepEmptyParts);
+            for (const QString &paragraph : paragraphs)
+                body += wordParagraph(paragraph, rtl);
+        }
     }
     const QString xml = QStringLiteral(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"

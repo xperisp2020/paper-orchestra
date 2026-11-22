@@ -632,3 +632,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - DOCX هنوز از QTemporaryFile pre-created استفاده می‌کرد؛ همان الگوی فایل موقت که در Windows مانع publish PDF شده بود.
 - اصلاح: DOCX نیز اکنون در QTemporaryDir تازه و فایل generated.docx ساخته می‌شود؛ سپس پس از بسته‌شدن writer با no-overwrite rename منتشر می‌شود. خطای DOCX در smoke علاوه بر qCritical به stderr هم چاپ می‌شود.
 - نتیجه CI جدید در انتظار است.
+
+
+### 6.49 صفحه‌بندی ساختاری پروپوزال و به‌روزرسانی مستندات — 2026-11-22
+- C++ portable CI روی run ID=45037809234 و commit 9ba43f81b0e09506fcca0d05640c98b6b7a8782a کاملاً success شد: Configure، Build، CTest، windeployqt، smoke روی executable مستقرشده و upload artifact.
+- Artifact: ID=14759943652، نام=yadavarifork-windows-portable، حجم=25,038,668 bytes، digest SHA256=fa5aa7d8320862dd5d6a7a87c0d61cfc213833e812ac2a7098e63db3cba1cb77، run=45037809234، commit=9ba43f81b0e09506fcca0d05640c98b6b7a8782a، انقضا=2027-02-20.
+- خروجی پروپوزال اکنون بر اساس گروه‌بندی 16 صفحه‌ای فرم واحد شیراز ساخته می‌شود؛ DOCX برای شروع هر گروه صفحه‌بندی صریح w:br دارد و HTML/PDF/PNG از page-break استفاده می‌کنند.
+- گروه‌بندی شامل همه 60 کلید proposalSectionKeys است؛ محتوا در صفحه‌های گروه‌بندی‌شده قابل گسترش است و تضمین نمی‌شود هر گروه دقیقاً یک برگ فیزیکی باقی بماند.
+- README بازنویسی شد تا وضعیت واقعی و محدودیت‌های برنامه را شفاف کند: AI/پژوهش زنده و provider authentication هنوز کامل نیستند؛ no-API مولد نیست؛ خروجی رسمی دانشگاه/امضا جعل نمی‌شود.
+- Qt install cache برای کوتاه‌شدن چرخه‌های CI فعال شد.
+- آزمون C++ و بازبینی پوشش 60 کلید برای commit این مرحله در انتظار است.

@@ -1,27 +1,38 @@
-# Yadavarifork — C++ portable desktop
+# Yadavarifork — Native Windows desktop
 
-This is the primary native desktop implementation, targeting Windows portable first.
+The primary desktop application is implemented in C++20 with Qt 6 Widgets. Windows portable is the first delivery target.
 
-## Stack
-- C++20
-- Qt 6.12.0 (Qt Widgets for the initial wizard shell)
-- CMake 3.25+
+## Current implemented scope
+- Persian and English startup, with RTL/LTR layout
+- AI mode selection: no-API local workflow, free-tier provider category, or paid provider category
+- Proposal and research workflow selection
+- Proposal section editor backed by SQLite persistence
+- Export to PDF, DOCX (Office Open XML), and paginated PNG images
+- Print through the Qt print dialog
+- Existing project output files and folders are not overwritten
+- Portable Windows packaging with Qt runtime deployment and a second smoke test against the deployed executable
 
-## Build
+**No-API mode is a deterministic local workspace, not a generative model.** The free-tier and paid choices currently select workflow categories; provider authentication and live research-agent execution are not yet complete. The research workflow is not represented as completed AI research.
+
+## Proposal export
+The export engine groups proposal sections into the 16-page sequence derived from the Shiraz Islamic Azad University proposal form. It is a structured editable draft, not an official university-issued form; signatures, approvals, and committee decisions must be completed by the authorized people. Long user-entered content can expand a page group onto additional physical pages.
+
+DOCX uses Office Open XML, which is supported by Word 2010 and newer. PDF/PNG output uses Qt text layout. Verify Persian typography, pagination, and any university-specific revisions before formal submission.
+
+## Build on Windows
+Install Qt 6.12.0 for MSVC 2022 x64 and CMake 3.25+.
 
 ```powershell
 cmake -S app_cpp -B build -DCMAKE_PREFIX_PATH="$env:Qt6_DIR"
-cmake --build build --config Release
+cmake --build build --config Release --parallel --target yadavarifork yadavarifork_smoke
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-Install Qt 6.12.0 with the matching MSVC 2022 kit and Qt Widgets module. The GitHub Actions workflow installs the upstream aqtinstall revision containing Qt 6.11+ repository-layout support. It deliberately omits an explicit module list: Qt's base desktop package is implicit, while the previous explicit `qtbase` module selector was rejected by the 6.11 repository metadata. The workflow then builds on Windows and runs a UI smoke test that checks language direction and wizard navigation.
+The smoke target is a console executable used only for diagnostics and is excluded from the portable ZIP. The shipped application is the GUI executable.
 
-The CI workflow pins the aqtinstall revision that added Qt 6.11+ repository-layout support and validates configure, compile, and the UI smoke test against Qt 6.12.0 LTS. It then runs `windeployqt`, re-runs the smoke test against the deployed executable, and uploads a ZIP artifact. This is an initial portable-directory packaging check, not yet a clean-machine acceptance test.
+## Delivery gates
+1. Portable Windows: build, smoke tests, runtime deployment, and artifact verification.
+2. Installer: only after the portable package passes a clean Windows acceptance test.
+3. Android: after both Windows distributions are stable.
 
-## Current scope
-The first increment implements the language, AI mode, and workflow selection screens. It does not yet implement proposal generation, research agents, local persistence, document export, printing, or portable packaging. The no-API mode is a local workflow and does not claim to provide a generative model.
-
-
-## Proposal document output
-The C++ portable application exports proposal content to PDF, DOCX (Office Open XML), and paginated PNG images. Printing uses the Qt print dialog. Existing output files and image folders are not overwritten.
+A successful CI build is not a substitute for clean-machine acceptance, Word 2010 compatibility testing, or user review of the university form layout.
