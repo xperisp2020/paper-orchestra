@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest
 
 from paper_writing_cli import prepare_raw_materials
-from utils.safe_workspace import create_new_workspace, publish_file_no_overwrite
+from utils.safe_workspace import create_new_workspace, paths_are_same, publish_file_no_overwrite
 
 
 class RawMaterialsSafetyTests(unittest.TestCase):
@@ -78,6 +78,21 @@ class WorkspaceSafetyTests(unittest.TestCase):
             path = create_new_workspace(parent, "paper-2")
             self.assertTrue(os.path.isdir(path))
 
+
+
+
+class PdfPathCompatibilityTests(unittest.TestCase):
+    def test_compile_source_and_requested_output_can_be_same_path(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = os.path.join(temp, "initial_draft.pdf")
+            self.assertTrue(paths_are_same(path, path))
+            self.assertTrue(paths_are_same(path, os.path.join(temp, ".", "initial_draft.pdf")))
+
+    def test_distinct_compile_output_paths_are_detected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = os.path.join(temp, "template.pdf")
+            destination = os.path.join(temp, "final.pdf")
+            self.assertFalse(paths_are_same(source, destination))
 
 
 class PdfOutputSafetyTests(unittest.TestCase):

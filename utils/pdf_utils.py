@@ -27,7 +27,7 @@ import numpy as np
 import cv2
 from pypdf import PdfReader  # type: ignore
 
-from utils.safe_workspace import publish_file_no_overwrite
+from utils.safe_workspace import paths_are_same, publish_file_no_overwrite
 
 
 def load_paper(pdf_path, num_pages=None, min_size=100):
@@ -172,13 +172,12 @@ def compile_latex(cwd, pdf_file, texfile_name="template", timeout=30):
     import os, shutil, subprocess, traceback, rich
 
     source_pdf = os.path.join(cwd, f"{texfile_name}.pdf")
-    if os.path.abspath(source_pdf) == os.path.abspath(pdf_file):
-        raise ValueError("LaTeX source and destination PDF paths must differ.")
+    same_output_path = paths_are_same(source_pdf, pdf_file)
     if os.path.lexists(source_pdf):
         raise FileExistsError(
             f"Refusing to overwrite existing LaTeX build output: {source_pdf}"
         )
-    if os.path.lexists(pdf_file):
+    if not same_output_path and os.path.lexists(pdf_file):
         raise FileExistsError(
             f"Refusing to overwrite existing destination PDF: {pdf_file}"
         )
@@ -230,6 +229,8 @@ def compile_latex(cwd, pdf_file, texfile_name="template", timeout=30):
     )
 
     if os.path.isfile(source_pdf) and commands_succeeded:
+        if same_output_path:
+            return True
         try:
             publish_file_no_overwrite(source_pdf, pdf_file)
             return True

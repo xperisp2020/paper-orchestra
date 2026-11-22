@@ -54,3 +54,10 @@ def publish_file_no_overwrite(source_path: str, destination_path: str) -> str:
 
     os.unlink(source)
     return destination
+
+
+def paths_are_same(path_a: str, path_b: str) -> bool:
+    """Compare paths after resolving relative segments and platform case rules."""
+    return os.path.normcase(os.path.realpath(os.path.abspath(path_a))) == os.path.normcase(
+        os.path.realpath(os.path.abspath(path_b))
+    )
