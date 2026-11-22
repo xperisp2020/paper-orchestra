@@ -218,18 +218,31 @@ public:
             runResearchEngine_->setEnabled(true);
             cancelResearchEngine_->setEnabled(false);
             const bool success = normalExit && exitCode == 0;
-            researchStatus_->setText(researchStatus_->text() + QStringLiteral("\n") +
-                (success
+            bool outputRecorded = false;
+            if (success && !currentResearchRunOutput_.isEmpty() &&
+                QFileInfo(currentResearchRunOutput_).isDir()) {
+                outputRecorded = store_.saveProjectMetadata(
+                    *projectId_, QStringLiteral("research_engine_last_output"),
+                    currentResearchRunOutput_, nullptr);
+            }
+            currentResearchRunOutput_.clear();
+            const QString resultMessage = success
+                ? (outputRecorded
                     ? (language_->currentData().toString() == QStringLiteral("fa")
-                        ? QStringLiteral("فرایند موتور با کد صفر پایان یافت. خروجی را در پوشهٔ run بررسی کنید.")
-                        : QStringLiteral("Engine process exited successfully. Review the run output folder."))
+                        ? QStringLiteral("موتور با موفقیت پایان یافت؛ مسیر خروجی در پروژه ثبت شد.")
+                        : QStringLiteral("Engine completed successfully; output path saved in the project."))
                     : (language_->currentData().toString() == QStringLiteral("fa")
-                        ? QStringLiteral("اجرای موتور موفق نبود؛ کد خروج: %1").arg(exitCode)
-                        : QStringLiteral("Engine run failed; exit code: %1").arg(exitCode))));
+                        ? QStringLiteral("فرایند با کد صفر پایان یافت، اما پوشه خروجی یا ثبت مسیر آن تأیید نشد.")
+                        : QStringLiteral("Process exited with code zero, but output folder or metadata persistence was not verified.")))
+                : (language_->currentData().toString() == QStringLiteral("fa")
+                    ? QStringLiteral("اجرای موتور موفق نبود؛ کد خروج: %1").arg(exitCode)
+                    : QStringLiteral("Engine run failed; exit code: %1").arg(exitCode));
+            researchStatus_->setText(researchStatus_->text() + QStringLiteral("\n") + resultMessage);
         });
         connect(engineRunner_, &ResearchEngineRunner::failed, this, [this](const QString &message) {
             runResearchEngine_->setEnabled(true);
             cancelResearchEngine_->setEnabled(false);
+            currentResearchRunOutput_.clear();
             researchStatus_->setText(researchStatus_->text() + QStringLiteral("\n") + message);
         });
         pages_->addWidget(researchPage);
@@ -1263,14 +1276,10 @@ private:
             QStringLiteral("--latex_template_dir"), templateDir,
             QStringLiteral("--events_jsonl")
         };
-        if (!store_.saveProjectMetadata(*projectId_, QStringLiteral("research_engine_last_output"),
-                                        output, nullptr)) {
-            fail(persian ? QStringLiteral("ثبت مسیر اجرای پژوهش در پروژه ناموفق بود.") :
-                            QStringLiteral("Could not save the research run path in the project."));
-            return;
-        }
+        currentResearchRunOutput_ = output;
         researchStatus_->clear();
         if (!engineRunner_->start(python, arguments, QFileInfo(script).absolutePath(), environment)) {
+            currentResearchRunOutput_.clear();
             runResearchEngine_->setEnabled(true);
             cancelResearchEngine_->setEnabled(false);
             fail(persian ? QStringLiteral("راه‌اندازی فرایند موتور ناموفق بود؛ مسیر Python و دسترسی‌ها را بررسی کنید.") :
@@ -1660,6 +1669,7 @@ private:
     std::optional<qint64> projectId_;
     QString currentProposalSectionKey_;
     QString currentResearchSectionKey_;
+    QString currentResearchRunOutput_;
     bool proposalSectionDirty_{false};
     bool researchSectionDirty_{false};
     bool finalDetailsReviewed_{false};
