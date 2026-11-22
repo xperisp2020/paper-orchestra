@@ -3,6 +3,7 @@ import os
 import tempfile
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from paper_writing_cli import prepare_raw_materials
 from utils.safe_workspace import create_new_workspace, paths_are_same, publish_file_no_overwrite
@@ -120,6 +121,49 @@ class PdfOutputSafetyTests(unittest.TestCase):
             with open(destination, "rb") as f:
                 self.assertEqual(f.read(), b"keep")
             self.assertTrue(os.path.exists(source))
+
+
+    def test_failed_copy_does_not_remove_replacement_destination(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = os.path.join(temp, "generated.pdf")
+            destination = os.path.join(temp, "final.pdf")
+            with open(source, "wb") as f:
+                f.write(b"generated")
+
+            def replace_then_fail(input_file, output_file):
+                os.unlink(destination)
+                with open(destination, "wb") as replacement:
+                    replacement.write(b"user replacement")
+                raise OSError("simulated copy failure")
+
+            with patch("utils.safe_workspace.shutil.copyfileobj", side_effect=replace_then_fail):
+                with self.assertRaises(OSError):
+                    publish_file_no_overwrite(source, destination)
+
+            with open(destination, "rb") as f:
+                self.assertEqual(f.read(), b"user replacement")
+            self.assertTrue(os.path.exists(source))
+
+    def test_replaced_source_is_not_deleted_after_publish(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = os.path.join(temp, "generated.pdf")
+            destination = os.path.join(temp, "final.pdf")
+            with open(source, "wb") as f:
+                f.write(b"generated")
+
+            def replace_source_then_copy(input_file, output_file):
+                os.unlink(source)
+                with open(source, "wb") as replacement:
+                    replacement.write(b"user replacement")
+                output_file.write(input_file.read())
+
+            with patch("utils.safe_workspace.shutil.copyfileobj", side_effect=replace_source_then_copy):
+                publish_file_no_overwrite(source, destination)
+
+            with open(source, "rb") as f:
+                self.assertEqual(f.read(), b"user replacement")
+            with open(destination, "rb") as f:
+                self.assertEqual(f.read(), b"generated")
 
     def test_source_must_be_regular_file_and_distinct(self):
         with tempfile.TemporaryDirectory() as temp:
