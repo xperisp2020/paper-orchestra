@@ -617,3 +617,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اصلاح: WIN32_EXECUTABLE برای yadavarifork_smoke صریحاً FALSE شد و خطای PDF علاوه بر qCritical با std::cerr چاپ می‌شود.
 - هدف این مرحله فقط آشکارشدن storageError واقعی است؛ اصلاح منطق PDF تا مشاهده خطا به تعویق افتاده است.
 - نتیجه CI جدید در انتظار است.
+
+
+### 6.47 اصلاح تولید PDF پس از مشخص‌شدن خطای publish در Windows — 2026-11-22
+- CI run 45037153636 روی commit d543ee505222a025c7019171b67cc0e4c24aa94c، Build را موفق گذراند و کنسول تشخیصی خطای دقیق را ثبت کرد: «Cannot publish output file» برای proposal.pdf. بنابراین تولید PDF تا مرحله publish پیش می‌رود، اما انتقال فایل موقت به مقصد در Windows شکست می‌خورد.
+- عیب‌یابی نشان داد PDF temp قبلاً با QTemporaryFile ایجاد و بسته می‌شد، سپس QPdfWriter همان مسیر pre-created را دوباره باز می‌کرد. این الگو روی Windows قابل اتکا نبود.
+- اصلاح: تولید PDF اکنون در QTemporaryDir تازه و در فایل generated.pdf انجام می‌شود؛ هیچ فایل pre-created به QPdfWriter داده نمی‌شود. خروجی باید فایل غیرخالی باشد و سپس با no-overwrite rename به مقصد منتشر شود.
+- خطای publish اکنون errorString سیستم را نیز در پیام ثبت می‌کند.
+- نتیجه CI جدید هنوز مشخص نیست.

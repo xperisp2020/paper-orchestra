@@ -12,6 +12,7 @@
 #include <QPrintDialog>
 #include <QPrinter>
 #include <QTemporaryFile>
+#include <QTemporaryDir>
 #include <QTextDocument>
 
 #include <limits>
@@ -182,7 +183,9 @@ bool publishTempFile(const QString &temporaryPath, const QString &outputPath, QS
     }
     QFile temporary(temporaryPath);
     if (!temporary.rename(outputPath)) {
-        setError(error, QStringLiteral("Cannot publish output file: %1").arg(outputPath));
+        const QString reason = temporary.errorString();
+        setError(error, QStringLiteral("Cannot publish output file: %1 (%2)")
+                     .arg(outputPath, reason));
         QFile::remove(temporaryPath);
         return false;
     }
@@ -197,15 +200,16 @@ bool toPdf(const QMap<QString, QString> &sections, const QMap<QString, QString> 
         setError(error, QStringLiteral("Refusing to overwrite existing PDF: %1").arg(outputPath));
         return false;
     }
-    QTemporaryFile temporary(QFileInfo(outputPath).absolutePath() +
-                             QStringLiteral("/.yadavarifork-pdf-XXXXXX.tmp"));
-    temporary.setAutoRemove(false);
-    if (!temporary.open()) {
-        setError(error, temporary.errorString());
+
+    // Use a fresh directory rather than a pre-created temporary file. Some
+    // Windows PDF backends cannot reopen/truncate a QTemporaryFile path.
+    QTemporaryDir temporaryDirectory(QFileInfo(outputPath).absolutePath() +
+                                     QStringLiteral("/.yadavarifork-pdf-XXXXXX"));
+    if (!temporaryDirectory.isValid()) {
+        setError(error, QStringLiteral("Cannot create temporary PDF workspace."));
         return false;
     }
-    const QString temporaryPath = temporary.fileName();
-    temporary.close();
+    const QString temporaryPath = temporaryDirectory.filePath(QStringLiteral("generated.pdf"));
     {
         QPdfWriter writer(temporaryPath);
         writer.setPageSize(QPageSize(QPageSize::A4));
@@ -214,9 +218,8 @@ bool toPdf(const QMap<QString, QString> &sections, const QMap<QString, QString> 
         document.setHtml(buildHtml(sections, labels, title, language));
         document.print(&writer);
     }
-    if (!QFileInfo(temporaryPath).isFile()) {
-        setError(error, QStringLiteral("PDF writer did not produce an output file."));
-        QFile::remove(temporaryPath);
+    if (!QFileInfo(temporaryPath).isFile() || QFileInfo(temporaryPath).size() <= 0) {
+        setError(error, QStringLiteral("PDF writer did not produce a non-empty output file."));
         return false;
     }
     return publishTempFile(temporaryPath, outputPath, error);
