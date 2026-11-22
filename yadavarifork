@@ -814,3 +814,14 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - دو آزمون جدید: پوشش کلیدهای محیطی و header/tokenهای نمونه، و حفظ پیام diagnostic غیرمحرمانه.
 - workflow Python اکنون تغییرات همه utils/**، methods/** و autoraters/** را نیز trigger می‌کند.
 - نتیجه CI این اصلاح هنوز در انتظار است.
+
+
+### 6.72 نتیجه نهایی چرخه research persistence، installer و redaction — 2026-11-22
+- CI C++ run ID=45040935119 روی commit 59870bf9884c4f4c89a8ffa30cdf19c890fd2130 با موفقیت کامل شد: Configure، Build، smoke test، بسته‌بندی portable، ساخت Inno Setup installer و clean-runner acceptance.
+- smoke test این نسخه اکنون مسیرهای proposal و research را پوشش می‌دهد: SQLite، 11 بخش پژوهش، ثبت/نمایش منبع unverified، بازیابی پروژه‌های ذخیره‌شده و انتخاب editor مناسب؛ خطای NOT NULL notes با تبدیل QString null به رشته خالی اصلاح شد.
+- clean-runner مستقل Windows Server 2022، ZIP پرتابل را استخراج و executable را اجرا کرد؛ installer نیز silent install، اجرای برنامه، silent uninstall و حفظ sentinel داخل data را با موفقیت گذراند.
+- Artifact portable: ID=14760928945، حجم=25,076,137 bytes، SHA256=3f0b5d6123dbaca671f3d817a0f6314806453e788587a20775fe5fd3eebcf3c6، run=45040935119، expires=2027-02-20.
+- Artifact installer: ID=14760859249، حجم=17,960,905 bytes، SHA256=8cb20ace292418c32bc76614a0841ebf02684725b3d2b5b9e0950708d714a146، همان run و انقضا.
+- Python safety run ID=45041134959 روی commit 1fa21d7f55a2cbf66541fd0c03c132da2129b838 در Ubuntu و Windows 2022 هر دو success شد؛ هر دو runner تعداد 24 تست را با نتیجه OK ثبت کردند.
+- redaction کلیدهای محیطی و headerهای Authorization/X-API-KEY/api_key و پالایش tracebackها اکنون آزموده شده است؛ آزمون‌های قبلی raw_materials، workspace retry، batch resume و secret logging همچنان موفق‌اند.
+- محدودیت باقی‌مانده: پذیرش installer روی clean runner موفق است، اما نصب روی دستگاه واقعی کاربر و آزمون با نسخه‌های مختلف Windows/Word 2010 هنوز انجام نشده؛ بخش research فعلاً دفترچه محلی و منبع‌نگار است، نه اجرای کامل multi-agent یا تولید خودکار ادبیات.
