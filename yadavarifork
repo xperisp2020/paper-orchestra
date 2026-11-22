@@ -1015,3 +1015,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - این تأیید فقط به پل فرایندی، رویدادهای CLI، redaction، build و بسته‌بندی مربوط است؛ اجرای واقعی pipeline چندعاملی با API واقعی، بررسی وابستگی‌های کامل Python/LaTeX، resume/checkpoint و history چند-run هنوز تأیید نشده‌اند.
 - اجرای موتور از UI عمداً فقط در حالت paid فعال است؛ no_api و free_tier مسدودند تا routing واقعی برای طرح رایگان اضافه شود. Python/dependencies هنوز bundled نیستند.
 - خطاهای CI ناشی از commitهای میانیِ ترتیبی (CMake پیش از ثبت فایل‌های منبع پل) با اجرای نهایی روی commit کامل پوشش داده شدند؛ اجرای نهایی همه گیت‌ها را گذراند.
+
+
+### 6.90 ممیزی و پیش‌نیازسنجی runtime موتور پژوهش — در انتظار CI
+- ممیزی مجدد مخزن مجاز xperisp2020/paper-orchestra در شاخه work/yadavarifork انجام شد؛ هویت مخزن (ID=1467327081)، مالک و HEAD پیش از تغییر بررسی شدند.
+- مشخص شد UI وجود Python، CLI، مواد خام، template و کلید Gemini را کنترل می‌کند، اما وجود بسته‌های Python تعریف‌شده در requirements.txt و ابزارهای کامپایل واقعی را پیش از شروع pipeline نمی‌سنجد.
+- utils/pdf_utils.py برای تولید PDF از pdflatex و bibtex استفاده می‌کند؛ نبود هرکدام می‌تواند اجرای چندمرحله‌ای و پرهزینه را پس از شروع شکست دهد.
+- تابع validate_runtime_prerequisites به CLI اضافه شد: metadata تمام distributionهای requirements.txt و executableهای pdflatex و bibtex را پیش از ساخت خروجی/شروع agentها بررسی می‌کند. در صورت کمبود، exit code=2 و پیام تشخیصی و JSONL pipeline_failed با stage=runtime_preflight منتشر می‌شود.
+- تست‌های مستقل برای تشخیص بسته/ابزار مفقود و حالت کامل اضافه شدند.
+- فایل‌های تغییرکرده: paper_writing_cli.py و tests/test_cli_safety.py. این مرحله فقط اصلاح کد است؛ نتیجه آزمون Ubuntu/Windows تا پایان CI تأییدشده نیست.
+- محدودیت‌های باقی‌مانده از ممیزی: Python و requirements هنوز در portable بسته‌بندی نشده‌اند؛ UI هنوز preflight را پیش از ایجاد process اجرا نمی‌کند (CLI آن را در ابتدای اجرا انجام می‌دهد)؛ اجرای واقعی pipeline با API معتبر و resume/checkpoint/history چند-run هنوز تأیید نشده است.
