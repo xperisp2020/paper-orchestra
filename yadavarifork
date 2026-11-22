@@ -1126,3 +1126,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - emit_event اکنون فقط فیلد error را با redact_secrets پاک‌سازی می‌کند و سایر جزئیات رویداد را بدون تغییر نگه می‌دارد.
 - آزمون جدید Authorization: Bearer را در JSONL بررسی می‌کند. Python safety CI شماره 45054260722 روی Ubuntu و Windows هر دو success شد.
 - CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45054260722
+
+
+### 6.97 آزمون end-to-end CLI برای manifest موفق/ناموفق
+- تست‌های integration جدید main() واقعی CLI را با writer آزمایشی جایگزین‌شده اجرا می‌کنند؛ اجرای موفق باید manifest completed و رویدادهای pipeline_started/pipeline_completed با run_id یکسان بسازد و raw materials را کپی کند.
+- سناریوی شکست writer نیز بررسی می‌کند manifest به failed تغییر کند و خطای Authorization: Bearer هم در manifest و هم در JSONL به [REDACTED] تبدیل شود.
+- Python safety CI شماره 45054389521 روی commit 97a2d55ba6efe11e860855d34312d2fa96ecf6eb با هر دو job Ubuntu و Windows success شد.
+- CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45054389521
+- این مرحله چرخه manifest CLI را با موفقیت و شکست واقعی کنترل‌شده تأیید می‌کند؛ اجرای agentهای واقعی و provider API همچنان جداگانه باقی است.
