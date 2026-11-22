@@ -89,6 +89,9 @@ public:
         editorStatus_ = new QLabel;
         editorStatus_->setWordWrap(true);
         static_cast<QVBoxLayout *>(editorPage->layout())->addWidget(editorStatus_);
+        saveSection_ = new QPushButton;
+        saveSection_->setObjectName(QStringLiteral("saveSectionButton"));
+        static_cast<QVBoxLayout *>(editorPage->layout())->addWidget(saveSection_);
         pages_->addWidget(editorPage);
 
         auto *navigation = new QWidget;
@@ -199,7 +202,7 @@ public:
             return false;
         sectionList_->setCurrentRow(problemRow);
         sectionEditor_->setPlainText(QStringLiteral("Persisted by GUI smoke test"));
-        saveSelectedSection();
+        saveSection_->click();
         QString storageError;
         const auto saved = store_.loadSections(*projectId_, &storageError);
         if (saved.value(QStringLiteral("problem_statement")) !=
