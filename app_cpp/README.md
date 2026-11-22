@@ -32,7 +32,11 @@ The smoke target is a console executable used only for diagnostics and is exclud
 
 ## Delivery gates
 1. Portable Windows: build, smoke tests, runtime deployment, and artifact verification.
-2. Installer: only after the portable package passes a clean Windows acceptance test.
+2. Installer: built with pinned Inno Setup and tested through silent install, launch, uninstall, and user-data preservation on a clean Windows runner.
 3. Android: after both Windows distributions are stable.
 
 A successful CI build is not a substitute for clean-machine acceptance, Word 2010 compatibility testing, or user review of the university form layout.
+
+
+## Windows installer
+The CI pipeline produces both the portable ZIP and a per-user Inno Setup installer. The installer defaults to `%LOCALAPPDATA%\\Programs\\Yadavarifork`, so the application can write its local SQLite data without administrator rights. The `data` directory is explicitly preserved by uninstall; removing the application does not silently remove project databases.

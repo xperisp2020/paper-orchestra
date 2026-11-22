@@ -710,3 +710,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - ZIP داخلی نیز سالم است: 28 entry، testzip=None، SHA256=bbf006c40074231d08c44b4ace55b0f6ab85a9ffdf526e8fd84c338059af02e2.
 - بررسی محتوا تأیید کرد تنها executable بسته yadavarifork.exe است؛ Qt6Core.dll، Qt6Widgets.dll، platforms/qwindows.dll، sqldrivers/qsqlite.dll و README.txt حاضرند؛ yadavarifork_smoke.exe در بسته وجود ندارد.
 - فایل executable اندازه 255,488 bytes دارد؛ آزمون clean-runner مستقل علاوه بر این بررسی ساختاری، اجرای موفق خود برنامه را ثبت کرده است.
+
+
+### 6.59 پیاده‌سازی installer ویندوز پس از پذیرش نسخه پرتابل — 2026-11-22
+- گیت نسخه پرتابل در CI run 45039092377 و clean-runner smoke موفق شد؛ بنابراین مسیر ساخت installer آغاز شد.
+- Inno Setup 7.1.1 از release رسمی pin شد؛ SHA256 نصب‌کننده x64 برابر 8a5a6711c3766a6e5fb74f280ba0e3551e719ce94538d901fdbd1f8f9920b3f0 است و workflow پیش از نصب hash را کنترل می‌کند.
+- installer per-user در مسیر پیش‌فرض %LOCALAPPDATA%\\Programs\\Yadavarifork نصب می‌شود و به administrator نیاز ندارد.
+- فایل داده محلی data در [Dirs] با uninsneveruninstall علامت‌گذاری شده تا حذف برنامه به معنی حذف دیتابیس‌های کاربر نباشد.
+- CI installer را از همان خروجی windeployqt شده می‌سازد؛ artifact مستقل setup.exe اضافه شد.
+- clean-runner acceptance شامل نصب بی‌صدا، بررسی فایل اجرایی، اجرای --smoke-test، ایجاد sentinel در data، حذف بی‌صدا و تأیید باقی‌ماندن sentinel است.
+- script و workflow آماده شدند؛ نتیجه ساخت و نصب واقعی هنوز منتظر CI است.

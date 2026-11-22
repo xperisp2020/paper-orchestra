@@ -4,11 +4,13 @@ on:
     branches: [work/yadavarifork]
     paths:
       - 'app_cpp/**'
+      - 'packaging/windows/**'
       - '.github/workflows/cpp-portable-ci.yml'
   pull_request:
     branches: [work/yadavarifork]
     paths:
       - 'app_cpp/**'
+      - 'packaging/windows/**'
       - '.github/workflows/cpp-portable-ci.yml'
   workflow_dispatch:
 
@@ -82,6 +84,26 @@ jobs:
           name: yadavarifork-windows-portable
           path: build/yadavarifork-windows-portable.zip
           if-no-files-found: error
+      - name: Install pinned Inno Setup compiler
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'innosetup-7.1.1-x64.exe'
+          Invoke-WebRequest -Uri 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_1/innosetup-7.1.1-x64.exe' -OutFile $installer
+          $actual = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          $expected = '8a5a6711c3766a6e5fb74f280ba0e3551e719ce94538d901fdbd1f8f9920b3f0'
+          if ($actual -ne $expected) { throw "Inno Setup installer SHA256 mismatch: $actual" }
+          $install = Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/DIR=C:\InnoSetup') -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Inno Setup installation failed: $($install.ExitCode)" }
+          $compiler = 'C:\InnoSetup\ISCC.exe'
+          if (!(Test-Path $compiler)) { throw "Inno Setup compiler not found: $compiler" }
+          & $compiler 'packaging/windows/yadavarifork.iss'
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed: $LASTEXITCODE" }
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yadavarifork-windows-installer
+          path: build/installer/Yadavarifork-Setup-0.1.0.exe
+          if-no-files-found: error
 
   verify-portable-artifact:
     needs: build-windows
@@ -92,6 +114,11 @@ jobs:
         with:
           name: yadavarifork-windows-portable
           path: artifact
+      - name: Download installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: yadavarifork-windows-installer
+          path: installer-artifact
       - name: Extract and verify on a clean runner
         shell: pwsh
         run: |
@@ -114,3 +141,29 @@ jobs:
           $process.Refresh()
           if ($process.ExitCode -ne 0) { throw "Clean-runner portable smoke test failed with exit code $($process.ExitCode)." }
           Write-Host "Clean-runner portable smoke test passed."
+          $setup = Join-Path $PWD 'installer-artifact/Yadavarifork-Setup-0.1.0.exe'
+          if (!(Test-Path $setup)) { throw "Windows installer artifact is missing." }
+          $installDir = Join-Path $PWD 'installed'
+          $installProcess = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/DIR=$installDir") -Wait -PassThru
+          if ($installProcess.ExitCode -ne 0) { throw "Silent installer failed: $($installProcess.ExitCode)" }
+          $installedExe = Join-Path $installDir 'yadavarifork.exe'
+          if (!(Test-Path $installedExe)) { throw "Installed application executable is missing." }
+          $env:QT_QPA_PLATFORM = 'windows'
+          $installedProcess = Start-Process -FilePath $installedExe -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru
+          if (!$installedProcess.WaitForExit(30000)) {
+            $installedProcess.Kill()
+            throw "Installed application smoke test timed out after 30 seconds."
+          }
+          $installedProcess.Refresh()
+          if ($installedProcess.ExitCode -ne 0) { throw "Installed application smoke test failed: $($installedProcess.ExitCode)" }
+          $dataDir = Join-Path $installDir 'data'
+          New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
+          $sentinel = Join-Path $dataDir 'user-data-preservation-check.txt'
+          Set-Content -LiteralPath $sentinel -Value 'preserve across uninstall'
+          $uninstaller = Join-Path $installDir 'unins000.exe'
+          if (!(Test-Path $uninstaller)) { throw "Uninstaller executable is missing." }
+          $uninstallProcess = Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -PassThru
+          if ($uninstallProcess.ExitCode -ne 0) { throw "Silent uninstall failed: $($uninstallProcess.ExitCode)" }
+          if (Test-Path $installedExe) { throw "Application executable remains after uninstall." }
+          if (!(Test-Path $sentinel)) { throw "Installer removed user data; preservation test failed." }
+          Write-Host "Installer install, app smoke, uninstall, and user-data preservation passed."
