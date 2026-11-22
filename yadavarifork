@@ -952,3 +952,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI آخرین commit در run شماره 45047537373 در مرحله Build خطای MSVC C2065 را در saveFinalDetails گزارش کرد: متغیر error فقط داخل حلقه تعریف شده بود و پس از حلقه برای ذخیره metadata قابل دسترسی نبود.
 - علت ریشه‌ای مشخص شد؛ متغیر به ابتدای تابع منتقل شد تا هم saveSection و هم saveProjectMetadata از همان error استفاده کنند. این اصلاح در commit 4ee67319b4000f432618aab95474f0365a0d083b ثبت شد.
 - اجرای CI اصلاح‌شده هنوز باید تکمیل شود؛ تا دریافت conclusion=success، مرحله 6.87 تأییدشده نیست.
+
+
+### 6.87.2 تأیید نهایی ماندگاری Skip و بسته‌های ویندوز
+- اجرای اصلاح‌شده CI شماره 45047759673 روی commit کد 4ee67319b4000f432618aab95474f0365a0d083b با conclusion=success کامل شد.
+- Build و Smoke test هر دو success شدند؛ تست جدید بازکردن مجدد پنجره/پروژه با وضعیت skipped و خالی ماندن مشخصات فردی نیز در smoke test اجرا شد.
+- بسته portable ساخته شد و verify-portable-artifact روی clean Windows runner با موفقیت اجرای ZIP، نصب silent، اجرای برنامه نصب‌شده، uninstall و حفظ sentinel داده کاربر را تأیید کرد.
+- Installer artifact ID=14764311742، حجم=17,969,992 bytes، digest=sha256:520985d66d134fa960928341ffe45228ef3cd0e82ce448d0658c619ccd7a5b71.
+- Portable artifact ID=14763883046، حجم=25,088,955 bytes، digest=sha256:f6bf92634abad36c68f97a7a5a9af02dab50c102d2cc9d8db99a3ee1821329c6.
+- artifactها تا 2027-02-20 معتبرند. خطای C2065 در اجرای قبلی 45047537373 با انتقال تعریف error به محدوده تابع اصلاح شد؛ CI نهایی این اصلاح را تأیید کرد.
+- این نتیجه تأیید clean CI است؛ نصب فیزیکی روی دستگاه کاربر و آزمون واقعی Word 2010 همچنان انجام نشده‌اند.
