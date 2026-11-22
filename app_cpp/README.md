@@ -41,3 +41,14 @@ A successful CI build is not a substitute for clean-machine acceptance, Word 201
 
 ## Windows installer
 The CI pipeline produces both the portable ZIP and a per-user Inno Setup installer. The installer defaults to `%LOCALAPPDATA%\\Programs\\Yadavarifork`, so the application can write its local SQLite data without administrator rights. The `data` directory is explicitly preserved by uninstall; removing the application does not silently remove project databases.
+
+
+## Preparing the Windows research runtime
+
+The portable Qt application does not bundle Python packages or a LaTeX distribution. To prepare an isolated Python environment, install Python 3.12 or newer and run the bootstrap script from the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_research_runtime.ps1 -PythonExecutable "C:\Path\To\python.exe" -RuntimeDirectory "$env:LOCALAPPDATA\Yadavarifork\research-runtime"
+```
+
+The script creates a new virtual environment, installs `requirements-research.txt` (the CLI dependency set without the legacy Streamlit frontend), verifies core imports, and checks that `pdflatex` and `bibtex` are available on `PATH`. It refuses to overwrite an existing runtime directory. If LaTeX tools are missing, it exits with code 3 after reporting the missing executables. It does not configure, read, or store provider API keys; configure `GEMINI_API_KEY` separately in the process environment. In the application, select the created `Scripts\\python.exe` as the Python executable.
