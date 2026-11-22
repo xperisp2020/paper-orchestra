@@ -35,9 +35,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             $exe = Join-Path $PWD 'build/Release/yadavarifork.exe'
             $env:QT_QPA_PLATFORM = 'offscreen'
-            & $exe --smoke-test
-            $smokeExit = $LASTEXITCODE
-            Write-Host "Direct smoke test exit code: $smokeExit"
+            $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -NoNewWindow -Wait -PassThru
+            Write-Host "Direct smoke test exit code: $($process.ExitCode)"
             exit 1
           }
       - name: Assemble portable directory
