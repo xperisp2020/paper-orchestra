@@ -96,6 +96,7 @@ QStringList ProjectStore::proposalSectionKeys() {
 }
 
 bool ProjectStore::initialize(QString *error) {
+    if (error) error->clear();
     const QString parent = QFileInfo(database_.databaseName()).absolutePath();
     if (!QDir().mkpath(parent)) {
         setError(error, QStringLiteral("Cannot create the project data directory: %1").arg(parent));
@@ -182,6 +183,7 @@ std::optional<qint64> ProjectStore::createProject(const QString &title,
                                                    const QString &aiMode,
                                                    const QString &workflow,
                                                    QString *error) {
+    if (error) error->clear();
     const QString cleanTitle = title.trimmed();
     if (cleanTitle.isEmpty()) {
         setError(error, QStringLiteral("Project title cannot be empty."));
@@ -252,6 +254,7 @@ std::optional<qint64> ProjectStore::createProject(const QString &title,
 
 bool ProjectStore::saveSection(qint64 projectId, const QString &sectionKey,
                                const QString &content, QString *error) {
+    if (error) error->clear();
     if (!proposalSectionKeys().contains(sectionKey)) {
         setError(error, QStringLiteral("Unknown proposal section: %1").arg(sectionKey));
         return false;
@@ -294,6 +297,7 @@ bool ProjectStore::saveSection(qint64 projectId, const QString &sectionKey,
 }
 
 QMap<QString, QString> ProjectStore::loadSections(qint64 projectId, QString *error) {
+    if (error) error->clear();
     QMap<QString, QString> sections;
     if (!database_.isOpen() && !initialize(error))
         return sections;
@@ -329,6 +333,7 @@ QStringList ProjectStore::researchSectionKeys() {
 
 bool ProjectStore::saveResearchSection(qint64 projectId, const QString &sectionKey,
                                        const QString &content, QString *error) {
+    if (error) error->clear();
     if (!researchSectionKeys().contains(sectionKey)) {
         setError(error, QStringLiteral("Unknown research section: %1").arg(sectionKey));
         return false;
@@ -370,6 +375,7 @@ bool ProjectStore::saveResearchSection(qint64 projectId, const QString &sectionK
 }
 
 QMap<QString, QString> ProjectStore::loadResearchSections(qint64 projectId, QString *error) {
+    if (error) error->clear();
     QMap<QString, QString> sections;
     if (!database_.isOpen() && !initialize(error))
         return sections;
@@ -389,6 +395,7 @@ QMap<QString, QString> ProjectStore::loadResearchSections(qint64 projectId, QStr
 std::optional<qint64> ProjectStore::addResearchSource(qint64 projectId,
                                                       const ResearchSource &source,
                                                       QString *error) {
+    if (error) error->clear();
     const QString title = source.title.trimmed();
     if (title.isEmpty()) {
         setError(error, QStringLiteral("Source title is required."));
@@ -436,6 +443,7 @@ std::optional<qint64> ProjectStore::addResearchSource(qint64 projectId,
 }
 
 QList<ResearchSource> ProjectStore::loadResearchSources(qint64 projectId, QString *error) {
+    if (error) error->clear();
     QList<ResearchSource> sources;
     if (!database_.isOpen() && !initialize(error))
         return sources;
@@ -464,6 +472,7 @@ QList<ResearchSource> ProjectStore::loadResearchSources(qint64 projectId, QStrin
 }
 
 bool ProjectStore::deleteResearchSource(qint64 projectId, qint64 sourceId, QString *error) {
+    if (error) error->clear();
     if (!database_.isOpen() && !initialize(error))
         return false;
     if (!database_.transaction()) {
