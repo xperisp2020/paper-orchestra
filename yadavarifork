@@ -790,3 +790,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اصلاح: برای timestamp update فقط موفقیت exec بررسی می‌شود؛ وجود پروژه قبلاً توسط foreign key هنگام INSERT تضمین می‌شود. همین شرط زائد در saveResearchSection نیز حذف شد.
 - smoke اکنون متن storageError را در صورت شکست چاپ می‌کند تا خطای بعدی قابل تشخیص باشد.
 - نتیجه CI بعد از اصلاح در انتظار است.
+
+
+### 6.69 تکمیل اصلاح false-negative در timestamp پژوهش — 2026-11-22
+- بازبینی commit 72dd8c77aac5ef7977844e265ac09ce3e3bf80ce نشان داد اصلاح row-count فقط در saveSection اعمال شده بود، درحالی‌که saveResearchSection و addResearchSource هنوز شرط numRowsAffected()==0 داشتند.
+- اصلاح تکمیلی: در saveResearchSection و addResearchSource فقط exec موفق UPDATE timestamp بررسی می‌شود؛ وجود project با foreign key و عملیات INSERT تضمین شده است. شرط numRowsAffected در DELETE منبع حفظ می‌شود چون برای تشخیص منبع ناموجود لازم است.
+- smoke test اکنون hasId و مقدار ID را نیز در کنار خطای SQLite چاپ می‌کند.
+- نتیجه CI این اصلاح در انتظار است.

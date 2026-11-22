@@ -406,7 +406,9 @@ public:
         source.url = QStringLiteral("https://example.invalid/source");
         const auto sourceId = store_.addResearchSource(*researchWindow.projectId_, source, &storageError);
         if (!sourceId || !storageError.isEmpty()) {
-            std::cerr << "addResearchSource smoke failure: " << storageError.toStdString() << std::endl;
+            std::cerr << "addResearchSource smoke failure: hasId=" << bool(sourceId)
+                      << " id=" << sourceId.value_or(-1)
+                      << " error=" << storageError.toStdString() << std::endl;
             return 47;
         }
         const auto sources = store_.loadResearchSources(*researchWindow.projectId_, &storageError);

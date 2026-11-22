@@ -411,10 +411,8 @@ bool ProjectStore::saveResearchSection(qint64 projectId, const QString &sectionK
     QSqlQuery update(database_);
     update.prepare(QStringLiteral("UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?"));
     update.addBindValue(projectId);
-    if (!update.exec() || update.numRowsAffected() == 0) {
-        setError(error, update.lastError().text().isEmpty()
-                            ? QStringLiteral("Project does not exist.")
-                            : update.lastError().text());
+    if (!update.exec()) {
+        setError(error, update.lastError().text());
         database_.rollback();
         return false;
     }
@@ -479,10 +477,8 @@ std::optional<qint64> ProjectStore::addResearchSource(qint64 projectId,
     QSqlQuery update(database_);
     update.prepare(QStringLiteral("UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?"));
     update.addBindValue(projectId);
-    if (!update.exec() || update.numRowsAffected() == 0) {
-        setError(error, update.lastError().text().isEmpty()
-                            ? QStringLiteral("Project does not exist.")
-                            : update.lastError().text());
+    if (!update.exec()) {
+        setError(error, update.lastError().text());
         database_.rollback();
         return std::nullopt;
     }
