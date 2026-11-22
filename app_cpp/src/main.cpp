@@ -244,6 +244,7 @@ public:
         if (!DocumentExport::toDocx(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                     docxPath, &storageError)) {
             qCritical().noquote() << "DOCX export failed:" << storageError;
+            std::cerr << "DOCX export failed: " << storageError.toStdString() << std::endl;
             return 32;
         }
         if (!DocumentExport::toPngPages(saved, labels, projectTitle_->text(), QStringLiteral("fa"),

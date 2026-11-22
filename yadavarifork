@@ -625,3 +625,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اصلاح: تولید PDF اکنون در QTemporaryDir تازه و در فایل generated.pdf انجام می‌شود؛ هیچ فایل pre-created به QPdfWriter داده نمی‌شود. خروجی باید فایل غیرخالی باشد و سپس با no-overwrite rename به مقصد منتشر شود.
 - خطای publish اکنون errorString سیستم را نیز در پیام ثبت می‌کند.
 - نتیجه CI جدید هنوز مشخص نیست.
+
+
+### 6.48 اصلاح مسیر انتشار DOCX پس از عبور PDF — 2026-11-22
+- CI run 45037450184 روی commit b5f25479f994a741817d6c88f10a1b42ad606ac1 نشان داد PDF با QTemporaryDir اکنون عبور می‌کند و شکست به مرحله DOCX (کد 32) منتقل شده است.
+- DOCX هنوز از QTemporaryFile pre-created استفاده می‌کرد؛ همان الگوی فایل موقت که در Windows مانع publish PDF شده بود.
+- اصلاح: DOCX نیز اکنون در QTemporaryDir تازه و فایل generated.docx ساخته می‌شود؛ سپس پس از بسته‌شدن writer با no-overwrite rename منتشر می‌شود. خطای DOCX در smoke علاوه بر qCritical به stderr هم چاپ می‌شود.
+- نتیجه CI جدید در انتظار است.

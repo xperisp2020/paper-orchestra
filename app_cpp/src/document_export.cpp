@@ -232,15 +232,13 @@ bool toDocx(const QMap<QString, QString> &sections, const QMap<QString, QString>
         setError(error, QStringLiteral("Refusing to overwrite existing DOCX: %1").arg(outputPath));
         return false;
     }
-    QTemporaryFile temporary(QFileInfo(outputPath).absolutePath() +
-                             QStringLiteral("/.yadavarifork-docx-XXXXXX.tmp"));
-    temporary.setAutoRemove(false);
-    if (!temporary.open()) {
-        setError(error, temporary.errorString());
+    QTemporaryDir temporaryDirectory(QFileInfo(outputPath).absolutePath() +
+                                     QStringLiteral("/.yadavarifork-docx-XXXXXX"));
+    if (!temporaryDirectory.isValid()) {
+        setError(error, QStringLiteral("Cannot create temporary DOCX workspace."));
         return false;
     }
-    const QString temporaryPath = temporary.fileName();
-    temporary.close();
+    const QString temporaryPath = temporaryDirectory.filePath(QStringLiteral("generated.docx"));
 
     const QByteArray contentTypes = R"(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -277,7 +275,6 @@ bool toDocx(const QMap<QString, QString> &sections, const QMap<QString, QString>
     }
     if (!written) {
         setError(error, QStringLiteral("Failed to assemble the DOCX package."));
-        QFile::remove(temporaryPath);
         return false;
     }
     return publishTempFile(temporaryPath, outputPath, error);
