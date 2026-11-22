@@ -5,6 +5,8 @@ on:
     branches: [work/yadavarifork]
     paths:
       - "paper_writing_cli.py"
+      - "requirements-research.txt"
+      - "scripts/setup_research_runtime.ps1"
       - "utils/**"
       - "methods/**"
       - "autoraters/**"
@@ -13,6 +15,8 @@ on:
   pull_request:
     paths:
       - "paper_writing_cli.py"
+      - "requirements-research.txt"
+      - "scripts/setup_research_runtime.ps1"
       - "utils/**"
       - "methods/**"
       - "autoraters/**"
