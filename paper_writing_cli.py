@@ -27,7 +27,7 @@ def validate_runtime_prerequisites(requirements_path=None):
     import re
 
     if requirements_path is None:
-        requirements_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt")
+        requirements_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements-research.txt")
 
     missing = []
     try:
