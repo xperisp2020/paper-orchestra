@@ -36,6 +36,8 @@
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QProcessEnvironment>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QStandardPaths>
 #include <QTimer>
 
@@ -190,8 +192,26 @@ public:
                 : QStringLiteral("Research engine is running; output is streamed below."));
         });
         connect(engineRunner_, &ResearchEngineRunner::outputLine, this, [this](const QString &line) {
+            QString displayLine = line;
+            const QJsonDocument eventDocument = QJsonDocument::fromJson(line.toUtf8());
+            if (eventDocument.isObject()) {
+                const QJsonObject event = eventDocument.object();
+                const QString eventName = event.value(QStringLiteral("event")).toString();
+                if (!eventName.isEmpty()) {
+                    if (eventName == QStringLiteral("pipeline_started"))
+                        displayLine = language_->currentData().toString() == QStringLiteral("fa")
+                            ? QStringLiteral("رویداد: آغاز تولید مقاله")
+                            : QStringLiteral("Event: paper generation started");
+                    else if (eventName == QStringLiteral("pipeline_completed"))
+                        displayLine = language_->currentData().toString() == QStringLiteral("fa")
+                            ? QStringLiteral("رویداد: تولید مقاله پایان یافت")
+                            : QStringLiteral("Event: paper generation completed");
+                    else if (eventName == QStringLiteral("pipeline_failed"))
+                        displayLine = event.value(QStringLiteral("error")).toString();
+                }
+            }
             const QString current = researchStatus_->text();
-            const QString combined = current + (current.isEmpty() ? QString() : QStringLiteral("\n")) + line;
+            const QString combined = current + (current.isEmpty() ? QString() : QStringLiteral("\n")) + displayLine;
             researchStatus_->setText(combined.right(6000));
         });
         connect(engineRunner_, &ResearchEngineRunner::finished, this, [this](int exitCode, bool normalExit) {
@@ -601,16 +621,21 @@ public:
                              bridgeFinished = normalExit;
                              bridgeExitCode = code;
                          });
+        QProcessEnvironment bridgeEnvironment = QProcessEnvironment::systemEnvironment();
+        bridgeEnvironment.insert(QStringLiteral("GEMINI_API_KEY"), QStringLiteral("bridge-smoke-secret"));
         if (!bridge.start(QCoreApplication::applicationFilePath(),
                           {QStringLiteral("--bridge-child-test")},
-                          QDir::tempPath(), QProcessEnvironment::systemEnvironment()))
+                          QDir::tempPath(), bridgeEnvironment))
             return 69;
         QEventLoop bridgeLoop;
         QObject::connect(&bridge, &ResearchEngineRunner::finished, &bridgeLoop, &QEventLoop::quit);
         QTimer::singleShot(10000, &bridgeLoop, &QEventLoop::quit);
         bridgeLoop.exec();
+        const QString bridgeText = bridgeOutput.join(QStringLiteral("\n"));
         if (!bridgeFinished || bridgeExitCode != 0 ||
-            !bridgeOutput.join(QString()).contains(QStringLiteral("bridge-child-ok")))
+            !bridgeText.contains(QStringLiteral("bridge-child-ok")) ||
+            !bridgeText.contains(QStringLiteral("GEMINI_API_KEY=[REDACTED]")) ||
+            bridgeText.contains(QStringLiteral("bridge-smoke-secret")))
             return 70;
         return 0;
     }
@@ -1098,6 +1123,19 @@ private:
             return;
 
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        const QString selectedAiMode = aiMode_->currentData().toString();
+        if (selectedAiMode == QStringLiteral("no_api")) {
+            researchStatus_->setText(persian
+                ? QStringLiteral("حالت بدون API فقط کارگاه محلی است و موتور مولد را اجرا نمی‌کند.")
+                : QStringLiteral("No-API mode is a local workspace and cannot run the generative engine."));
+            return;
+        }
+        if (selectedAiMode == QStringLiteral("free_tier")) {
+            researchStatus_->setText(persian
+                ? QStringLiteral("مسیریابی طرح رایگان هنوز در CLI موجود نیست؛ برای جلوگیری از استفاده ناخواسته از مدل پولی، اجرا مسدود شد.")
+                : QStringLiteral("Free-tier routing is not implemented in the CLI. Execution is blocked to avoid unintentionally using a paid model."));
+            return;
+        }
         QDialog dialog(this);
         dialog.setWindowTitle(persian ? QStringLiteral("تنظیم اجرای موتور پژوهش") :
                                         QStringLiteral("Configure research engine"));
@@ -1222,7 +1260,8 @@ private:
             script,
             QStringLiteral("--raw_materials_dir"), materials,
             QStringLiteral("--output_dir"), output,
-            QStringLiteral("--latex_template_dir"), templateDir
+            QStringLiteral("--latex_template_dir"), templateDir,
+            QStringLiteral("--events_jsonl")
         };
         if (!store_.saveProjectMetadata(*projectId_, QStringLiteral("research_engine_last_output"),
                                         output, nullptr)) {
@@ -1632,6 +1671,7 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     if (app.arguments().contains(QStringLiteral("--bridge-child-test"))) {
         std::cout << "bridge-child-ok\\n";
+        std::cout << "GEMINI_API_KEY=" << qEnvironmentVariable("GEMINI_API_KEY").toStdString() << '\\n';
         return 0;
     }
     if (app.arguments().contains(QStringLiteral("--smoke-test"))) {
