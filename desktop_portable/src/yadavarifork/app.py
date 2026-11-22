@@ -15,7 +15,7 @@ from .domain import PROPOSAL_SECTIONS, ProjectStore
 
 PERSIAN = {
     "app": "یادآور پژوهش", "language": "زبان برنامه را انتخاب کنید",
-    "next": "ادامه", "ai": "روش استفاده از هوش مصنوعی را انتخاب کنید",
+    "next": "ادامه", "back": "بازگشت", "ai": "روش استفاده از هوش مصنوعی را انتخاب کنید",
     "free": "کاملاً رایگان و بدون API", "free_note": "ابزارهای محلی و قواعد قطعی؛ بدون تولید متن توسط مدل زبانی.",
     "tier": "سرویس‌های دارای طرح رایگان", "tier_note": "اتصال به سرویس‌های رایگان، در صورت دسترسی و با محدودیت سهمیه.",
     "paid": "سرویس‌های پولی", "paid_note": "اتصال اختیاری به ارائه‌دهندگان پولی؛ کلیدها بعداً امن‌سازی می‌شوند.",
@@ -26,7 +26,7 @@ PERSIAN = {
 }
 ENGLISH = {
     "app": "Yadavarifork Research", "language": "Choose the application language",
-    "next": "Continue", "ai": "Choose the AI usage mode", "free": "Free, no API",
+    "next": "Continue", "back": "Back", "ai": "Choose the AI usage mode", "free": "Free, no API",
     "free_note": "Local tools and deterministic rules; no language-model generation.",
     "tier": "Providers with free tiers", "tier_note": "Optional access to free-tier services, subject to availability and quotas.",
     "paid": "Paid AI providers", "paid_note": "Optional paid-provider integration; secure key storage will be added later.",
@@ -34,6 +34,19 @@ ENGLISH = {
     "research": "Conduct research", "title": "Project title", "create": "Create project",
     "save": "Save section", "saved": "Saved", "research_soon": "Research-agent integration is scheduled for a subsequent development step.",
     "required": "Please enter a project title.", "sections": "Proposal sections",
+}
+
+
+EN_SECTION_LABELS = {
+    "title_fa": "Persian title", "title_en": "English title",
+    "field": "Field and specialization", "main_question": "Main research question",
+    "problem_statement": "Problem statement", "necessity": "Significance and necessity",
+    "literature_review": "Literature review", "innovation": "Original contribution",
+    "keywords": "Keywords", "objectives": "Objectives", "beneficiaries": "Beneficiaries",
+    "questions": "Research questions", "hypotheses": "Hypotheses", "definitions": "Definitions",
+    "references": "References", "methodology": "Methodology", "data_collection": "Data collection",
+    "analysis": "Analysis method", "variables": "Variables", "timeline": "Timeline",
+    "budget": "Estimated budget",
 }
 
 class MainWindow(QMainWindow):
@@ -45,6 +58,7 @@ class MainWindow(QMainWindow):
         self.workflow = "proposal"
         self.project_id: int | None = None
         self.texts = PERSIAN
+        self.page_headings: list[QLabel] = []
         self.setWindowTitle(self.texts["app"])
         self.resize(1080, 720)
         self.stack = QStackedWidget()
@@ -65,6 +79,7 @@ class MainWindow(QMainWindow):
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setStyleSheet("font-size: 24px; font-weight: 600; padding: 24px;")
         layout.addWidget(label)
+        self.page_headings.append(label)
         self.stack.addWidget(page)
         return page, layout
 
@@ -74,9 +89,9 @@ class MainWindow(QMainWindow):
         self.language_combo.addItem("فارسی", "fa")
         self.language_combo.addItem("English", "en")
         layout.addWidget(self.language_combo)
-        button = QPushButton(self.t("next"))
-        button.clicked.connect(self._choose_language)
-        layout.addWidget(button)
+        self.language_next_button = QPushButton(self.t("next"))
+        self.language_next_button.clicked.connect(self._choose_language)
+        layout.addWidget(self.language_next_button)
         layout.addStretch()
 
     def _choose_language(self):
@@ -96,9 +111,14 @@ class MainWindow(QMainWindow):
         self.ai_combo.currentIndexChanged.connect(self._update_ai_description)
         layout.addWidget(self.ai_combo)
         layout.addWidget(self.ai_description)
-        button = QPushButton(self.t("next"))
-        button.clicked.connect(lambda: self.stack.setCurrentIndex(2))
-        layout.addWidget(button)
+        navigation = QHBoxLayout()
+        self.ai_back_button = QPushButton(self.t("back"))
+        self.ai_back_button.clicked.connect(lambda: self.stack.setCurrentIndex(0))
+        self.ai_next_button = QPushButton(self.t("next"))
+        self.ai_next_button.clicked.connect(lambda: self.stack.setCurrentIndex(2))
+        navigation.addWidget(self.ai_back_button)
+        navigation.addWidget(self.ai_next_button)
+        layout.addLayout(navigation)
         layout.addStretch()
 
     def _update_ai_description(self):
@@ -113,12 +133,18 @@ class MainWindow(QMainWindow):
         self.project_title = QLineEdit()
         self.project_title.setPlaceholderText(self.t("title"))
         form = QFormLayout()
-        form.addRow(self.t("title"), self.project_title)
+        self.title_form_label = QLabel(self.t("title"))
+        form.addRow(self.title_form_label, self.project_title)
         layout.addWidget(self.workflow_combo)
         layout.addLayout(form)
-        button = QPushButton(self.t("create"))
-        button.clicked.connect(self._create_project)
-        layout.addWidget(button)
+        navigation = QHBoxLayout()
+        self.workflow_back_button = QPushButton(self.t("back"))
+        self.workflow_back_button.clicked.connect(lambda: self.stack.setCurrentIndex(1))
+        self.create_project_button = QPushButton(self.t("create"))
+        self.create_project_button.clicked.connect(self._create_project)
+        navigation.addWidget(self.workflow_back_button)
+        navigation.addWidget(self.create_project_button)
+        layout.addLayout(navigation)
         layout.addStretch()
 
     def _create_project(self):
@@ -145,14 +171,20 @@ class MainWindow(QMainWindow):
         editor_row.addWidget(self.section_list, 1)
         editor_row.addWidget(self.section_editor, 3)
         layout.addLayout(editor_row)
-        save = QPushButton(self.t("save"))
-        save.clicked.connect(self._save_section)
-        layout.addWidget(save)
+        navigation = QHBoxLayout()
+        self.editor_back_button = QPushButton(self.t("back"))
+        self.editor_back_button.clicked.connect(lambda: self.stack.setCurrentIndex(2))
+        self.editor_save_button = QPushButton(self.t("save"))
+        self.editor_save_button.clicked.connect(self._save_section)
+        navigation.addWidget(self.editor_back_button)
+        navigation.addWidget(self.editor_save_button)
+        layout.addLayout(navigation)
 
     def _load_project_sections(self):
         self.section_list.clear()
-        for key, label in PROPOSAL_SECTIONS:
-            self.section_list.addItem(label)
+        labels = EN_SECTION_LABELS if self.language == "en" else dict(PROPOSAL_SECTIONS)
+        for key, _label in PROPOSAL_SECTIONS:
+            self.section_list.addItem(labels[key])
             self.section_list.item(self.section_list.count() - 1).setData(Qt.ItemDataRole.UserRole, key)
         if self.section_list.count():
             self.section_list.setCurrentRow(0)
@@ -172,17 +204,29 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, self.t("app"), self.t("saved"))
 
     def _refresh_labels(self):
-        # Page headings and button labels are refreshed after language selection.
-        self.stack.widget(0).findChild(QLabel).setText(self.t("language"))
-        self.stack.widget(1).findChild(QLabel).setText(self.t("ai"))
-        self.stack.widget(2).findChild(QLabel).setText(self.t("workflow"))
-        self.stack.widget(3).findChild(QLabel).setText(self.t("sections"))
+        headings = ("language", "ai", "workflow", "sections")
+        for heading, label in zip(headings, self.page_headings):
+            label.setText(self.t(heading))
+        self.language_next_button.setText(self.t("next"))
+        self.ai_back_button.setText(self.t("back"))
+        self.ai_next_button.setText(self.t("next"))
+        self.workflow_back_button.setText(self.t("back"))
+        self.create_project_button.setText(self.t("create"))
+        self.editor_back_button.setText(self.t("back"))
+        self.editor_save_button.setText(self.t("save"))
+        self.title_form_label.setText(self.t("title"))
         self.ai_combo.setItemText(0, self.t("free"))
         self.ai_combo.setItemText(1, self.t("tier"))
         self.ai_combo.setItemText(2, self.t("paid"))
         self.workflow_combo.setItemText(0, self.t("proposal"))
         self.workflow_combo.setItemText(1, self.t("research"))
         self.project_title.setPlaceholderText(self.t("title"))
+        if self.project_id is not None:
+            self._load_project_sections()
+        self.setLayoutDirection(
+            Qt.LayoutDirection.RightToLeft if self.language == "fa"
+            else Qt.LayoutDirection.LeftToRight
+        )
         self._update_ai_description()
 
 
