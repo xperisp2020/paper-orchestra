@@ -1670,8 +1670,8 @@ private:
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     if (app.arguments().contains(QStringLiteral("--bridge-child-test"))) {
-        std::cout << "bridge-child-ok\\n";
-        std::cout << "GEMINI_API_KEY=" << qEnvironmentVariable("GEMINI_API_KEY").toStdString() << '\\n';
+        std::cout << "bridge-child-ok\n";
+        std::cout << "GEMINI_API_KEY=" << qEnvironmentVariable("GEMINI_API_KEY").toStdString() << '\n';
         return 0;
     }
     if (app.arguments().contains(QStringLiteral("--smoke-test"))) {
