@@ -307,3 +307,22 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - عامل ContentRefinementAgent در نسخه مرجع به Gemini و reviewer متکی است؛ این پیاده‌سازی را نباید به‌عنوان حالت رایگانِ بدون API معرفی کرد. حالت no-API محصول ما باید واقعاً محلی/قاعده‌محور باشد یا runtime و مدل محلی مستقل داشته باشد.
 - requirements.txt فاقد نسخه‌های pin شده است؛ برای بازتولید build و امنیت زنجیره تأمین، وابستگی‌های مسیر Python آینده باید با lockfile/constraints و اسکن آسیب‌پذیری مدیریت شوند.
 - نتیجه و تصمیم: از مخزن مرجع فقط دانش معماری چندایجنتی، تفکیک promptها، مرور ادبیات و اصلاح تکرارشونده محتوا/قالب به‌عنوان الگوی طراحی استفاده شود؛ کد تازه‌ای از آن در این دور ادغام نشد چون تغییرات upstream در کپی ما حاضر بود و ریسک‌های امنیتی/حذف داده نیز باید ابتدا اصلاح شوند. هیچ فایل یا شاخه‌ای در مخزن مرجع تغییر نکرد.
+
+
+### 6.7 ممیزی عمیق‌تر تاریخچه و قابلیت‌های افزوده‌شده مخزن مرجع — 2026-11-22
+- هویت مخزن مقصد پیش از ثبت دوباره تأیید شد: ID=1467327081، owner=xperisp2020، name=paper-orchestra. شاخه مقصد فقط work/yadavarifork است؛ HEAD پیش از ثبت: 5d7376cdff95990d9a560c6f7aab8bbed442fae6.
+- تاریخچه upstream تا HEAD فعلی main با جزئیات commit بررسی شد. علاوه بر اصلاح escapeهای LaTeX، سه دسته تغییر قبلی/تکمیلی نیز مشخص شد:
+  1. commit `60e333a1c6c46ed5112bc8c6a6cda545f032d554`: ساخت lazy و thread-safe برای Gemini/OpenAI client تا کلید فقط هنگام استفاده از همان provider لازم باشد؛ حذف وابستگی import-time به هر دو کلید و حذف import مستقیم client از PaperBanana.
+  2. commit `0a1730e06270ec8db8f1e10476f494a8d1974632`: افزودن joblib، numpy و requests به requirements.txt.
+  3. commit `ca1b3fa01c2970fc7cda32d16245db38d57b3f56`: اصلاح قالب BibTeX ارجاع به مقاله PaperOrchestra در README.
+- تطبیق SHA فایل‌ها در شاخه کاری ما با upstream انجام شد:
+  - requirements.txt: هر دو acb44db247f3fa3a8f772cdb19b5c677a864430a
+  - utils/gemini_utils.py: هر دو a3ef680174a0704e007529b3028d42743bb7c297
+  - utils/openai_utils.py: هر دو f188477d3d4a2c78677756fa7443a4507575eb5f
+  - utils/paper_banana_utils.py: هر دو cd41aeb64b2405665f4d433e493eb35305caff3b
+  - README.md: هر دو c79a45651aaf5f9ff5b9ec977c69ffd0c3e02095
+  - utils/scholar_utils.py: هر دو 7ecdbf17f246bf4b33dcdd85ababd1d3e9ed2449
+  - دو prompt اصلاح‌شده LaTeX نیز در ممیزی قبلی SHA یکسان داشتند.
+- تصمیم انتقال: هیچ cherry-pick یا کپی مجددی انجام نشد؛ همه تغییرات upstream فوق از قبل در شاخه کاری ما وجود دارند. lazy provider initialization و وابستگی‌های تکمیلی مفیدند، اما صرف یکسان بودن فایل‌ها به معنی تست مستقل عملکرد آن‌ها در برنامه نهایی ما نیست.
+- نکته مهم: اصلاح امنیتی افشای SEMANTIC_SCHOLAR_API_KEY هنوز در upstream و فورک هر دو وجود ندارد؛ در utils/scholar_utils.py کلید همچنان چاپ می‌شود. این مورد به‌عنوان بدهی امنیتی باز نگه داشته شد و نباید به لاگ‌های محصول منتقل شود.
+- محدودیت: این ممیزی تاریخچه و فایل‌های مرتبط با commitهای upstream را پوشش داد؛ به معنی بازبینی line-by-line و تست اجرایی تمام پروژه نیست. هیچ تغییری در مخزن shiraztest2000-lang ایجاد نشد.
