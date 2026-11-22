@@ -926,3 +926,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - پس از موفقیت CI مرحله 6.84، اعتبارسنجی XML دقیق‌تر شد: به‌جای صرفاً جستجوی متن تجمیع‌شده، متن هر عنصر w:p جداگانه استخراج می‌شود و بررسی می‌شود خط دوم اطلاعات دانشجو و استاد دقیقاً در پاراگراف بعدی قرار گرفته باشد.
 - این تست مستقیماً رفتار split بر اساس newline در DOCX را کنترل می‌کند؛ اصلاح فقط در workflow انجام شد.
 - commit workflow: 8c4e4a9ce46f7c3ace7e9cb7b70b8bf004968983. CI اجرای این آزمون هنوز در انتظار نتیجه است؛ تأیید نشده است.
+
+
+### 6.86 تأیید آزمون پاراگراف‌های چندخطی و بسته‌های ویندوز — 2026-11-22
+- CI run ID=45046589436 روی commit workflow 8c4e4a9ce46f7c3ace7e9cb7b70b8bf004968983 با conclusion=success کامل شد.
+- job build-windows موفق: Configure، Build، Smoke، ساخت portable، Inno Setup و upload هر دو artifact.
+- Smoke/workflow validation اکنون عناصر w:p را جداگانه می‌خواند و اثبات می‌کند خط دوم اطلاعات دانشجو و استاد در پاراگراف مجزا و بلافاصله پس از خط اول آمده است؛ 15 page break، اجزای OOXML و خروجی‌های PDF/PNG نیز بررسی شدند.
+- job verify-portable-artifact موفق: اجرای portable روی clean runner، نصب silent، اجرای برنامه نصب‌شده، حذف برنامه و حفظ sentinel داده کاربر.
+- Portable artifact ID=14763104321، حجم=25,086,763 bytes، digest=sha256:3234b9980e90029395ac63b1564c5495d0bc871b28f21aa7156cfa5d891012d6.
+- Installer artifact ID=14764375022، حجم=17,968,441 bytes، digest=sha256:100ac4124ab87244224f08322c681731b3b91e38d65cb84ee6fe284b05a70310.
+- اعتبار artifactها تا 2027-02-20. هنوز نصب روی دستگاه واقعی کاربر و Word 2010 واقعی آزمایش نشده‌اند.
