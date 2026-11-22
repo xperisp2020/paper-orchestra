@@ -2,6 +2,8 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
+#include <QFileDialog>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -19,6 +21,7 @@
 #include <optional>
 
 #include "project_store.h"
+#include "document_export.h"
 
 class WelcomeWindow final : public QMainWindow {
 public:
@@ -89,9 +92,19 @@ public:
         editorStatus_ = new QLabel;
         editorStatus_->setWordWrap(true);
         static_cast<QVBoxLayout *>(editorPage->layout())->addWidget(editorStatus_);
+        auto *exportRow = new QHBoxLayout;
         saveSection_ = new QPushButton;
         saveSection_->setObjectName(QStringLiteral("saveSectionButton"));
-        static_cast<QVBoxLayout *>(editorPage->layout())->addWidget(saveSection_);
+        exportPdf_ = new QPushButton;
+        exportDocx_ = new QPushButton;
+        exportPng_ = new QPushButton;
+        printDocument_ = new QPushButton;
+        exportRow->addWidget(saveSection_);
+        exportRow->addWidget(exportPdf_);
+        exportRow->addWidget(exportDocx_);
+        exportRow->addWidget(exportPng_);
+        exportRow->addWidget(printDocument_);
+        static_cast<QVBoxLayout *>(editorPage->layout())->addLayout(exportRow);
         pages_->addWidget(editorPage);
 
         auto *navigation = new QWidget;
@@ -140,6 +153,10 @@ public:
         connect(saveSection_, &QPushButton::clicked, this, [this] {
             saveSelectedSection();
         });
+        connect(exportPdf_, &QPushButton::clicked, this, [this] { exportPdf(); });
+        connect(exportDocx_, &QPushButton::clicked, this, [this] { exportDocx(); });
+        connect(exportPng_, &QPushButton::clicked, this, [this] { exportPng(); });
+        connect(printDocument_, &QPushButton::clicked, this, [this] { printDocument(); });
 
         applyLanguage();
         updateNavigation();
@@ -207,6 +224,39 @@ public:
         const auto saved = store_.loadSections(*projectId_, &storageError);
         if (saved.value(QStringLiteral("problem_statement")) !=
             QStringLiteral("Persisted by GUI smoke test"))
+            return false;
+
+        QTemporaryDir exportData;
+        if (!exportData.isValid())
+            return false;
+        const auto labels = currentSectionLabels();
+        const QString pdfPath = exportData.filePath(QStringLiteral("proposal.pdf"));
+        const QString docxPath = exportData.filePath(QStringLiteral("proposal.docx"));
+        const QString pngDirectory = exportData.filePath(QStringLiteral("proposal_png"));
+        if (!DocumentExport::toPdf(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
+                                   pdfPath, &storageError))
+            return false;
+        if (!DocumentExport::toDocx(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
+                                    docxPath, &storageError))
+            return false;
+        if (!DocumentExport::toPngPages(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
+                                        pngDirectory, &storageError))
+            return false;
+        QFile pdfFile(pdfPath);
+        if (!pdfFile.open(QIODevice::ReadOnly) || !pdfFile.read(4).startsWith("%PDF"))
+            return false;
+        QFile docxFile(docxPath);
+        if (!docxFile.open(QIODevice::ReadOnly))
+            return false;
+        const QByteArray docxBytes = docxFile.readAll();
+        if (!docxBytes.startsWith("PK") ||
+            !docxBytes.contains("word/document.xml") ||
+            !docxBytes.contains(QByteArray::fromHex("504b0506")))
+            return false;
+        if (QDir(pngDirectory).entryList({QStringLiteral("*.png")}, QDir::Files).isEmpty())
+            return false;
+        if (DocumentExport::toPdf(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
+                                  pdfPath, &storageError))
             return false;
 
         language_->setCurrentIndex(1);
@@ -323,6 +373,10 @@ private:
         projectTitle_->setPlaceholderText(persian ? QStringLiteral("عنوان پروژه") : QStringLiteral("Project title"));
         back_->setText(persian ? QStringLiteral("قبلی") : QStringLiteral("Back"));
         saveSection_->setText(persian ? QStringLiteral("ذخیره بخش") : QStringLiteral("Save section"));
+        exportPdf_->setText(persian ? QStringLiteral("خروجی PDF") : QStringLiteral("Export PDF"));
+        exportDocx_->setText(persian ? QStringLiteral("خروجی Word") : QStringLiteral("Export Word"));
+        exportPng_->setText(persian ? QStringLiteral("خروجی تصویر") : QStringLiteral("Export PNG"));
+        printDocument_->setText(persian ? QStringLiteral("چاپ") : QStringLiteral("Print"));
         updateAiDescription();
         updateSummary();
         populateSectionList();
@@ -406,6 +460,84 @@ private:
         editorStatus_->setText(persian ? QStringLiteral("ذخیره شد") : QStringLiteral("Saved"));
     }
 
+
+    QMap<QString, QString> currentSectionLabels() const {
+        QMap<QString, QString> labels;
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        for (const QString &key : ProjectStore::proposalSectionKeys())
+            labels.insert(key, sectionLabel(key, persian));
+        return labels;
+    }
+
+    QMap<QString, QString> currentSections(QString *error = nullptr) {
+        if (!projectId_) {
+            if (error) *error = QStringLiteral("No active project.");
+            return {};
+        }
+        return store_.loadSections(*projectId_, error);
+    }
+
+    void exportPdf() {
+        QString error;
+        const auto sections = currentSections(&error);
+        if (!error.isEmpty()) { editorStatus_->setText(error); return; }
+        const QString path = QFileDialog::getSaveFileName(
+            this, QStringLiteral("Export PDF"), QStringLiteral("proposal.pdf"),
+            QStringLiteral("PDF files (*.pdf)"));
+        if (path.isEmpty()) return;
+        if (DocumentExport::toPdf(sections, currentSectionLabels(), projectTitle_->text(),
+                                  language_->currentData().toString(), path, &error))
+            editorStatus_->setText(language_->currentData().toString() == "fa"
+                ? QStringLiteral("فایل PDF ذخیره شد: %1").arg(path)
+                : QStringLiteral("PDF saved: %1").arg(path));
+        else
+            editorStatus_->setText(error);
+    }
+
+    void exportDocx() {
+        QString error;
+        const auto sections = currentSections(&error);
+        if (!error.isEmpty()) { editorStatus_->setText(error); return; }
+        const QString path = QFileDialog::getSaveFileName(
+            this, QStringLiteral("Export Word document"), QStringLiteral("proposal.docx"),
+            QStringLiteral("Word documents (*.docx)"));
+        if (path.isEmpty()) return;
+        if (DocumentExport::toDocx(sections, currentSectionLabels(), projectTitle_->text(),
+                                   language_->currentData().toString(), path, &error))
+            editorStatus_->setText(language_->currentData().toString() == "fa"
+                ? QStringLiteral("فایل Word ذخیره شد: %1").arg(path)
+                : QStringLiteral("Word file saved: %1").arg(path));
+        else
+            editorStatus_->setText(error);
+    }
+
+    void exportPng() {
+        QString error;
+        const auto sections = currentSections(&error);
+        if (!error.isEmpty()) { editorStatus_->setText(error); return; }
+        const QString path = QFileDialog::getSaveFileName(
+            this, QStringLiteral("Export PNG pages"), QStringLiteral("proposal_pages"),
+            QStringLiteral("New PNG page folder (*)"));
+        if (path.isEmpty()) return;
+        if (DocumentExport::toPngPages(sections, currentSectionLabels(), projectTitle_->text(),
+                                       language_->currentData().toString(), path, &error))
+            editorStatus_->setText(language_->currentData().toString() == "fa"
+                ? QStringLiteral("تصاویر صفحات ذخیره شدند: %1").arg(path)
+                : QStringLiteral("PNG pages saved: %1").arg(path));
+        else
+            editorStatus_->setText(error);
+    }
+
+    void printDocument() {
+        QString error;
+        const auto sections = currentSections(&error);
+        if (!error.isEmpty()) { editorStatus_->setText(error); return; }
+        if (!DocumentExport::print(sections, currentSectionLabels(), projectTitle_->text(),
+                                   language_->currentData().toString(), this, &error) &&
+            error != QStringLiteral("Printing was cancelled."))
+            editorStatus_->setText(error);
+    }
+
     void createOrOpenProject() {
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
         if (projectId_) {
@@ -470,6 +602,10 @@ private:
     QPushButton *back_{};
     QPushButton *next_{};
     QPushButton *saveSection_{};
+    QPushButton *exportPdf_{};
+    QPushButton *exportDocx_{};
+    QPushButton *exportPng_{};
+    QPushButton *printDocument_{};
     QList<QLabel *> headings_;
     std::optional<qint64> projectId_;
 };
