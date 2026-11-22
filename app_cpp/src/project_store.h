@@ -49,6 +49,10 @@ public:
                      const QString &content, QString *error = nullptr);
     QMap<QString, QString> loadSections(qint64 projectId,
                                         QString *error = nullptr);
+    bool saveProjectMetadata(qint64 projectId, const QString &key,
+                             const QString &value, QString *error = nullptr);
+    QString loadProjectMetadata(qint64 projectId, const QString &key,
+                                QString *error = nullptr);
     bool saveResearchSection(qint64 projectId, const QString &sectionKey,
                              const QString &content, QString *error = nullptr);
     QMap<QString, QString> loadResearchSections(qint64 projectId,
