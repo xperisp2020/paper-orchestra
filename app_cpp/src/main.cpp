@@ -1234,7 +1234,9 @@ private:
             if (!existing.open(QIODevice::ReadOnly))
                 return false;
             QJsonParseError parseError;
-            const QJsonDocument document = QJsonDocument::fromJson(existing.readAll(), &parseError);
+            const QByteArray existingBytes = existing.readAll();
+            existing.close();
+            const QJsonDocument document = QJsonDocument::fromJson(existingBytes, &parseError);
             if (parseError.error != QJsonParseError::NoError || !document.isObject())
                 return false;
             manifest = document.object();
