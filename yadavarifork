@@ -603,3 +603,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - راهکار: target جداگانه yadavarifork_smoke با همان منابع C++ و بدون WIN32_EXECUTABLE ساخته می‌شود تا CTest خروجی qCritical و return code واقعی را ببیند. برنامه اصلی همچنان GUI subsystem باقی می‌ماند.
 - CI هر دو target را build می‌کند؛ آزمون با executable کنسولی اجرا می‌شود و فایل smoke exe/pdb پیش از ساخت ZIP پرتابل حذف می‌شود تا فقط برنامه اصلی بسته‌بندی شود.
 - نتیجه build و تست این معماری در انتظار است.
+
+
+### 6.45 تشخیص مرحله شکست C++ smoke — 2026-11-22
+- CI run 45036688564 روی commit 09ada060ad796ebe7d7e179aa4d1a7fdd2a6a7cf: Configure و Build موفق، اما smoke با کد خروجی مستقل 31 شکست خورد.
+- کد 31 مشخصاً مسیر DocumentExport::toPdf را نشانه می‌گیرد؛ بنابراین شکست در انتخاب Wizard، ذخیره SQLite، DOCX یا PNG نیست.
+- هنوز علت درونی PDF مشخص نیست؛ نسخه کنسولی smoke در run 45036821780 در حال ساخت است تا qCritical متن storageError را در لاگ آشکار کند.
+- تا مشاهده خطای واقعی، هیچ workaround حدسی اعمال نمی‌شود.
