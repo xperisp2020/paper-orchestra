@@ -2,6 +2,7 @@
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QList>
 #include <QMainWindow>
 #include <QPushButton>
 #include <QStackedWidget>
