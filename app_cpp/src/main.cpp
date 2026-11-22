@@ -376,6 +376,7 @@ public:
         researchWindow.researchSectionList_->setCurrentRow(questionRow);
         researchWindow.researchEditor_->setPlainText(QStringLiteral("A locally saved research question."));
         researchWindow.saveResearchSection_->click();
+        storageError.clear();
         const auto researchSections = store_.loadResearchSections(*researchWindow.projectId_, &storageError);
         if (!storageError.isEmpty() ||
             researchSections.value(QStringLiteral("research_question")) !=

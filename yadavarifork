@@ -752,3 +752,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اصلاح: saveSection، saveResearchSection، addResearchSource و deleteResearchSource اکنون transaction/rollback/commit صریح دارند؛ خطا در هر مرحله کل عملیات مرتبط را rollback می‌کند.
 - این تغییر از نظر داده‌ای مستقل از UI است و smoke test موجود در commit d525 مسیر persistence پژوهش را بررسی می‌کند.
 - نتیجه CI تراکنش‌ها در انتظار است.
+
+
+### 6.64 عیب‌یابی شکست smoke پژوهش — 2026-11-22
+- CI run ID=45039894196 روی commit d52542825dd89081bd0359f05b8e3fd69056ed19: Configure و Build موفق؛ smoke با exit code 46 شکست خورد.
+- بررسی کد مشخص کرد کد 46 شامل بررسی storageError پس از عملیات research است، اما storageError از آزمون قبلی «رد overwrite PDF موجود» مقدار خطای مورد انتظار را نگه داشته بود و پیش از آزمون پژوهش پاک نشده بود.
+- اصلاح: storageError پیش از loadResearchSections پاک می‌شود تا assertion فقط خطای همین عملیات را بسنجد؛ رفتار برنامه تغییر نمی‌کند.
+- CI بعدی باید نشان دهد persistence پژوهش واقعاً درست است یا خطای دیگری وجود دارد.
