@@ -797,3 +797,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اصلاح تکمیلی: در saveResearchSection و addResearchSource فقط exec موفق UPDATE timestamp بررسی می‌شود؛ وجود project با foreign key و عملیات INSERT تضمین شده است. شرط numRowsAffected در DELETE منبع حفظ می‌شود چون برای تشخیص منبع ناموجود لازم است.
 - smoke test اکنون hasId و مقدار ID را نیز در کنار خطای SQLite چاپ می‌کند.
 - نتیجه CI این اصلاح در انتظار است.
+
+
+### 6.70 رفع خطای NOT NULL در ثبت منبع پژوهش — 2026-11-22
+- CI run 45040646724 روی commit 72dd8c77aac5ef7977844e265ac09ce3e3bf80ce خطای دقیق را آشکار کرد: NOT NULL constraint failed: research_sources.notes.
+- علت: فیلدهای اختیاری ResearchSource به‌صورت QString پیش‌فرض null هستند؛ فراخوانی trimmed() روی QString null همچنان مقدار SQL NULL bind می‌کند، درحالی‌که schema ستون‌ها را NOT NULL تعریف کرده است.
+- اصلاح: helper nonNullTrimmed رشته‌های اختیاری خالی/null را به QStringLiteral("") تبدیل می‌کند؛ title، authors، year، DOI، URL و notes از آن استفاده می‌کنند. saveSection و saveResearchSection نیز محتوای QString null را به رشته خالی تبدیل می‌کنند.
+- smoke test فعلی عمداً notes را مقداردهی نمی‌کند؛ بنابراین این مسیر واقعی regression را پوشش می‌دهد.
+- نتیجه CI پس از این اصلاح در انتظار است.

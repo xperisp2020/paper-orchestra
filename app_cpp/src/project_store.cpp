@@ -11,6 +11,11 @@ void setError(QString *target, const QString &message) {
     if (target)
         *target = message;
 }
+
+QString nonNullTrimmed(const QString &value) {
+    const QString trimmed = value.trimmed();
+    return trimmed.isNull() ? QStringLiteral("") : trimmed;
+}
 }
 
 ProjectStore::ProjectStore(const QString &databasePath)
@@ -326,7 +331,7 @@ bool ProjectStore::saveSection(qint64 projectId, const QString &sectionKey,
         "ON CONFLICT(project_id, section_key) DO UPDATE SET content=excluded.content"));
     query.addBindValue(projectId);
     query.addBindValue(sectionKey);
-    query.addBindValue(content);
+    query.addBindValue(content.isNull() ? QStringLiteral("") : content);
     if (!query.exec()) {
         setError(error, query.lastError().text());
         database_.rollback();
@@ -402,7 +407,7 @@ bool ProjectStore::saveResearchSection(qint64 projectId, const QString &sectionK
         "ON CONFLICT(project_id, section_key) DO UPDATE SET content=excluded.content"));
     query.addBindValue(projectId);
     query.addBindValue(sectionKey);
-    query.addBindValue(content);
+    query.addBindValue(content.isNull() ? QStringLiteral("") : content);
     if (!query.exec()) {
         setError(error, query.lastError().text());
         database_.rollback();
@@ -446,7 +451,7 @@ std::optional<qint64> ProjectStore::addResearchSource(qint64 projectId,
                                                       const ResearchSource &source,
                                                       QString *error) {
     if (error) error->clear();
-    const QString title = source.title.trimmed();
+    const QString title = nonNullTrimmed(source.title);
     if (title.isEmpty()) {
         setError(error, QStringLiteral("Source title is required."));
         return std::nullopt;
@@ -463,11 +468,11 @@ std::optional<qint64> ProjectStore::addResearchSource(qint64 projectId,
         "VALUES (?, ?, ?, ?, ?, ?, ?)"));
     query.addBindValue(projectId);
     query.addBindValue(title);
-    query.addBindValue(source.authors.trimmed());
-    query.addBindValue(source.publicationYear.trimmed());
-    query.addBindValue(source.doi.trimmed());
-    query.addBindValue(source.url.trimmed());
-    query.addBindValue(source.notes.trimmed());
+    query.addBindValue(nonNullTrimmed(source.authors));
+    query.addBindValue(nonNullTrimmed(source.publicationYear));
+    query.addBindValue(nonNullTrimmed(source.doi));
+    query.addBindValue(nonNullTrimmed(source.url));
+    query.addBindValue(nonNullTrimmed(source.notes));
     if (!query.exec()) {
         setError(error, query.lastError().text());
         database_.rollback();
