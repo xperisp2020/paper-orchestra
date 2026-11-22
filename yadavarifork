@@ -1047,3 +1047,23 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - پیام UI دیگر صرفاً exit code صفر را معادل خروجی تأییدشده نشان نمی‌دهد؛ وجود پوشه و ذخیره metadata نیز باید تأیید شود.
 - README پیش‌نیازهای واقعی pdflatex و bibtex را نیز آشکار می‌کند.
 - این تغییرات C++/README هستند؛ CI ویندوزی باید Build/Smoke/portable/clean-runner را اجرا کند. هنوز تأیید نشده‌اند.
+
+
+### 6.91.1 تأیید CI اصلاح ثبت مسیر خروجی پژوهش
+- CIهای C++ شماره 45050623421 و 45050629977 روی commitهای نهایی این اصلاح، هر دو conclusion=success گرفتند.
+- هر دو job شامل build-windows و verify-portable-artifact روی clean Windows runner موفق شدند؛ بسته portable و installer نیز ساخته و بارگذاری شدند.
+- Artifactهای run=45050629977: portable ID=14765661157 (25,115,799 bytes)، installer ID=14765198581 (17,989,833 bytes). Artifactهای run=45050623421: portable ID=14765387259، installer ID=14764994551. انقضا 2027-02-20.
+- CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45050629977 و https://github.com/xperisp2020/paper-orchestra/actions/runs/45050623421
+
+### 6.92 ثبت شناسه پروژه آغازکننده run و جلوگیری از ثبت خروجی در پروژه اشتباه
+- ممیزی lifecycle نشان داد کاربر می‌تواند در زمان اجرای process به wizard برگردد و پروژه دیگری را باز کند؛ اگر run تمام می‌شد، استفاده از projectId جاری می‌توانست مسیر خروجی run قبلی را در پروژه جدید ثبت کند.
+- شناسه پروژه در لحظه شروع run snapshot می‌شود و callback پایان فقط همان شناسه را برای ذخیره metadata به کار می‌برد. در مسیرهای failure و start failure مقدار موقت پاک می‌شود.
+- تغییر در app_cpp/src/main.cpp ثبت شده است؛ تأیید CI ویندوزی هنوز در انتظار است.
+
+### 6.93 آزمون یکپارچه لغو process و آزمون شکست preflight در CLI — در انتظار CI
+- smoke ویندوزی اکنون یک فرایند فرزند 30ثانیه‌ای واقعی اجرا می‌کند، منتظر signal شروع می‌ماند، لغو را درخواست می‌کند و پایان process را در حداکثر 8 ثانیه بررسی می‌کند؛ این مسیر terminate و fallback kill را از طریق QProcess واقعی می‌آزماید.
+- تست Python یک اجرای واقعی main() را با پیش‌نیاز مفقود شبیه‌سازی می‌کند و تأیید می‌کند exit code=2، رویداد JSONL از نوع pipeline_failed در stage=runtime_preflight و عدم ایجاد پوشه خروجی.
+- Python safety CI شماره 45052405480 روی Ubuntu و Windows هر دو success شد؛ شامل تست جدید عدم ایجاد خروجی و رویداد شکست.
+- CI C++ شماره 45052319595 روی commit 2608208c434b973a8de96a7cdbb6ee2884fd1618 هنوز در مرحله build/smoke است؛ لغو process تا پایان آن تأییدشده محسوب نمی‌شود.
+- CI Python: https://github.com/xperisp2020/paper-orchestra/actions/runs/45052405480
+- CI C++: https://github.com/xperisp2020/paper-orchestra/actions/runs/45052319595
