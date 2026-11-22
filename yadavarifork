@@ -910,3 +910,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اعتبارسنجی Python در workflow تقویت شد تا XML واقعی word/document.xml را parse کند و وجود متن هر دو فیلد و خط دوم را در محتوای DOCX بررسی کند، علاوه بر کنترل 15 page break و اجزای OOXML.
 - commit کد تست: 6f970964b608b9e3e8a6adb744137fdc0843aa03؛ commit workflow: 7f9ba4cb970ea5f1574176783d2d1384f496cd7d.
 - اجرای CI برای این تقویت تست هنوز باید کامل شود؛ نتیجه آن در حال انتظار است و تأییدشده محسوب نمی‌شود.
+
+
+### 6.84 تأیید نهایی CI تقویت آزمون چندخطی و بسته‌های ویندوز — 2026-11-22
+- CI run ID=45046229241 روی commit workflow 7f9ba4cb970ea5f1574176783d2d1384f496cd7d با conclusion=success کامل شد.
+- build-windows: Qt install، Configure، Build، Smoke test، بسته‌بندی portable، کامپایل Inno Setup و upload هر دو artifact موفق.
+- Smoke test و workflow validation: بازیابی داده‌های ذخیره‌شده، حفظ فیلدهای اداری خالی، خروجی PDF/DOCX/PNG، DOCX ZIP/XML، وجود متن فیلدهای دانشجو/استاد و خط دوم، 15 page break برای 16 گروه فرم و امضای PNG/PDF تأیید شدند.
+- verify-portable-artifact روی clean Windows runner: اجرای portable، نصب silent، اجرای برنامه نصب‌شده، uninstall و حفظ sentinel داده کاربر همگی موفق.
+- Portable artifact ID=14763971419، حجم=25,086,762 bytes، digest=sha256:afd8311cea1485e46180a76c0aa4ac35cb483c425b874d8a385c47c53ee53bfa.
+- Installer artifact ID=14763503025، حجم=17,968,441 bytes، digest=sha256:b4c4b01f2dcb8b0727adce0c024d5354f1bc63920f535df48cfc50f25a1fd145.
+- artifactها تا 2027-02-20 معتبرند. محدودیت‌های باز: نصب فیزیکی روی دستگاه کاربر و آزمون واقعی Word 2010 انجام نشده است؛ موفقیت clean runner جایگزین آن دو نیست.
