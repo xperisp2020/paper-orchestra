@@ -56,10 +56,19 @@ jobs:
               parsed = {name: ET.fromstring(package.read(name)) for name in xml_parts}
               doc = parsed["word/document.xml"]
               ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
-              doc_text = "".join(node.text or "" for node in doc.iter(ns + "t"))
-              assert "Smoke test: student_information" in doc_text, "student information missing from DOCX"
-              assert "Smoke test: supervisor_information" in doc_text, "supervisor information missing from DOCX"
-              assert "Second line" in doc_text, "multiline proposal details missing second line"
+              paragraph_texts = [
+                  "".join(node.text or "" for node in paragraph.iter(ns + "t"))
+                  for paragraph in doc.iter(ns + "p")
+              ]
+              for first_line in (
+                  "Smoke test: student_information",
+                  "Smoke test: supervisor_information",
+              ):
+                  assert first_line in paragraph_texts, f"{first_line} missing from DOCX"
+                  line_index = paragraph_texts.index(first_line)
+                  assert line_index + 1 < len(paragraph_texts) and paragraph_texts[line_index + 1] == "Second line", (
+                      f"{first_line} second line was not exported as a separate paragraph"
+                  )
               page_breaks = sum(1 for node in doc.iter(ns + "br") if node.attrib.get(ns + "type") == "page")
               assert page_breaks == 15, f"expected 15 page breaks for 16 form groups, got {page_breaks}"
           pngs = list((root / "proposal_png").glob("*.png"))
