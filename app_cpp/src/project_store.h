@@ -8,6 +8,16 @@
 
 #include <optional>
 
+struct ProjectInfo {
+    qint64 id{};
+    QString title;
+    QString language;
+    QString aiMode;
+    QString workflow;
+    QString createdAt;
+    QString updatedAt;
+};
+
 struct ResearchSource {
     qint64 id{};
     QString title;
@@ -33,6 +43,8 @@ public:
                                         const QString &aiMode,
                                         const QString &workflow,
                                         QString *error = nullptr);
+    QList<ProjectInfo> listProjects(QString *error = nullptr);
+    std::optional<ProjectInfo> loadProject(qint64 projectId, QString *error = nullptr);
     bool saveSection(qint64 projectId, const QString &sectionKey,
                      const QString &content, QString *error = nullptr);
     QMap<QString, QString> loadSections(qint64 projectId,

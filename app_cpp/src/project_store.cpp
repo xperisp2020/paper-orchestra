@@ -252,6 +252,60 @@ std::optional<qint64> ProjectStore::createProject(const QString &title,
     return projectId;
 }
 
+QList<ProjectInfo> ProjectStore::listProjects(QString *error) {
+    if (error) error->clear();
+    QList<ProjectInfo> projects;
+    if (!database_.isOpen() && !initialize(error))
+        return projects;
+    QSqlQuery query(database_);
+    if (!query.exec(QStringLiteral(
+            "SELECT id, title, language, ai_mode, workflow, created_at, updated_at "
+            "FROM projects ORDER BY updated_at DESC, id DESC"))) {
+        setError(error, query.lastError().text());
+        return projects;
+    }
+    while (query.next()) {
+        ProjectInfo project;
+        project.id = query.value(0).toLongLong();
+        project.title = query.value(1).toString();
+        project.language = query.value(2).toString();
+        project.aiMode = query.value(3).toString();
+        project.workflow = query.value(4).toString();
+        project.createdAt = query.value(5).toString();
+        project.updatedAt = query.value(6).toString();
+        projects.append(project);
+    }
+    return projects;
+}
+
+std::optional<ProjectInfo> ProjectStore::loadProject(qint64 projectId, QString *error) {
+    if (error) error->clear();
+    if (!database_.isOpen() && !initialize(error))
+        return std::nullopt;
+    QSqlQuery query(database_);
+    query.prepare(QStringLiteral(
+        "SELECT id, title, language, ai_mode, workflow, created_at, updated_at "
+        "FROM projects WHERE id=?"));
+    query.addBindValue(projectId);
+    if (!query.exec()) {
+        setError(error, query.lastError().text());
+        return std::nullopt;
+    }
+    if (!query.next()) {
+        setError(error, QStringLiteral("Project not found."));
+        return std::nullopt;
+    }
+    ProjectInfo project;
+    project.id = query.value(0).toLongLong();
+    project.title = query.value(1).toString();
+    project.language = query.value(2).toString();
+    project.aiMode = query.value(3).toString();
+    project.workflow = query.value(4).toString();
+    project.createdAt = query.value(5).toString();
+    project.updatedAt = query.value(6).toString();
+    return project;
+}
+
 bool ProjectStore::saveSection(qint64 projectId, const QString &sectionKey,
                                const QString &content, QString *error) {
     if (error) error->clear();
