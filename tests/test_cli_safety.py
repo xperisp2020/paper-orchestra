@@ -7,9 +7,42 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from paper_writing_cli import emit_event, prepare_raw_materials
+from paper_writing_cli import emit_event, prepare_raw_materials, validate_runtime_prerequisites
 from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, paths_are_same, publish_file_no_overwrite
 from utils.security_utils import redact_secrets
+
+
+
+class RuntimePreflightTests(unittest.TestCase):
+    def test_reports_missing_python_packages_and_latex_tools(self):
+        requirements = "google-genai\nPyMuPDF\n"
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False) as stream:
+            stream.write(requirements)
+            requirements_path = stream.name
+        try:
+            def distribution(name):
+                if name == "google-genai":
+                    return object()
+                raise __import__("importlib").metadata.PackageNotFoundError(name)
+
+            with patch("importlib.metadata.distribution", side_effect=distribution), \\
+                 patch("shutil.which", side_effect=lambda name: None if name == "bibtex" else "/usr/bin/pdflatex"):
+                missing = validate_runtime_prerequisites(requirements_path)
+            self.assertEqual(missing, ["Python package: PyMuPDF", "LaTeX executable: bibtex"])
+        finally:
+            os.unlink(requirements_path)
+
+    def test_passes_when_all_prerequisites_exist(self):
+        requirements = "google-genai\n"
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False) as stream:
+            stream.write(requirements)
+            requirements_path = stream.name
+        try:
+            with patch("importlib.metadata.distribution", return_value=object()), \\
+                 patch("shutil.which", return_value="/usr/bin/tool"):
+                self.assertEqual(validate_runtime_prerequisites(requirements_path), [])
+        finally:
+            os.unlink(requirements_path)
 
 
 class CliJsonlEventTests(unittest.TestCase):
