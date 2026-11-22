@@ -27,16 +27,16 @@ jobs:
       - name: Configure
         run: cmake -S app_cpp -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --config Release --parallel --target yadavarifork yadavarifork_smoke
       - name: Smoke test
         shell: pwsh
         run: |
           ctest --test-dir build -C Release --output-on-failure
           if ($LASTEXITCODE -ne 0) {
-            $exe = Join-Path $PWD 'build/Release/yadavarifork.exe'
+            $exe = Join-Path $PWD 'build/Release/yadavarifork_smoke.exe'
             $env:QT_QPA_PLATFORM = 'offscreen'
-            $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -NoNewWindow -Wait -PassThru
-            Write-Host "Direct smoke test exit code: $($process.ExitCode)"
+            & $exe --smoke-test
+            Write-Host "Console smoke test exit code: $LASTEXITCODE"
             exit 1
           }
       - name: Assemble portable directory
@@ -47,6 +47,8 @@ jobs:
           $deploy = Get-Command windeployqt -ErrorAction Stop
           & $deploy.Source --release --no-translations --sql $exe
           if ($LASTEXITCODE -ne 0) { throw "windeployqt failed with exit code $LASTEXITCODE" }
+          Remove-Item build/Release/yadavarifork_smoke.exe -ErrorAction SilentlyContinue
+          Remove-Item build/Release/yadavarifork_smoke.pdb -ErrorAction SilentlyContinue
           Copy-Item app_cpp/README.md build/Release/README.txt
           $env:QT_QPA_PLATFORM = 'offscreen'
           & $exe --smoke-test

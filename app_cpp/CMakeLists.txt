@@ -12,18 +12,24 @@ find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Sql PrintSupport)
 
 enable_testing()
 
-qt_add_executable(yadavarifork
+set(YADAVARIFORK_SOURCES
     src/main.cpp
     src/project_store.cpp
     src/project_store.h
     src/document_export.cpp
     src/document_export.h
 )
+
+qt_add_executable(yadavarifork ${YADAVARIFORK_SOURCES})
 target_link_libraries(yadavarifork PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport)
+
+# A console-subsystem test binary keeps diagnostics visible to CTest on Windows.
+qt_add_executable(yadavarifork_smoke EXCLUDE_FROM_ALL ${YADAVARIFORK_SOURCES})
+target_link_libraries(yadavarifork_smoke PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport)
 
 if(WIN32)
     set_target_properties(yadavarifork PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
-add_test(NAME app_smoke COMMAND yadavarifork --smoke-test)
+add_test(NAME app_smoke COMMAND yadavarifork_smoke --smoke-test)
 set_tests_properties(app_smoke PROPERTIES TIMEOUT 15 ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

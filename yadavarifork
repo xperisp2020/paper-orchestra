@@ -596,3 +596,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - آزمون‌ها اکنون حفظ source، باقی‌ماندن partial destination در copy failure، رد overwrite، حفظ workspace و preflight خروجی‌ها را پوشش می‌دهند.
 - C++ run ID=45036386211 روی commit 5704736645da46e965e50fe966035727841cccb2: Configure و Build موفق؛ app_smoke ناموفق. اجرای مستقیم از PowerShell گزارش 8 داد که با کد CTest هم‌خوان بود و به‌تنهایی کد خروجی برنامه را اثبات نمی‌کرد.
 - اصلاح workflow: اجرای مستقیم smoke اکنون با Start-Process -PassThru انجام می‌شود تا ExitCode فرایند مستقل ثبت شود. run جدید 45036688564 در حال اجراست؛ نتیجه هنوز مشخص نیست.
+
+
+### 6.44 ساخت executable کنسولی مستقل برای تست C++ — 2026-11-22
+- اجرای تشخیصی GUI executable در Windows هنوز کد خروجی قابل اتکا و متن خطا را در CTest آشکار نمی‌کرد؛ حتی اجرای Start-Process برای جداکردن exit code در CI در انتظار است.
+- راهکار: target جداگانه yadavarifork_smoke با همان منابع C++ و بدون WIN32_EXECUTABLE ساخته می‌شود تا CTest خروجی qCritical و return code واقعی را ببیند. برنامه اصلی همچنان GUI subsystem باقی می‌ماند.
+- CI هر دو target را build می‌کند؛ آزمون با executable کنسولی اجرا می‌شود و فایل smoke exe/pdb پیش از ساخت ZIP پرتابل حذف می‌شود تا فقط برنامه اصلی بسته‌بندی شود.
+- نتیجه build و تست این معماری در انتظار است.
