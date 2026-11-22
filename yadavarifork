@@ -1083,3 +1083,17 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - علت دقیق: helper در فایل Python به‌جای newline واقعی، literal دوکاراکتری backslash+n به انتهای JSON اضافه می‌کرد؛ در نتیجه json.load خطای Extra data می‌داد.
 - اصلاح: temporary.write اکنون newline واقعی می‌نویسد. آزمون atomic update و redaction بدون تغییر در قرارداد manifest باقی می‌ماند.
 - نتیجه CI اصلاح‌شده هنوز دریافت نشده است.
+
+
+### 6.94.1 تأیید اصلاح newline در manifest
+- Python safety CI شماره 45052971663 روی commit e4af77b9d79b8af6a627f020da301594416d9c9b با هر دو job Ubuntu و Windows موفق شد.
+- آزمون atomic manifest اکنون چندمرحله‌ای بودن update، حفظ run_id/created_at، redaction پیام Authorization و حذف فایل موقت پس از commit را تأیید می‌کند؛ تست manifest خراب نیز حفظ فایل اصلی را تأیید می‌کند.
+- CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45052971663
+
+### 6.95 دفترچه اجرای پایدار و تاریخچه چند-run در Qt — در انتظار CI
+- CLI تابع update_run_manifest را اضافه کرد: run_manifest.json به‌صورت atomic با run_id، schema_version، created_at، updated_at، status، stage و error redacted نوشته می‌شود. در صورت manifest خراب، فایل قبلی بی‌صدا بازنویسی نمی‌شود.
+- Qt پیش از اجرای process پوشه run و manifest اولیه را ایجاد می‌کند؛ رویدادهای JSONL، شروع/پایان/شکست process و درخواست لغو، وضعیت manifest را به‌روز می‌کنند. CLI همان manifest را تکمیل می‌کند.
+- شناسه پروژه، run_id و timestamp در manifest باقی می‌مانند. تاریخچه per-project از پوشه‌های run و manifestها خوانده می‌شود و dialog امکان بازکردن پوشه هر run را می‌دهد.
+- Smoke ویندوزی آزمون ایجاد و به‌روزرسانی manifest و حفظ project_id را اضافه کرده است. README نیز قرارداد manifest و history را توضیح می‌دهد.
+- فایل‌های تغییرکرده: paper_writing_cli.py، tests/test_cli_safety.py، app_cpp/src/main.cpp، app_cpp/README.md.
+- CI ویندوزی برای manifest/history UI هنوز باید build، smoke، portable و clean-runner را تأیید کند؛ CI Python برای helper در commit اصلاح‌شده موفق شده است.
