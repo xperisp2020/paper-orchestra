@@ -2,7 +2,9 @@ import ast
 import io
 import json
 import os
+import sys
 import tempfile
+import types
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -102,6 +104,83 @@ class RunManifestTests(unittest.TestCase):
                 update_run_manifest(temp, "running", "preparing_inputs")
             with open(path, encoding="utf-8") as stream:
                 self.assertEqual(stream.read(), "{invalid")
+
+
+class CliRunManifestIntegrationTests(unittest.TestCase):
+    def _fake_methods(self, writer):
+        package = types.ModuleType("methods")
+        package.__path__ = []
+        module = types.ModuleType("methods.paper_writer")
+        module.write_single_paper = writer
+        return {"methods": package, "methods.paper_writer": module}
+
+    def _run_cli(self, raw, output, writer):
+        stdout = io.StringIO()
+        argv = [
+            "paper_writing_cli.py",
+            "--raw_materials_dir", raw,
+            "--output_dir", output,
+            "--latex_template_dir", os.path.dirname(raw),
+            "--events_jsonl",
+        ]
+        with patch("sys.argv", argv), \
+             patch("paper_writing_cli.validate_runtime_prerequisites", return_value=[]), \
+             patch("sys.stdout", stdout), \
+             patch.dict(sys.modules, self._fake_methods(writer)):
+            main()
+        return stdout.getvalue()
+
+    def test_successful_cli_run_completes_manifest_and_emits_matching_run_id(self):
+        with tempfile.TemporaryDirectory() as temp:
+            raw = os.path.join(temp, "raw")
+            output = os.path.join(temp, "run")
+            os.makedirs(raw)
+            with open(os.path.join(raw, "idea_sparse.md"), "w", encoding="utf-8") as stream:
+                stream.write("idea")
+            stdout = self._run_cli(raw, output, lambda **kwargs: None)
+            with open(os.path.join(output, "run_manifest.json"), encoding="utf-8") as stream:
+                manifest = json.load(stream)
+            events = [json.loads(line) for line in stdout.splitlines() if line.startswith("{")]
+            self.assertEqual(manifest["status"], "completed")
+            self.assertEqual(manifest["stage"], "completed")
+            self.assertEqual([event["event"] for event in events],
+                             ["pipeline_started", "pipeline_completed"])
+            self.assertEqual(events[0]["run_id"], manifest["run_id"])
+            self.assertEqual(events[1]["run_id"], manifest["run_id"])
+            self.assertTrue(os.path.isfile(os.path.join(output, "raw_materials", "idea_sparse.md")))
+
+    def test_failed_cli_run_persists_redacted_error_in_manifest_and_event(self):
+        with tempfile.TemporaryDirectory() as temp:
+            raw = os.path.join(temp, "raw")
+            output = os.path.join(temp, "run")
+            os.makedirs(raw)
+
+            def fail_writer(**kwargs):
+                raise RuntimeError("Authorization: Bearer integration-secret-value")
+
+            stdout = io.StringIO()
+            argv = [
+                "paper_writing_cli.py",
+                "--raw_materials_dir", raw,
+                "--output_dir", output,
+                "--latex_template_dir", temp,
+                "--events_jsonl",
+            ]
+            with patch("sys.argv", argv), \
+                 patch("paper_writing_cli.validate_runtime_prerequisites", return_value=[]), \
+                 patch("sys.stdout", stdout), \
+                 patch.dict(sys.modules, self._fake_methods(fail_writer)):
+                with self.assertRaisesRegex(RuntimeError, "integration-secret-value"):
+                    main()
+            with open(os.path.join(output, "run_manifest.json"), encoding="utf-8") as stream:
+                manifest = json.load(stream)
+            events = [json.loads(line) for line in stdout.getvalue().splitlines() if line.startswith("{")]
+            failure = [event for event in events if event["event"] == "pipeline_failed"][-1]
+            self.assertEqual(manifest["status"], "failed")
+            self.assertNotIn("integration-secret-value", manifest["error"])
+            self.assertIn("[REDACTED]", manifest["error"])
+            self.assertNotIn("integration-secret-value", failure["error"])
+            self.assertIn("[REDACTED]", failure["error"])
 
 
 class CliJsonlEventTests(unittest.TestCase):
