@@ -19,6 +19,35 @@ import shutil
 from datetime import datetime
 
 
+def prepare_raw_materials(source_dir: str, target_dir: str) -> bool:
+    """Copy source materials without ever overwriting existing user data.
+
+    Returns False when source and target resolve to the same directory.
+    Raises FileExistsError when the destination already exists.
+    """
+    source = os.path.realpath(source_dir)
+    target = os.path.realpath(target_dir)
+    if source == target:
+        return False
+    if not os.path.isdir(source):
+        raise NotADirectoryError(f"Raw materials source is not a directory: {source_dir}")
+    try:
+        if os.path.commonpath([source, target]) == source:
+            raise ValueError("Output raw_materials directory cannot be inside the source directory.")
+    except ValueError as exc:
+        if "different drives" in str(exc).lower():
+            pass
+        else:
+            raise
+    if os.path.lexists(target):
+        raise FileExistsError(
+            f"Refusing to overwrite existing raw materials: {target}. "
+            "Choose a new output directory or move the existing data yourself."
+        )
+    shutil.copytree(source, target)
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="CLI for generating a single paper from the Paper Orchestra pipeline."
@@ -108,9 +137,7 @@ def main():
 
     target_raw_materials = os.path.join(base_dir, "raw_materials")
     if os.path.abspath(target_raw_materials) != os.path.abspath(args.raw_materials_dir):
-        if os.path.exists(target_raw_materials):
-            shutil.rmtree(target_raw_materials)
-        shutil.copytree(args.raw_materials_dir, target_raw_materials)
+        prepare_raw_materials(args.raw_materials_dir, target_raw_materials)
 
     if not args.use_plotting:
         has_figures = False
