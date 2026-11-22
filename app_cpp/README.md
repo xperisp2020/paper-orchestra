@@ -9,10 +9,11 @@ The primary desktop application is implemented in C++20 with Qt 6 Widgets. Windo
 - Proposal section editor backed by SQLite persistence
 - Export to PDF, DOCX (Office Open XML), and paginated PNG images
 - Print through the Qt print dialog
+- Initial asynchronous Python CLI bridge for research runs, with streamed output, cancellation, environment-only credentials, and output redaction
 - Existing project output files and folders are not overwritten
 - Portable Windows packaging with Qt runtime deployment and a second smoke test against the deployed executable
 
-**No-API mode is a deterministic local workspace, not a generative model.** The free-tier and paid choices currently select workflow categories; provider authentication and live research-agent execution are not yet complete. The research workflow is not represented as completed AI research.
+**No-API mode is a deterministic local workspace, not a generative model.** The free-tier and paid choices initially select workflow categories. The current CLI bridge is intentionally enabled only for the paid category because the existing CLI defaults to Gemini Pro Preview; free-tier provider routing is not implemented. The bridge requires a separately installed Python environment, the repository dependencies, a valid Gemini environment key, and user-selected source/template directories. Python and dependencies are not bundled in the Windows portable package. The bridge does not make the research workflow a finished or resumable AI system. The research workflow is not represented as completed AI research.
 
 ## Proposal export
 The export engine groups proposal sections into the 16-page sequence derived from the Shiraz Islamic Azad University proposal form. It is a structured editable draft, not an official university-issued form; signatures, approvals, and committee decisions must be completed by the authorized people. Long user-entered content can expand a page group onto additional physical pages.
