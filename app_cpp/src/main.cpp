@@ -9,6 +9,9 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QFile>
+#include <QSaveFile>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QFileDialog>
 #include <iostream>
 #include <QHBoxLayout>
@@ -174,8 +177,11 @@ public:
         cancelResearchEngine_ = new QPushButton;
         cancelResearchEngine_->setObjectName(QStringLiteral("cancelResearchEngineButton"));
         cancelResearchEngine_->setEnabled(false);
+        researchRunHistory_ = new QPushButton;
+        researchRunHistory_->setObjectName(QStringLiteral("researchRunHistoryButton"));
         engineButtons->addWidget(runResearchEngine_);
         engineButtons->addWidget(cancelResearchEngine_);
+        engineButtons->addWidget(researchRunHistory_);
         static_cast<QVBoxLayout *>(researchPage->layout())->addLayout(engineButtons);
         researchStatus_ = new QLabel;
         researchStatus_->setWordWrap(true);
@@ -183,9 +189,17 @@ public:
         engineRunner_ = new ResearchEngineRunner(this);
         connect(runResearchEngine_, &QPushButton::clicked, this, [this] { configureAndRunResearchEngine(); });
         connect(cancelResearchEngine_, &QPushButton::clicked, this, [this] {
-            if (engineRunner_) engineRunner_->cancel();
+            if (engineRunner_ && engineRunner_->isRunning()) {
+                researchRunCancellationRequested_ = true;
+                writeResearchRunManifest(QStringLiteral("cancelling"), QStringLiteral("cancel_requested"));
+                engineRunner_->cancel();
+            }
+        });
+        connect(researchRunHistory_, &QPushButton::clicked, this, [this] {
+            showResearchRunHistory();
         });
         connect(engineRunner_, &ResearchEngineRunner::started, this, [this] {
+            writeResearchRunManifest(QStringLiteral("running"), QStringLiteral("process_started"));
             runResearchEngine_->setEnabled(false);
             cancelResearchEngine_->setEnabled(true);
             researchStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
@@ -199,16 +213,23 @@ public:
                 const QJsonObject event = eventDocument.object();
                 const QString eventName = event.value(QStringLiteral("event")).toString();
                 if (!eventName.isEmpty()) {
-                    if (eventName == QStringLiteral("pipeline_started"))
+                    if (eventName == QStringLiteral("pipeline_started")) {
+                        writeResearchRunManifest(QStringLiteral("running"),
+                            event.value(QStringLiteral("stage")).toString(QStringLiteral("paper_generation")));
                         displayLine = language_->currentData().toString() == QStringLiteral("fa")
                             ? QStringLiteral("رویداد: آغاز تولید مقاله")
                             : QStringLiteral("Event: paper generation started");
-                    else if (eventName == QStringLiteral("pipeline_completed"))
+                    } else if (eventName == QStringLiteral("pipeline_completed")) {
+                        writeResearchRunManifest(QStringLiteral("completed"),
+                            event.value(QStringLiteral("stage")).toString(QStringLiteral("completed")));
                         displayLine = language_->currentData().toString() == QStringLiteral("fa")
                             ? QStringLiteral("رویداد: تولید مقاله پایان یافت")
                             : QStringLiteral("Event: paper generation completed");
-                    else if (eventName == QStringLiteral("pipeline_failed"))
+                    } else if (eventName == QStringLiteral("pipeline_failed")) {
+                        writeResearchRunManifest(QStringLiteral("failed"),
+                            event.value(QStringLiteral("stage")).toString(QStringLiteral("pipeline_failed")));
                         displayLine = event.value(QStringLiteral("error")).toString();
+                    }
                 }
             }
             const QString current = researchStatus_->text();
@@ -219,15 +240,20 @@ public:
             runResearchEngine_->setEnabled(true);
             cancelResearchEngine_->setEnabled(false);
             const bool success = normalExit && exitCode == 0;
+            const QString finalRunStatus = success ? QStringLiteral("completed") :
+                (researchRunCancellationRequested_ ? QStringLiteral("cancelled") : QStringLiteral("failed"));
+            const bool manifestRecorded = writeResearchRunManifest(
+                finalRunStatus, success ? QStringLiteral("completed") : finalRunStatus);
             bool outputRecorded = false;
-            if (success && currentResearchRunProjectId_ && !currentResearchRunOutput_.isEmpty() &&
-                QFileInfo(currentResearchRunOutput_).isDir()) {
+            if (success && manifestRecorded && currentResearchRunProjectId_ &&
+                !currentResearchRunOutput_.isEmpty() && QFileInfo(currentResearchRunOutput_).isDir()) {
                 outputRecorded = store_.saveProjectMetadata(
                     *currentResearchRunProjectId_, QStringLiteral("research_engine_last_output"),
                     currentResearchRunOutput_, nullptr);
             }
             currentResearchRunOutput_.clear();
             currentResearchRunProjectId_.reset();
+            researchRunCancellationRequested_ = false;
             const QString resultMessage = success
                 ? (outputRecorded
                     ? (language_->currentData().toString() == QStringLiteral("fa")
@@ -244,8 +270,10 @@ public:
         connect(engineRunner_, &ResearchEngineRunner::failed, this, [this](const QString &message) {
             runResearchEngine_->setEnabled(true);
             cancelResearchEngine_->setEnabled(false);
+            writeResearchRunManifest(QStringLiteral("failed"), QStringLiteral("process_start_failed"));
             currentResearchRunOutput_.clear();
             currentResearchRunProjectId_.reset();
+            researchRunCancellationRequested_ = false;
             researchStatus_->setText(researchStatus_->text() + QStringLiteral("\n") + message);
         });
         pages_->addWidget(researchPage);
@@ -687,6 +715,8 @@ public:
 protected:
     void closeEvent(QCloseEvent *event) override {
         if (engineRunner_ && engineRunner_->isRunning()) {
+            researchRunCancellationRequested_ = true;
+            writeResearchRunManifest(QStringLiteral("cancelling"), QStringLiteral("cancel_requested"));
             engineRunner_->cancel();
             event->ignore();
             researchStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
@@ -825,6 +855,7 @@ private:
         deleteResearchSource_->setText(persian ? QStringLiteral("حذف منبع") : QStringLiteral("Delete source"));
         runResearchEngine_->setText(persian ? QStringLiteral("اجرای موتور چندعاملی") : QStringLiteral("Run multi-agent engine"));
         cancelResearchEngine_->setText(persian ? QStringLiteral("لغو اجرا") : QStringLiteral("Cancel run"));
+        researchRunHistory_->setText(persian ? QStringLiteral("تاریخچه اجراها") : QStringLiteral("Run history"));
         researchSourcesGroup_->setTitle(persian ? QStringLiteral("منابع ثبت‌شده — تأییدنشده") : QStringLiteral("Recorded sources — unverified"));
         updateAiDescription();
         updateSummary();
@@ -1158,6 +1189,104 @@ private:
         return saveResearchSection(key, researchEditor_->toPlainText());
     }
 
+    bool writeResearchRunManifest(const QString &status, const QString &stage) {
+        if (currentResearchRunOutput_.isEmpty())
+            return false;
+        if (!QDir().mkpath(currentResearchRunOutput_))
+            return false;
+
+        const QString manifestPath = QDir(currentResearchRunOutput_)
+                                         .filePath(QStringLiteral("run_manifest.json"));
+        QJsonObject manifest;
+        QFile existing(manifestPath);
+        if (existing.exists()) {
+            if (!existing.open(QIODevice::ReadOnly))
+                return false;
+            QJsonParseError parseError;
+            const QJsonDocument document = QJsonDocument::fromJson(existing.readAll(), &parseError);
+            if (parseError.error != QJsonParseError::NoError || !document.isObject())
+                return false;
+            manifest = document.object();
+        } else {
+            manifest.insert(QStringLiteral("schema_version"), 1);
+            manifest.insert(QStringLiteral("run_id"), QFileInfo(currentResearchRunOutput_).fileName());
+            manifest.insert(QStringLiteral("created_at"),
+                            QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
+            if (currentResearchRunProjectId_)
+                manifest.insert(QStringLiteral("project_id"), QString::number(*currentResearchRunProjectId_));
+        }
+        manifest.insert(QStringLiteral("updated_at"),
+                        QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
+        manifest.insert(QStringLiteral("status"), status);
+        manifest.insert(QStringLiteral("stage"), stage);
+        if (status != QStringLiteral("failed"))
+            manifest.remove(QStringLiteral("error"));
+
+        QSaveFile output(manifestPath);
+        if (!output.open(QIODevice::WriteOnly))
+            return false;
+        const QByteArray data = QJsonDocument(manifest).toJson(QJsonDocument::Indented);
+        return output.write(data) == data.size() && output.commit();
+    }
+
+    void showResearchRunHistory() {
+        if (!projectId_)
+            return;
+        const QString rootPath = QDir(QCoreApplication::applicationDirPath())
+                                     .filePath(QStringLiteral("data/research_runs"));
+        QDir root(rootPath);
+        QDialog dialog(this);
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        dialog.setWindowTitle(persian ? QStringLiteral("تاریخچه اجراهای پژوهش") :
+                                        QStringLiteral("Research run history"));
+        auto *layout = new QVBoxLayout(&dialog);
+        auto *runs = new QListWidget(&dialog);
+        const QString prefix = QStringLiteral("project_%1_").arg(*projectId_);
+        const QFileInfoList folders = root.entryInfoList(
+            {prefix + QStringLiteral("*")}, QDir::Dirs | QDir::NoDotAndDotDot, QDir::Time);
+        for (const QFileInfo &folder : folders) {
+            QFile manifestFile(QDir(folder.absoluteFilePath()).filePath(QStringLiteral("run_manifest.json")));
+            if (!manifestFile.open(QIODevice::ReadOnly))
+                continue;
+            const QJsonDocument document = QJsonDocument::fromJson(manifestFile.readAll());
+            if (!document.isObject())
+                continue;
+            const QJsonObject manifest = document.object();
+            const QString created = manifest.value(QStringLiteral("created_at")).toString();
+            const QString status = manifest.value(QStringLiteral("status")).toString();
+            const QString stage = manifest.value(QStringLiteral("stage")).toString();
+            auto *item = new QListWidgetItem(
+                QStringLiteral("%1  |  %2  |  %3").arg(created, status, stage), runs);
+            item->setData(Qt::UserRole, folder.absoluteFilePath());
+        }
+        if (runs->count() == 0)
+            runs->addItem(persian ? QStringLiteral("هنوز اجرایی ثبت نشده است.") :
+                                    QStringLiteral("No research runs recorded yet."));
+        layout->addWidget(runs);
+        auto *buttons = new QDialogButtonBox(QDialogButtonBox::Open | QDialogButtonBox::Close, &dialog);
+        buttons->button(QDialogButtonBox::Open)->setText(persian ? QStringLiteral("بازکردن پوشه") :
+                                                                  QStringLiteral("Open folder"));
+        buttons->button(QDialogButtonBox::Close)->setText(persian ? QStringLiteral("بستن") :
+                                                                   QStringLiteral("Close"));
+        buttons->button(QDialogButtonBox::Open)->setEnabled(runs->currentItem() &&
+            runs->currentItem()->data(Qt::UserRole).isValid());
+        connect(runs, &QListWidget::currentRowChanged, &dialog, [runs, buttons](int) {
+            buttons->button(QDialogButtonBox::Open)->setEnabled(
+                runs->currentItem() && runs->currentItem()->data(Qt::UserRole).isValid());
+        });
+        connect(buttons, &QDialogButtonBox::accepted, &dialog, [&] {
+            if (runs->currentItem()) {
+                const QString path = runs->currentItem()->data(Qt::UserRole).toString();
+                if (!path.isEmpty())
+                    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+            }
+        });
+        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+        layout->addWidget(buttons);
+        dialog.resize(760, 420);
+        dialog.exec();
+    }
+
     void configureAndRunResearchEngine() {
         if (!projectId_ || taskMode_->currentData().toString() != QStringLiteral("research"))
             return;
@@ -1309,8 +1438,18 @@ private:
         };
         currentResearchRunOutput_ = output;
         currentResearchRunProjectId_ = projectId_;
+        researchRunCancellationRequested_ = false;
+        if (!QDir().mkpath(output) ||
+            !writeResearchRunManifest(QStringLiteral("starting"), QStringLiteral("process_start"))) {
+            currentResearchRunOutput_.clear();
+            currentResearchRunProjectId_.reset();
+            fail(persian ? QStringLiteral("ثبت manifest اجرای پژوهش ممکن نشد.") :
+                            QStringLiteral("Could not create the research run manifest."));
+            return;
+        }
         researchStatus_->clear();
         if (!engineRunner_->start(python, arguments, QFileInfo(script).absolutePath(), environment)) {
+            writeResearchRunManifest(QStringLiteral("failed"), QStringLiteral("process_start_failed"));
             currentResearchRunOutput_.clear();
             currentResearchRunProjectId_.reset();
             runResearchEngine_->setEnabled(true);
@@ -1704,6 +1843,8 @@ private:
     QString currentResearchSectionKey_;
     QString currentResearchRunOutput_;
     std::optional<qint64> currentResearchRunProjectId_;
+    QPushButton *researchRunHistory_{};
+    bool researchRunCancellationRequested_{false};
     bool proposalSectionDirty_{false};
     bool researchSectionDirty_{false};
     bool finalDetailsReviewed_{false};
