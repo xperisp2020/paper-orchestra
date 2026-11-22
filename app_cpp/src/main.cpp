@@ -332,6 +332,9 @@ public:
             smokeFinalDetails.insert(key, QStringLiteral("Smoke test: ") + key);
         if (!saveFinalDetails(smokeFinalDetails))
             return 62;
+        if (!reopenedProposal.openProjectById(*projectId_) ||
+            !reopenedProposal.finalDetailsReviewed_)
+            return 65;
         const auto detailsSaved = store_.loadSections(*projectId_, &storageError);
         for (const QString &key : finalDetailKeys()) {
             if (detailsSaved.value(key) != smokeFinalDetails.value(key))
@@ -840,6 +843,17 @@ private:
         applyLanguage();
         if (project->workflow == QStringLiteral("proposal")) {
             populateSectionList();
+            const auto savedSections = store_.loadSections(*projectId_, &error);
+            if (!error.isEmpty()) {
+                editorStatus_->setText(error);
+                return false;
+            }
+            for (const QString &key : finalDetailKeys()) {
+                if (!savedSections.value(key).trimmed().isEmpty()) {
+                    finalDetailsReviewed_ = true;
+                    break;
+                }
+            }
             pages_->setCurrentIndex(4);
         } else {
             populateResearchSectionList();
@@ -1109,11 +1123,27 @@ private:
             form->addRow(sectionLabel(key, persian), input);
         }
         auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+        auto *skipButton = new QPushButton(persian
+            ? QStringLiteral("فعلاً رد شو؛ بعداً تکمیل می‌کنم")
+            : QStringLiteral("Skip for now; complete later"), &dialog);
         form->addRow(buttons);
+        form->addRow(skipButton);
+        bool skipped = false;
+        connect(skipButton, &QPushButton::clicked, &dialog, [&dialog, &skipped] {
+            skipped = true;
+            dialog.accept();
+        });
         connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
         connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
         if (dialog.exec() != QDialog::Accepted)
             return false;
+        if (skipped) {
+            finalDetailsReviewed_ = true;
+            editorStatus_->setText(persian
+                ? QStringLiteral("مشخصات فردی و استاد فعلاً خالی ماند؛ هر زمان خواستید از دکمه تکمیل مشخصات اقدام کنید.")
+                : QStringLiteral("Student and supervisor details were left blank; use the details button whenever you are ready."));
+            return true;
+        }
         QMap<QString, QString> values;
         for (auto it = inputs.cbegin(); it != inputs.cend(); ++it)
             values.insert(it.key(), it.value()->text().trimmed());
