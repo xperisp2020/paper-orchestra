@@ -105,10 +105,14 @@ def emit_event(enabled: bool, event: str, **details) -> None:
     """Emit optional machine-readable JSONL events for desktop integrations."""
     if not enabled:
         return
+    safe_details = dict(details)
+    if "error" in safe_details:
+        from utils.security_utils import redact_secrets
+        safe_details["error"] = redact_secrets(safe_details["error"])
     payload = {
         "event": event,
         "timestamp": datetime.now().isoformat(timespec="seconds"),
-        **details,
+        **safe_details,
     }
     print(json.dumps(payload, ensure_ascii=False), flush=True)
 
