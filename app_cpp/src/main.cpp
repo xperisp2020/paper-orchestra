@@ -1104,8 +1104,8 @@ private:
     bool saveFinalDetails(const QMap<QString, QString> &values) {
         if (!projectId_)
             return false;
+        QString error;
         for (const QString &key : finalDetailKeys()) {
-            QString error;
             if (!store_.saveSection(*projectId_, key, values.value(key), &error)) {
                 editorStatus_->setText(error);
                 return false;
