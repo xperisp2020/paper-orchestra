@@ -118,6 +118,7 @@ class ResearchRuntimeSetupTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[1]
         script = (repo_root / "scripts" / "setup_research_runtime.ps1").read_text(encoding="utf-8")
         self.assertIn("python -m venv", script)
+        self.assertIn("sys.version_info >= (3, 12)", script)
         self.assertIn("requirements-research.txt", script)
         self.assertIn("pdflatex", script)
         self.assertIn("bibtex", script)
