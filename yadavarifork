@@ -540,3 +540,9 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - دو آزمون جدید برای preflight مقصدهای موجود و تازه افزوده شد.
 - Python safety workflow اکنون تغییرات methods/**، utils/** و autoraters/** را نیز trigger می‌کند؛ پیش از این بعضی اصلاحات اصلی pipeline ممکن بود CI را فعال نکنند.
 - نتیجه CI این commit در انتظار است.
+
+
+### 6.36 گسترش آزمون‌های ایمنی به Windows runner — 2026-11-22
+- اجرای کامل 17 تست ایمنی روی Ubuntu با Python 3.12.16 در run ID=45035940725 موفق شد.
+- workflow اکنون matrix دو runner ubuntu-latest و windows-2022 دارد تا عملیات O_EXCL، fsync، مسیرهای Windows، publish و preflight روی سیستم‌عامل هدف هم اجرا شوند.
+- آزمون Windows برای این تغییر هنوز منتظر نتیجه است.
