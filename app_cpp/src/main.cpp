@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QFile>
 #include <QFileDialog>
+#include <iostream>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -237,6 +238,7 @@ public:
         if (!DocumentExport::toPdf(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                    pdfPath, &storageError)) {
             qCritical().noquote() << "PDF export failed:" << storageError;
+            std::cerr << "PDF export failed: " << storageError.toStdString() << std::endl;
             return 31;
         }
         if (!DocumentExport::toDocx(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
