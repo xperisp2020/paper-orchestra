@@ -90,10 +90,10 @@ QString ResearchEngineRunner::redact(QString value) const {
 void ResearchEngineRunner::consumeOutput(bool flush) {
     pendingOutput_.append(process_.readAllStandardOutput());
     int newline = -1;
-    while ((newline = pendingOutput_.indexOf('\\n')) >= 0) {
+    while ((newline = pendingOutput_.indexOf('\n')) >= 0) {
         QByteArray line = pendingOutput_.left(newline);
         pendingOutput_.remove(0, newline + 1);
-        if (line.endsWith('\\r'))
+        if (line.endsWith('\r'))
             line.chop(1);
         emit outputLine(redact(QString::fromUtf8(line)));
     }
