@@ -24,11 +24,15 @@ class ProjectStoreTests(unittest.TestCase):
     def test_existing_projects_receive_new_fields_without_losing_content(self):
         project = self.store.create_project("Legacy project", "fa", "no_api", "proposal")
         self.store.save_section(project.project_id, "problem_statement", "preserve this")
-        with sqlite3.connect(self.store.database) as db:
+        db = sqlite3.connect(self.store.database)
+        try:
             db.execute(
                 "DELETE FROM sections WHERE project_id=? AND section_key='final_approval'",
                 (project.project_id,),
             )
+            db.commit()
+        finally:
+            db.close()
         migrated = ProjectStore(self.store.database)
         sections = migrated.load_sections(project.project_id)
         self.assertEqual(sections["problem_statement"], "preserve this")
