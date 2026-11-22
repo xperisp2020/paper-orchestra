@@ -13,6 +13,7 @@
 #include <QPrinter>
 #include <QTemporaryFile>
 #include <QTemporaryDir>
+#include <QSet>
 #include <QTextDocument>
 
 #include <limits>
@@ -94,7 +95,6 @@ QString buildHtml(const QMap<QString, QString> &sections,
         "h3{font-size:11pt;margin:8pt 0 4pt;}"
         "p{white-space:pre-wrap;margin:3pt 0;}"
         ".proposal-page{page-break-before:always;break-before:page;}"
-        ".proposal-page:first-of-type{page-break-before:auto;break-before:auto;}"
         "</style></head><body dir=\"%1\">").arg(rtl ? QStringLiteral("rtl") : QStringLiteral("ltr"));
     html += QStringLiteral("<h1>%1</h1>").arg(title.toHtmlEscaped());
     const auto pages = proposalPages(rtl);
@@ -265,8 +265,37 @@ bool publishTempFile(const QString &temporaryPath, const QString &outputPath, QS
 }
 }
 
+bool validateProposalLayout(QString *error) {
+    QSet<QString> expected;
+    for (const QString &key : ProjectStore::proposalSectionKeys())
+        expected.insert(key);
+
+    QSet<QString> grouped;
+    for (const ProposalPage &page : proposalPages(false)) {
+        for (const QString &key : page.sectionKeys) {
+            if (grouped.contains(key)) {
+                setError(error, QStringLiteral("Proposal section appears more than once in page layout: %1").arg(key));
+                return false;
+            }
+            grouped.insert(key);
+        }
+    }
+    for (const QString &key : expected) {
+        if (!grouped.contains(key)) {
+            setError(error, QStringLiteral("Proposal section is missing from page layout: %1").arg(key));
+            return false;
+        }
+    }
+    if (grouped.size() != expected.size()) {
+        setError(error, QStringLiteral("Proposal page layout contains unexpected section keys."));
+        return false;
+    }
+    return true;
+}
+
 bool toPdf(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
            const QString &title, const QString &language, const QString &outputPath, QString *error) {
+    if (!validateProposalLayout(error)) return false;
     if (!makeParentDirectory(outputPath, error)) return false;
     if (QFileInfo::exists(outputPath)) {
         setError(error, QStringLiteral("Refusing to overwrite existing PDF: %1").arg(outputPath));
@@ -299,6 +328,7 @@ bool toPdf(const QMap<QString, QString> &sections, const QMap<QString, QString> 
 
 bool toDocx(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
             const QString &title, const QString &language, const QString &outputPath, QString *error) {
+    if (!validateProposalLayout(error)) return false;
     if (!makeParentDirectory(outputPath, error)) return false;
     if (QFileInfo::exists(outputPath)) {
         setError(error, QStringLiteral("Refusing to overwrite existing DOCX: %1").arg(outputPath));
@@ -355,6 +385,7 @@ bool toDocx(const QMap<QString, QString> &sections, const QMap<QString, QString>
 bool toPngPages(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
                 const QString &title, const QString &language, const QString &outputDirectory,
                 QString *error) {
+    if (!validateProposalLayout(error)) return false;
     const QFileInfo outputInfo(outputDirectory);
     if (!QDir().mkpath(outputInfo.absolutePath())) {
         setError(error, QStringLiteral("Cannot create PNG parent directory."));
@@ -396,6 +427,7 @@ bool toPngPages(const QMap<QString, QString> &sections, const QMap<QString, QStr
 
 bool print(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
            const QString &title, const QString &language, QWidget *parent, QString *error) {
+    if (!validateProposalLayout(error)) return false;
     QPrinter printer(QPrinter::HighResolution);
     QPrintDialog dialog(&printer, parent);
     if (dialog.exec() != QDialog::Accepted) {

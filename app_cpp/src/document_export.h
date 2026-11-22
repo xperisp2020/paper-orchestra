@@ -5,6 +5,8 @@
 #include <QWidget>
 
 namespace DocumentExport {
+
+bool validateProposalLayout(QString *error = nullptr);
 bool toPdf(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
            const QString &title, const QString &language, const QString &outputPath,
            QString *error = nullptr);

@@ -228,6 +228,10 @@ public:
             QStringLiteral("Persisted by GUI smoke test"))
             return 29;
 
+        if (!DocumentExport::validateProposalLayout(&storageError)) {
+            std::cerr << "Proposal page layout validation failed: " << storageError.toStdString() << std::endl;
+            return 40;
+        }
         QTemporaryDir exportData;
         if (!exportData.isValid())
             return 30;
