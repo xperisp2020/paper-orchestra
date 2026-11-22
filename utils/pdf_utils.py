@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from utils.security_utils import redact_secrets
 import subprocess
 import json
 import shutil
@@ -236,7 +237,7 @@ def compile_latex(cwd, pdf_file, texfile_name="template", timeout=30):
             return True
         except Exception:
             rich.print(f"[bold red]Error publishing generated PDF to {pdf_file}[/bold red]")
-            print(traceback.format_exc())
+            print(redact_secrets(traceback.format_exc()))
             return False
     else:
         rich.print(

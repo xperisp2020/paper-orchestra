@@ -14,6 +14,7 @@
 
 import warnings
 import os
+from utils.security_utils import redact_secrets
 import requests
 import time
 from typing import List, Dict, Union, Optional
@@ -95,5 +96,5 @@ def s2_title_search(
             return best_match
         return None
     except Exception as e:
-        print(f"      ⚠️ S2 Error for '{title_query}': {e}")
+        print(f"      ⚠️ S2 Error for '{title_query}': {redact_secrets(e)}")
         return None

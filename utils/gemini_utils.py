@@ -20,6 +20,7 @@ from google import genai
 from google.genai import types  # type: ignore
 import time
 import os
+from utils.security_utils import redact_secrets
 import mimetypes
 import base64
 import threading
@@ -197,7 +198,7 @@ def call_gemini_with_contents(
             }
 
         except Exception as e:
-            error_msg = str(e)
+            error_msg = redact_secrets(e)
             print(
                 f"Warning: Gemini API call failed on attempt {attempt + 1} of {max_retries}. Error: {error_msg}",
             )
@@ -334,12 +335,12 @@ def generate_image_with_gemini(
                                     )
                                 except Exception as e:
                                     print(
-                                        f"Warning: Failed to save image to {save_path}: {e}"
+                                        f"Warning: Failed to save image to {save_path}: {redact_secrets(e)}"
                                     )
 
                             return img_base64
         except Exception as e:
-            print(f"Warning: Gemini API image generation failed {e}.")
+            print(f"Warning: Gemini API image generation failed {redact_secrets(e)}.")
             if attempt + 1 == max_retries:
                 print(
                     f"Error: All {max_retries} retry attempts failed for image generation."

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from utils.security_utils import redact_secrets
 import traceback
 import json
 import shutil
@@ -104,8 +105,8 @@ class ContentRefinementAgent:
 
             return review, float(score)
         except Exception as e:
-            print(f" >> [Reviewer] Error generating review: {e}")
-            traceback.print_exc()
+            print(f" >> [Reviewer] Error generating review: {redact_secrets(e)}")
+            print(redact_secrets(traceback.format_exc()))
             return {"Error": str(e), "Overall": 0}, 0.0
 
     def _get_formatting_review(self, pdf_path: str, iteration_label: str) -> dict:
@@ -172,8 +173,8 @@ Respond in JSON format with the following structure:
 
             return formatting_review
         except Exception as e:
-            print(f" >> [VLM] Error generating formatting review: {e}")
-            traceback.print_exc()
+            print(f" >> [VLM] Error generating formatting review: {redact_secrets(e)}")
+            print(redact_secrets(traceback.format_exc()))
             return {"Error": str(e)}
 
     def _extract_scores(self, review: dict) -> dict:
@@ -437,8 +438,8 @@ INSTRUCTION:
                         with open(worklog_save_path, "w", encoding="utf-8") as f:
                             json.dump(self.worklogs, f, indent=4)
             except Exception as e:
-                print(f" >> Error during refinement loop: {e}")
-                traceback.print_exc()
+                print(f" >> Error during refinement loop: {redact_secrets(e)}")
+                print(redact_secrets(traceback.format_exc()))
                 break
 
         # End of Loop
@@ -572,8 +573,8 @@ block.
                     json.dump(self.format_worklogs, f, indent=4)
 
             except Exception as e:
-                print(f" >> Error during formatting iteration: {e}")
-                traceback.print_exc()
+                print(f" >> Error during formatting iteration: {redact_secrets(e)}")
+                print(redact_secrets(traceback.format_exc()))
 
         # Save Final Output
         final_pdf_output_path = os.path.join(self.work_dir, "final_refined_paper.pdf")

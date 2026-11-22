@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from utils.security_utils import redact_secrets
 import os.path as osp
 import shutil
 import traceback
@@ -190,7 +191,7 @@ def write_single_paper(
 
         except Exception:
             print(f"[Try {cur_try+1}/{max_n_tries}] EXCEPTION in perform_writeup:")
-            print(traceback.format_exc())
+            print(redact_secrets(traceback.format_exc()))
             cur_try += 1
             if cur_try < max_n_tries:
                 print("Try again now...")
@@ -260,8 +261,8 @@ def process_paper_task(
         return result
 
     except Exception as e:
-        print(f"CRITICAL ERROR in worker for paper {paper['paper_id']}: {e}")
-        print(traceback.format_exc())
+        print(f"CRITICAL ERROR in worker for paper {paper['paper_id']}: {redact_secrets(e)}")
+        print(redact_secrets(traceback.format_exc()))
         return {"paper_id": paper["paper_id"], "status": "error", "error": str(e)}
 
 
@@ -418,7 +419,7 @@ def run_batch_writeup(
                     json.dump(write_log, f, indent=4)
 
             except Exception as e:
-                print(f"Exception handling result for paper {paper_id}: {e}")
+                print(f"Exception handling result for paper {paper_id}: {redact_secrets(e)}")
 
     success_count = sum(
         1 for entry in write_log.values() if entry.get("status") == "success"

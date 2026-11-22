@@ -805,3 +805,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اصلاح: helper nonNullTrimmed رشته‌های اختیاری خالی/null را به QStringLiteral("") تبدیل می‌کند؛ title، authors، year، DOI، URL و notes از آن استفاده می‌کنند. saveSection و saveResearchSection نیز محتوای QString null را به رشته خالی تبدیل می‌کنند.
 - smoke test فعلی عمداً notes را مقداردهی نمی‌کند؛ بنابراین این مسیر واقعی regression را پوشش می‌دهد.
 - نتیجه CI پس از این اصلاح در انتظار است.
+
+
+### 6.71 پالایش اطلاعات محرمانه از پیام‌های خطا و traceback — 2026-11-22
+- بازبینی providerها نشان داد اگرچه کلیدها دیگر مستقیماً print نمی‌شوند، متن خام Exception و traceback در Gemini، OpenAI، Semantic Scholar، citation evaluator و Agentها چاپ می‌شد؛ بعضی SDKها ممکن است header یا token را در exception جزئیات‌دار بازتاب دهند.
+- utils/security_utils.py افزوده شد: کلیدهای شناخته‌شده محیطی و فیلدهای Authorization Bearer، X-API-KEY، api_key، access_token و client_secret را قبل از log redacted می‌کند.
+- مسیرهای خطای provider و agentهای refinement/plotting و writerها از redact_secrets استفاده می‌کنند؛ tracebackها نیز قبل از چاپ پالایش می‌شوند.
+- دو آزمون جدید: پوشش کلیدهای محیطی و header/tokenهای نمونه، و حفظ پیام diagnostic غیرمحرمانه.
+- workflow Python اکنون تغییرات همه utils/**، methods/** و autoraters/** را نیز trigger می‌کند.
+- نتیجه CI این اصلاح هنوز در انتظار است.

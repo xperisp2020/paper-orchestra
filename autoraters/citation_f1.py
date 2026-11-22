@@ -14,6 +14,7 @@
 
 import re
 import os
+from utils.security_utils import redact_secrets
 import requests
 import json
 import time
@@ -134,7 +135,7 @@ class ReferenceF1V1Evaluator:
                 return self._fetch_paper_id(paper_title)
 
         except Exception as e:
-            print(f"Error fetching ID for ref: {paper_title}... -> {e}")
+            print(f"Error fetching ID for ref: {paper_title}... -> {redact_secrets(e)}")
 
         return None
 
@@ -191,7 +192,7 @@ class ReferenceF1V1Evaluator:
                 print("Warning: LLM returned empty or invalid priority JSON.")
             return parsed_priorities
         except Exception as e:
-            print(f"Error calling LLM for priorities: {e}")
+            print(f"Error calling LLM for priorities: {redact_secrets(e)}")
             return {}
 
     def process_text_to_data(
@@ -386,7 +387,7 @@ def get_citation_f1_metrics(
             with open(gt_cache_path, "r") as f:
                 gt_data = json.load(f)
         except Exception as e:
-            print(f"Failed to load cache {gt_cache_path}, will re-process. Error: {e}")
+            print(f"Failed to load cache {gt_cache_path}, will re-process. Error: {redact_secrets(e)}")
 
     if gt_data is None:
         print(f"Processing Ground Truth PDF: {original_pdf}")
@@ -411,7 +412,7 @@ def get_citation_f1_metrics(
                 json.dump(gt_data, f, indent=4)
             print(f"Cached Ground Truth references to: {gt_cache_path}")
         except Exception as e:
-            print(f"Warning: Could not write GT cache file. {e}")
+            print(f"Warning: Could not write GT cache file. {redact_secrets(e)}")
 
     # --- 2. Handle Generated PDF (Always Process) ---
     print(f"Processing Generated PDF: {generated_pdf}")
@@ -477,7 +478,7 @@ def generate_gt_citations_batch(
                     if "paper_id" in item:
                         info_map[item["paper_id"]] = item
         except Exception as e:
-            print(f"Warning: Could not read {info_json_path}: {e}")
+            print(f"Warning: Could not read {info_json_path}: {redact_secrets(e)}")
 
     info_map_lock = Lock()
 
@@ -489,7 +490,7 @@ def generate_gt_citations_batch(
                 progress_data = json.load(f)
                 print(f"Loaded existing progress from {progress_json_path}")
         except Exception as e:
-            print(f"Warning: Could not load existing progress: {e}")
+            print(f"Warning: Could not load existing progress: {redact_secrets(e)}")
 
     progress_lock = Lock()
 
@@ -500,7 +501,7 @@ def generate_gt_citations_batch(
                     with open(progress_json_path, "w") as f:
                         json.dump(progress_data, f, indent=4)
                 except Exception as e:
-                    print(f"Error saving progress: {e}")
+                    print(f"Error saving progress: {redact_secrets(e)}")
 
     paper_folders = [
         f
@@ -552,7 +553,7 @@ def generate_gt_citations_batch(
                         )
                 _save_progress()
             except Exception as e:
-                print(f"Error reading existing json {output_json_path}: {e}")
+                print(f"Error reading existing json {output_json_path}: {redact_secrets(e)}")
         else:
             print(f"\n[{paper_num}] Processing {pdf_path}...")
             try:
@@ -599,7 +600,7 @@ def generate_gt_citations_batch(
                 _save_progress()
 
             except Exception as e:
-                print(f"Error processing {paper_num}: {e}")
+                print(f"Error processing {paper_num}: {redact_secrets(e)}")
 
         # Update info.json mapping securely
         if gt_data is not None:
@@ -654,7 +655,7 @@ def generate_gt_citations_batch(
                 json.dump(updated_info_data, f, indent=4)
             print(f"Successfully updated {info_json_path} with P0/P1 citation counts.")
         except Exception as e:
-            print(f"Error saving updated {info_json_path}: {e}")
+            print(f"Error saving updated {info_json_path}: {redact_secrets(e)}")
 
 
 def review_citation_f1_batch(
@@ -751,7 +752,7 @@ def review_citation_f1_batch(
                     json.dump(all_results, f, indent=4)
 
         except Exception as e:
-            print(f"Error processing paper '{paper_id}': {e}")
+            print(f"Error processing paper '{paper_id}': {redact_secrets(e)}")
             return
 
     print(f"Starting parallel review execution with {max_workers} thread workers...")

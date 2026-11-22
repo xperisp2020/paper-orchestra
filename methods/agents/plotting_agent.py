@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from utils.security_utils import redact_secrets
 import json
 import base64
 import concurrent.futures
@@ -164,7 +165,7 @@ def process_single_figure(
                 current_img = new_img
         except Exception as e:
             print(
-                f"[ERROR in {fig_plan.get('figure_id', 'Unknown')} Critic Round {round_idx + 1}]: {e}"
+                f"[ERROR in {fig_plan.get('figure_id', 'Unknown')} Critic Round {round_idx + 1}]: {redact_secrets(e)}"
             )
             break
 
@@ -244,8 +245,8 @@ class PlottingAgent:
                     plan = futures[future]
                     import traceback
 
-                    print(f"[ERROR] Failed processing {plan.get('figure_id')}: {e}")
-                    traceback.print_exc()
+                    print(f"[ERROR] Failed processing {plan.get('figure_id')}: {redact_secrets(e)}")
+                    print(redact_secrets(traceback.format_exc()))
 
         if output_filepath:
             output_dir = os.path.dirname(output_filepath)
@@ -263,7 +264,7 @@ class PlottingAgent:
                         print(f"Saved {img_path}")
                         res["image_path"] = f"figures/{fig_id_clean}.jpg"
                     except Exception as e:
-                        print(f"Failed to save image {fig_id_clean}: {e}")
+                        print(f"Failed to save image {fig_id_clean}: {redact_secrets(e)}")
 
                 if "base64_img" in res:
                     del res["base64_img"]

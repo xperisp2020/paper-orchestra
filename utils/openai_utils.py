@@ -17,6 +17,7 @@ import re
 import json
 import time
 import os
+from utils.security_utils import redact_secrets
 import sys
 import threading
 import cv2  # type: ignore
@@ -152,7 +153,7 @@ def call_openai_models_with_content(
 
         except Exception as e:
             print(
-                f"Warning: OpenAI API call (model={model_name}) failed on attempt {attempt + 1} of {max_retries}. Error: {e}",
+                f"Warning: OpenAI API call (model={model_name}) failed on attempt {attempt + 1} of {max_retries}. Error: {redact_secrets(e)}",
             )
 
             if attempt + 1 == max_retries:

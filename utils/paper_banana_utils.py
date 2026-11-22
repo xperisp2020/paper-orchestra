@@ -16,6 +16,7 @@ import base64
 import io
 import re
 import os
+from utils.security_utils import redact_secrets
 import json
 import matplotlib.pyplot as plt
 import json_repair
@@ -318,7 +319,7 @@ def execute_plot_code_worker(code_text: str) -> str:
             return None
 
     except Exception as e:
-        print(f"Error executing plot code: {e}")
+        print(f"Error executing plot code: {redact_secrets(e)}")
         return None
 
 
@@ -389,7 +390,7 @@ def retrieve_few_shot_examples(
         parsed = json_repair.loads(raw_response)
         retrieved_ids = parsed.get(output_key, [])
     except Exception as e:
-        print(f"Warning: Failed to parse retrieval result: {e}")
+        print(f"Warning: Failed to parse retrieval result: {redact_secrets(e)}")
         retrieved_ids = []
 
     id_to_item = {item["id"]: item for item in candidate_pool}

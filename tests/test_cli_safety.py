@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from paper_writing_cli import prepare_raw_materials
 from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, paths_are_same, publish_file_no_overwrite
+from utils.security_utils import redact_secrets
 
 
 class RawMaterialsSafetyTests(unittest.TestCase):
@@ -233,6 +234,30 @@ class BatchResumeWorkspaceTests(unittest.TestCase):
         for relative in ("methods/paper_writer.py", "methods/paper_writer_with_plotting.py"):
             source = (repo_root / relative).read_text(encoding="utf-8")
             self.assertIn('create_next_workspace(output_dir, str(paper_id))', source)
+
+
+class SecretRedactionTests(unittest.TestCase):
+    def test_provider_keys_and_authorization_headers_are_redacted(self):
+        secrets = {
+            "GEMINI_API_KEY": "gemini-secret-value",
+            "OPENAI_API_KEY": "openai-secret-value",
+            "SEMANTIC_SCHOLAR_API_KEY": "scholar-secret-value",
+        }
+        with patch.dict(os.environ, secrets, clear=False):
+            diagnostic = (
+                "gemini-secret-value openai-secret-value scholar-secret-value "
+                "Authorization: Bearer bearer-secret-value "
+                "X-API-KEY: header-secret-value api_key=query-secret-value"
+            )
+            safe = redact_secrets(diagnostic)
+        for secret in (*secrets.values(), "bearer-secret-value", "header-secret-value", "query-secret-value"):
+            self.assertNotIn(secret, safe)
+        self.assertGreaterEqual(safe.count("[REDACTED]"), 6)
+
+    def test_nonsecret_diagnostic_is_preserved(self):
+        message = "Request failed with HTTP 429 after 2 retries."
+        self.assertEqual(redact_secrets(message), message)
+
 
 class SecretLoggingTests(unittest.TestCase):
     def test_semantic_scholar_api_key_is_not_printed_anywhere(self):
