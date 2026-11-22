@@ -1110,3 +1110,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - علت: QFile ورودی پس از readAll باز می‌ماند؛ Windows اجازه نمی‌دهد QSaveFile فایل مقصد را در حالی که handle خواندن باز است جایگزین کند. این رفتار روی POSIX ممکن است پنهان بماند.
 - اصلاح: داده‌ها ابتدا در QByteArray خوانده و QFile صریحاً close می‌شود؛ سپس QSaveFile فایل را atomically جایگزین می‌کند.
 - commit اصلاح 270b028d87842a0dad1ee1f62175e987b9546581؛ CI نهایی 45053779663 در حال اجراست.
+
+
+### 6.95.3 تأیید نهایی manifest/history در Windows و clean runner
+- CI نهایی C++ شماره 45053779663 روی commit 270b028d87842a0dad1ee1f62175e987b9546581 با conclusion=success کامل شد.
+- Configure و Build هر دو executable، Smoke، ساخت portable، کامپایل Inno Setup، بارگذاری هر دو artifact و verify-portable-artifact روی clean Windows runner همگی موفق شدند.
+- Smoke جدید تأیید کرد manifest ابتدا ایجاد، سپس دوباره خوانده و با QSaveFile جایگزین می‌شود؛ شناسه پروژه و وضعیت نهایی حفظ می‌شوند. خطای Windows file handle با بستن QFile پیش از QSaveFile رفع شد.
+- Clean runner هر دو artifact را دریافت و بررسی کرد: portable ID=14766414189، حجم=25,127,087 bytes؛ installer ID=14766621962، حجم=17,997,738 bytes. انقضا 2027-02-20T18:12:55Z.
+- CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45053779663
+- این نتیجه گیت‌های build/smoke/manifest/portable/installer/clean-runner را تأیید می‌کند؛ اجرای end-to-end pipeline با API واقعی و تولید مقاله واقعی هنوز انجام نشده است.
