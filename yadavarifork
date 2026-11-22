@@ -695,3 +695,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - لاگ واقعی هر دو runner تعداد 22 تست را با نتیجه OK ثبت کرد.
 - سه آزمون تازه در هر دو سیستم‌عامل تأیید کردند: اجرای مجدد paper_id از workspace تازه استفاده می‌کند و پوشه شکست قبلی را حفظ می‌کند؛ برخورد نام با چند workspace موجود به suffix بعدی می‌رود؛ هر دو process_paper_task از allocator ایمن استفاده می‌کنند.
 - محدودیت: آزمون end-to-end اجرای batch با ProcessPoolExecutor و تزریق شکست واقعی Agent هنوز انجام نشده است؛ unit tests و بررسی استاتیک wiring موفق‌اند.
+
+
+### 6.57 نتایج نهایی CI ایمنی و پذیرش clean-runner نسخه پرتابل — 2026-11-22
+- CI run ID=45039267741 روی commit 372c69b97e5cab72328e1f2b93355608d03cff36 در Ubuntu و Windows 2022 هر دو success شد؛ هر runner تعداد 22 تست unittest را با نتیجه OK ثبت کرد. این شامل آزمون‌های retry داخلی، ازسرگیری batch، جلوگیری از overwrite، مسیرهای Windows و افشای secret است.
+- CI ساخت ویندوز run ID=45039092377 روی commit bc04bf3e236c7e651d88eb955993a12093c3369e: Configure، Build، CTest، ساخت بسته، و اجرای smoke روی executable بسته‌بندی‌شده موفق شد.
+- clean-runner verify-portable-artifact نیز روی Windows Server 2022 موفق شد؛ ZIP در runner مستقل استخراج شد، DLLها و Qt platform plugin و SQLite plugin بررسی شدند و yadavarifork.exe از داخل ZIP با QT_QPA_PLATFORM=windows و --smoke-test در حدود 8 ثانیه با exit code صفر خاتمه یافت.
+- Artifact جدید: ID=14760833122، نام=yadavarifork-windows-portable، حجم=25,050,437 bytes، SHA256=f5149e89709e0ff3ca80038fd26a7798c1862f90424eb499a7d693f49dd92e0d، run=45039092377، commit build=bc04bf3e236c7e651d88eb955993a12093c3369e، انقضا=2027-02-20.
+- نکته: بسته‌بندی portable و clean-runner smoke تأیید شده‌اند؛ این هنوز معادل آزمون نصب روی دستگاه واقعی کاربر، سازگاری Word 2010 واقعی یا تکمیل قابلیت پژوهش زنده نیست.
