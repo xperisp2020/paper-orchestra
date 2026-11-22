@@ -90,7 +90,7 @@ def update_run_manifest(output_dir, status, stage, error=None):
     try:
         with open(temporary_path, "x", encoding="utf-8") as temporary:
             json.dump(manifest, temporary, ensure_ascii=False, indent=2)
-            temporary.write("\\n")
+            temporary.write("\n")
             temporary.flush()
             os.fsync(temporary.fileno())
         os.replace(temporary_path, manifest_path)
