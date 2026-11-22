@@ -3,6 +3,10 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QDebug>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFormLayout>
+#include <QGroupBox>
 #include <QFile>
 #include <QFileDialog>
 #include <iostream>
@@ -109,6 +113,38 @@ public:
         static_cast<QVBoxLayout *>(editorPage->layout())->addLayout(exportRow);
         pages_->addWidget(editorPage);
 
+        auto *researchPage = makePage(QStringLiteral("researchWorkspacePage"));
+        auto *researchEditorRow = new QHBoxLayout;
+        researchSectionList_ = new QListWidget;
+        researchSectionList_->setObjectName(QStringLiteral("researchSectionList"));
+        researchEditor_ = new QTextEdit;
+        researchEditor_->setObjectName(QStringLiteral("researchSectionEditor"));
+        researchEditorRow->addWidget(researchSectionList_, 1);
+        researchEditorRow->addWidget(researchEditor_, 3);
+        static_cast<QVBoxLayout *>(researchPage->layout())->addLayout(researchEditorRow, 3);
+
+        researchSourcesGroup_ = new QGroupBox;
+        auto *sourceLayout = new QVBoxLayout(researchSourcesGroup_);
+        researchSourcesList_ = new QListWidget;
+        researchSourcesList_->setObjectName(QStringLiteral("researchSourcesList"));
+        auto *sourceButtons = new QHBoxLayout;
+        addResearchSource_ = new QPushButton;
+        addResearchSource_->setObjectName(QStringLiteral("addResearchSourceButton"));
+        deleteResearchSource_ = new QPushButton;
+        deleteResearchSource_->setObjectName(QStringLiteral("deleteResearchSourceButton"));
+        saveResearchSection_ = new QPushButton;
+        saveResearchSection_->setObjectName(QStringLiteral("saveResearchSectionButton"));
+        sourceButtons->addWidget(saveResearchSection_);
+        sourceButtons->addWidget(addResearchSource_);
+        sourceButtons->addWidget(deleteResearchSource_);
+        sourceLayout->addWidget(researchSourcesList_);
+        sourceLayout->addLayout(sourceButtons);
+        static_cast<QVBoxLayout *>(researchPage->layout())->addWidget(researchSourcesGroup_, 2);
+        researchStatus_ = new QLabel;
+        researchStatus_->setWordWrap(true);
+        static_cast<QVBoxLayout *>(researchPage->layout())->addWidget(researchStatus_);
+        pages_->addWidget(researchPage);
+
         auto *navigation = new QWidget;
         auto *buttons = new QHBoxLayout(navigation);
         back_ = new QPushButton;
@@ -152,6 +188,18 @@ public:
         connect(sectionList_, &QListWidget::currentRowChanged, this, [this](int) {
             loadSelectedSection();
         });
+        connect(researchSectionList_, &QListWidget::currentRowChanged, this, [this](int) {
+            loadSelectedResearchSection();
+        });
+        connect(saveResearchSection_, &QPushButton::clicked, this, [this] {
+            saveSelectedResearchSection();
+        });
+        connect(addResearchSource_, &QPushButton::clicked, this, [this] {
+            addResearchSource();
+        });
+        connect(deleteResearchSource_, &QPushButton::clicked, this, [this] {
+            deleteResearchSource();
+        });
         connect(saveSection_, &QPushButton::clicked, this, [this] {
             saveSelectedSection();
         });
@@ -165,7 +213,7 @@ public:
     }
 
     int runSmokeTest() {
-        if (!language_ || !aiMode_ || !taskMode_ || !pages_ || pages_->count() != 5)
+        if (!language_ || !aiMode_ || !taskMode_ || !pages_ || pages_->count() != 6)
             return 20;
 
         language_->setCurrentIndex(1);
@@ -395,6 +443,7 @@ private:
         headings_[2]->setText(persian ? QStringLiteral("نوع فعالیت و عنوان پروژه") : QStringLiteral("Workspace and project title"));
         headings_[3]->setText(persian ? QStringLiteral("بازبینی انتخاب‌ها") : QStringLiteral("Review selections"));
         headings_[4]->setText(persian ? QStringLiteral("ویرایش پروپوزال") : QStringLiteral("Proposal editor"));
+        headings_[5]->setText(persian ? QStringLiteral("کارگاه پژوهش محلی") : QStringLiteral("Local research workspace"));
 
         language_->setItemText(0, QStringLiteral("فارسی"));
         language_->setItemText(1, QStringLiteral("English"));
@@ -410,9 +459,16 @@ private:
         exportDocx_->setText(persian ? QStringLiteral("خروجی Word") : QStringLiteral("Export Word"));
         exportPng_->setText(persian ? QStringLiteral("خروجی تصویر") : QStringLiteral("Export PNG"));
         printDocument_->setText(persian ? QStringLiteral("چاپ") : QStringLiteral("Print"));
+        saveResearchSection_->setText(persian ? QStringLiteral("ذخیره بخش") : QStringLiteral("Save section"));
+        addResearchSource_->setText(persian ? QStringLiteral("افزودن منبع") : QStringLiteral("Add source"));
+        deleteResearchSource_->setText(persian ? QStringLiteral("حذف منبع") : QStringLiteral("Delete source"));
+        researchSourcesGroup_->setTitle(persian ? QStringLiteral("منابع ثبت‌شده — تأییدنشده") : QStringLiteral("Recorded sources — unverified"));
         updateAiDescription();
         updateSummary();
         populateSectionList();
+        populateResearchSectionList();
+        if (projectId_ && taskMode_->currentData().toString() == QStringLiteral("research"))
+            refreshResearchSources();
         updateNavigation();
     }
 
@@ -493,6 +549,138 @@ private:
         editorStatus_->setText(persian ? QStringLiteral("ذخیره شد") : QStringLiteral("Saved"));
     }
 
+
+    QString researchSectionLabel(const QString &key, bool persian) const {
+        static const QMap<QString, QPair<QString, QString>> labels = {
+            {QStringLiteral("research_question"), {QStringLiteral("پرسش پژوهش"), QStringLiteral("Research question")}},
+            {QStringLiteral("research_background"), {QStringLiteral("پیشینه و زمینه"), QStringLiteral("Background")}},
+            {QStringLiteral("research_objectives"), {QStringLiteral("اهداف پژوهش"), QStringLiteral("Research objectives")}},
+            {QStringLiteral("research_methodology"), {QStringLiteral("روش‌شناسی"), QStringLiteral("Methodology")}},
+            {QStringLiteral("search_strategy"), {QStringLiteral("راهبرد جستجوی منابع"), QStringLiteral("Literature search strategy")}},
+            {QStringLiteral("inclusion_criteria"), {QStringLiteral("معیارهای ورود"), QStringLiteral("Inclusion criteria")}},
+            {QStringLiteral("exclusion_criteria"), {QStringLiteral("معیارهای خروج"), QStringLiteral("Exclusion criteria")}},
+            {QStringLiteral("evidence_synthesis"), {QStringLiteral("سنتز شواهد"), QStringLiteral("Evidence synthesis")}},
+            {QStringLiteral("findings"), {QStringLiteral("یافته‌ها"), QStringLiteral("Findings")}},
+            {QStringLiteral("limitations"), {QStringLiteral("محدودیت‌ها"), QStringLiteral("Limitations")}},
+            {QStringLiteral("future_work"), {QStringLiteral("کارهای آینده"), QStringLiteral("Future work")}}
+        };
+        const auto it = labels.constFind(key);
+        if (it == labels.cend()) return key;
+        return persian ? it->first : it->second;
+    }
+
+    void populateResearchSectionList() {
+        if (!researchSectionList_) return;
+        QString currentKey;
+        if (researchSectionList_->currentItem())
+            currentKey = researchSectionList_->currentItem()->data(Qt::UserRole).toString();
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        researchSectionList_->clear();
+        for (const QString &key : ProjectStore::researchSectionKeys()) {
+            auto *item = new QListWidgetItem(researchSectionLabel(key, persian));
+            item->setData(Qt::UserRole, key);
+            researchSectionList_->addItem(item);
+            if (key == currentKey) researchSectionList_->setCurrentItem(item);
+        }
+        if (researchSectionList_->currentRow() < 0 && researchSectionList_->count() > 0)
+            researchSectionList_->setCurrentRow(0);
+    }
+
+    void loadSelectedResearchSection() {
+        if (!projectId_ || !researchSectionList_->currentItem()) return;
+        QString error;
+        const auto sections = store_.loadResearchSections(*projectId_, &error);
+        if (!error.isEmpty()) { researchStatus_->setText(error); return; }
+        const QString key = researchSectionList_->currentItem()->data(Qt::UserRole).toString();
+        researchEditor_->setPlainText(sections.value(key));
+    }
+
+    void saveSelectedResearchSection() {
+        if (!projectId_ || !researchSectionList_->currentItem()) return;
+        const QString key = researchSectionList_->currentItem()->data(Qt::UserRole).toString();
+        QString error;
+        if (!store_.saveResearchSection(*projectId_, key, researchEditor_->toPlainText(), &error)) {
+            researchStatus_->setText(error);
+            return;
+        }
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        researchStatus_->setText(persian ? QStringLiteral("بخش پژوهش ذخیره شد.") : QStringLiteral("Research section saved."));
+    }
+
+    void refreshResearchSources() {
+        if (!researchSourcesList_) return;
+        researchSourcesList_->clear();
+        if (!projectId_) return;
+        QString error;
+        const auto sources = store_.loadResearchSources(*projectId_, &error);
+        if (!error.isEmpty()) { researchStatus_->setText(error); return; }
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        for (const ResearchSource &source : sources) {
+            QString details = source.title;
+            if (!source.authors.isEmpty()) details += QStringLiteral(" — ") + source.authors;
+            if (!source.publicationYear.isEmpty()) details += QStringLiteral(" (%1)").arg(source.publicationYear);
+            details += persian ? QStringLiteral(" [تأییدنشده]") : QStringLiteral(" [unverified]");
+            auto *item = new QListWidgetItem(details);
+            item->setData(Qt::UserRole, source.id);
+            researchSourcesList_->addItem(item);
+        }
+    }
+
+    void addResearchSource() {
+        if (!projectId_) return;
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        QDialog dialog(this);
+        dialog.setWindowTitle(persian ? QStringLiteral("ثبت منبع پژوهشی") : QStringLiteral("Record research source"));
+        auto *form = new QFormLayout(&dialog);
+        auto *title = new QLineEdit(&dialog);
+        auto *authors = new QLineEdit(&dialog);
+        auto *year = new QLineEdit(&dialog);
+        auto *doi = new QLineEdit(&dialog);
+        auto *url = new QLineEdit(&dialog);
+        auto *notes = new QTextEdit(&dialog);
+        form->addRow(persian ? QStringLiteral("عنوان *") : QStringLiteral("Title *"), title);
+        form->addRow(persian ? QStringLiteral("نویسندگان") : QStringLiteral("Authors"), authors);
+        form->addRow(persian ? QStringLiteral("سال") : QStringLiteral("Year"), year);
+        form->addRow(QStringLiteral("DOI"), doi);
+        form->addRow(QStringLiteral("URL"), url);
+        form->addRow(persian ? QStringLiteral("یادداشت") : QStringLiteral("Notes"), notes);
+        auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+        form->addRow(buttons);
+        connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+        if (dialog.exec() != QDialog::Accepted) return;
+        ResearchSource source;
+        source.title = title->text();
+        source.authors = authors->text();
+        source.publicationYear = year->text();
+        source.doi = doi->text();
+        source.url = url->text();
+        source.notes = notes->toPlainText();
+        QString error;
+        if (!store_.addResearchSource(*projectId_, source, &error)) {
+            QMessageBox::warning(this, QStringLiteral("Yadavarifork"), error);
+            return;
+        }
+        refreshResearchSources();
+        researchStatus_->setText(persian
+            ? QStringLiteral("منبع ثبت شد؛ صحت DOI و نشانی باید جداگانه بررسی شود.")
+            : QStringLiteral("Source recorded; DOI and URL still require independent verification."));
+    }
+
+    void deleteResearchSource() {
+        if (!projectId_ || !researchSourcesList_->currentItem()) return;
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        const auto answer = QMessageBox::question(this, QStringLiteral("Yadavarifork"),
+            persian ? QStringLiteral("این منبع حذف شود؟") : QStringLiteral("Delete this source?"));
+        if (answer != QMessageBox::Yes) return;
+        const qint64 sourceId = researchSourcesList_->currentItem()->data(Qt::UserRole).toLongLong();
+        QString error;
+        if (!store_.deleteResearchSource(*projectId_, sourceId, &error)) {
+            researchStatus_->setText(error);
+            return;
+        }
+        refreshResearchSources();
+    }
 
     QMap<QString, QString> currentSectionLabels() const {
         QMap<QString, QString> labels;
@@ -577,6 +765,10 @@ private:
             if (taskMode_->currentData().toString() == QStringLiteral("proposal")) {
                 populateSectionList();
                 pages_->setCurrentIndex(4);
+            } else {
+                populateResearchSectionList();
+                refreshResearchSources();
+                pages_->setCurrentIndex(5);
             }
             updateNavigation();
             return;
@@ -591,13 +783,20 @@ private:
                 : error);
             return;
         }
+        language_->setEnabled(false);
+        aiMode_->setEnabled(false);
+        taskMode_->setEnabled(false);
+        projectTitle_->setEnabled(false);
         if (taskMode_->currentData().toString() == QStringLiteral("proposal")) {
             populateSectionList();
             pages_->setCurrentIndex(4);
         } else {
+            populateResearchSectionList();
+            refreshResearchSources();
+            pages_->setCurrentIndex(5);
             summaryStatus_->setText(persian
-                ? QStringLiteral("پروژه پژوهش ذخیره شد؛ اتصال عامل‌های پژوهش هنوز در دست توسعه است.")
-                : QStringLiteral("Research project saved; research-agent integration is still under development."));
+                ? QStringLiteral("کارگاه پژوهش محلی آماده است. یادداشت‌ها و منابع دستی در SQLite ذخیره می‌شوند؛ منابع تا بررسی مستقل تأییدنشده‌اند.")
+                : QStringLiteral("Local research workspace is ready. Notes and manually entered sources are stored in SQLite; sources remain unverified until independently checked."));
         }
         updateNavigation();
     }
@@ -639,6 +838,14 @@ private:
     QPushButton *exportDocx_{};
     QPushButton *exportPng_{};
     QPushButton *printDocument_{};
+    QListWidget *researchSectionList_{};
+    QTextEdit *researchEditor_{};
+    QListWidget *researchSourcesList_{};
+    QGroupBox *researchSourcesGroup_{};
+    QPushButton *saveResearchSection_{};
+    QPushButton *addResearchSource_{};
+    QPushButton *deleteResearchSource_{};
+    QLabel *researchStatus_{};
     QList<QLabel *> headings_;
     std::optional<qint64> projectId_;
 };
