@@ -32,13 +32,12 @@ def prepare_raw_materials(source_dir: str, target_dir: str) -> bool:
     if not os.path.isdir(source):
         raise NotADirectoryError(f"Raw materials source is not a directory: {source_dir}")
     try:
-        if os.path.commonpath([source, target]) == source:
-            raise ValueError("Output raw_materials directory cannot be inside the source directory.")
-    except ValueError as exc:
-        if "different drives" in str(exc).lower():
-            pass
-        else:
-            raise
+        common_path = os.path.commonpath([source, target])
+    except ValueError:
+        # On Windows, source and destination may be on different drives.
+        common_path = None
+    if common_path == source:
+        raise ValueError("Output raw_materials directory cannot be inside the source directory.")
     if os.path.lexists(target):
         raise FileExistsError(
             f"Refusing to overwrite existing raw materials: {target}. "

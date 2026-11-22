@@ -1,5 +1,7 @@
+import ast
 import os
 import tempfile
+from pathlib import Path
 import unittest
 
 from paper_writing_cli import prepare_raw_materials
@@ -22,7 +24,8 @@ class RawMaterialsSafetyTests(unittest.TestCase):
                 prepare_raw_materials(source, target)
 
             self.assertTrue(os.path.isfile(sentinel))
-            self.assertEqual(open(sentinel, encoding="utf-8").read(), "keep")
+            with open(sentinel, encoding="utf-8") as f:
+                self.assertEqual(f.read(), "keep")
             self.assertFalse(os.path.exists(os.path.join(target, "new.txt")))
 
     def test_new_destination_receives_copy(self):
@@ -33,7 +36,8 @@ class RawMaterialsSafetyTests(unittest.TestCase):
             with open(os.path.join(source, "idea.md"), "w", encoding="utf-8") as f:
                 f.write("idea")
             self.assertTrue(prepare_raw_materials(source, target))
-            self.assertEqual(open(os.path.join(target, "idea.md"), encoding="utf-8").read(), "idea")
+            with open(os.path.join(target, "idea.md"), encoding="utf-8") as f:
+                self.assertEqual(f.read(), "idea")
 
     def test_same_directory_is_a_noop(self):
         with tempfile.TemporaryDirectory() as source:
@@ -44,6 +48,18 @@ class RawMaterialsSafetyTests(unittest.TestCase):
             target = os.path.join(source, "nested", "raw_materials")
             with self.assertRaises(ValueError):
                 prepare_raw_materials(source, target)
+
+
+
+class SecretLoggingTests(unittest.TestCase):
+    def test_semantic_scholar_api_key_is_not_printed(self):
+        source = Path(__file__).resolve().parents[1] / "utils" / "scholar_utils.py"
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "print":
+                rendered = ast.unparse(node)
+                self.assertNotIn("S2_API_KEY", rendered)
+                self.assertNotIn("SEMANTIC_SCHOLAR_API_KEY", rendered)
 
 
 if __name__ == "__main__":
