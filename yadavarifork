@@ -657,3 +657,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - فهرست بسته شامل yadavarifork.exe، Qt6Core/Gui/Widgets/Sql/PrintSupport، platforms/qwindows.dll، sqldrivers/qsqlite.dll و README.txt است؛ فایل smoke exe داخل بسته نیست.
 - CI اکنون job مستقل verify-portable-artifact دارد: artifact را روی Windows runner تازه دانلود/استخراج می‌کند، DLLها و plugins ضروری را بررسی می‌کند و executable داخل ZIP را بدون نصب Qt جداگانه با --smoke-test اجرا می‌کند.
 - این آزمون پذیرش مستقل برای commit فعلی هنوز منتظر اجراست.
+
+
+### 6.52 بررسی ساختاری DOCX و فایل‌های خروجی با Python stdlib — 2026-11-22
+- smoke test اکنون در CI مسیر خروجی مشخص build/smoke-output دارد و فایل‌های PDF/DOCX/PNG را برای بررسی پس از اجرا حفظ می‌کند؛ اجرای عادی برنامه همچنان از QTemporaryDir استفاده می‌کند.
+- مرحله CI پس از CTest، PDF signature، سلامت CRC آرشیو DOCX، وجود اجزای ضروری Office Open XML، parse تمام XML/relationships، تعداد 15 page-break برای 16 گروه و signature تمام PNGها را با Python استاندارد بررسی می‌کند.
+- این تست اعتبار ساختاری DOCX را اثبات می‌کند، اما جایگزین آزمون بازکردن فایل در Word 2010 واقعی نیست.
+- نتیجه CI و clean-runner artifact verification برای این commit در انتظار است.

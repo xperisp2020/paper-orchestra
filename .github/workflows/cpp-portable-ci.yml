@@ -40,6 +40,27 @@ jobs:
             Write-Host "Console smoke test exit code: $LASTEXITCODE"
             exit 1
           }
+          @'
+          import pathlib, zipfile, xml.etree.ElementTree as ET
+          root = pathlib.Path("build/smoke-output")
+          docx = root / "proposal.docx"
+          pdf = root / "proposal.pdf"
+          assert pdf.read_bytes().startswith(b"%PDF"), "invalid PDF signature"
+          with zipfile.ZipFile(docx) as package:
+              assert package.testzip() is None, "DOCX ZIP CRC failure"
+              required = {"[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/styles.xml", "word/_rels/document.xml.rels"}
+              assert required.issubset(package.namelist()), "missing required Office Open XML part"
+              xml_parts = [name for name in package.namelist() if name.endswith((".xml", ".rels"))]
+              parsed = {name: ET.fromstring(package.read(name)) for name in xml_parts}
+              doc = parsed["word/document.xml"]
+              ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+              page_breaks = sum(1 for node in doc.iter(ns + "br") if node.attrib.get(ns + "type") == "page")
+              assert page_breaks == 15, f"expected 15 page breaks for 16 form groups, got {page_breaks}"
+          pngs = list((root / "proposal_png").glob("*.png"))
+          assert pngs and all(p.read_bytes().startswith(b"\x89PNG\r\n\x1a\n") for p in pngs), "invalid PNG page output"
+          print(f"PDF, DOCX package/XML, {len(pngs)} PNG pages, and 15 page breaks verified")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "Export package validation failed." }
       - name: Assemble portable directory
         shell: pwsh
         run: |

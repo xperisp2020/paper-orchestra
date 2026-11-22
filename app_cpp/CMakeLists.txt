@@ -35,4 +35,5 @@ if(WIN32)
 endif()
 
 add_test(NAME app_smoke COMMAND yadavarifork_smoke --smoke-test)
-set_tests_properties(app_smoke PROPERTIES TIMEOUT 15 ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+set_tests_properties(app_smoke PROPERTIES TIMEOUT 15
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;YADAVARIFORK_SMOKE_OUTPUT_DIR=${CMAKE_BINARY_DIR}/smoke-output")

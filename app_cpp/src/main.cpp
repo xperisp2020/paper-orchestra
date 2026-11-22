@@ -235,10 +235,21 @@ public:
         QTemporaryDir exportData;
         if (!exportData.isValid())
             return 30;
+        QString exportRoot = exportData.path();
+        const QString configuredExportRoot = qEnvironmentVariable("YADAVARIFORK_SMOKE_OUTPUT_DIR");
+        if (!configuredExportRoot.isEmpty()) {
+            if (QFileInfo::exists(configuredExportRoot) ||
+                !QDir().mkpath(configuredExportRoot)) {
+                std::cerr << "Smoke export directory is not new or cannot be created: "
+                          << configuredExportRoot.toStdString() << std::endl;
+                return 41;
+            }
+            exportRoot = configuredExportRoot;
+        }
         const auto labels = currentSectionLabels();
-        const QString pdfPath = exportData.filePath(QStringLiteral("proposal.pdf"));
-        const QString docxPath = exportData.filePath(QStringLiteral("proposal.docx"));
-        const QString pngDirectory = exportData.filePath(QStringLiteral("proposal_png"));
+        const QString pdfPath = QDir(exportRoot).filePath(QStringLiteral("proposal.pdf"));
+        const QString docxPath = QDir(exportRoot).filePath(QStringLiteral("proposal.docx"));
+        const QString pngDirectory = QDir(exportRoot).filePath(QStringLiteral("proposal_png"));
         if (!DocumentExport::toPdf(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                    pdfPath, &storageError)) {
             qCritical().noquote() << "PDF export failed:" << storageError;
