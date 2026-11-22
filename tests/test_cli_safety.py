@@ -68,7 +68,7 @@ class WorkspaceSafetyTests(unittest.TestCase):
 
     def test_workspace_name_cannot_escape_parent(self):
         with tempfile.TemporaryDirectory() as parent:
-            for invalid in ("../outside", ".", "..", ""):
+            for invalid in ("../outside", ".." + chr(92) + "outside", "C:" + chr(92) + "outside", ".", "..", ""):
                 with self.subTest(name=invalid):
                     with self.assertRaises(ValueError):
                         create_new_workspace(parent, invalid)

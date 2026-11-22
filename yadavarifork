@@ -374,3 +374,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - بازبینی پس از اصلاح تأیید کرد هر دو writer از create_new_workspace استفاده می‌کنند، rmtree روی paper_dest_dir حذف شده و helper قبل از ایجاد مقصد از os.mkdir استفاده می‌کند که مقصد موجود را overwrite نمی‌کند.
 - وضعیت این چرخه: اصلاحات ثبت و آزمون‌های ایمنی CI موفق؛ آزمون واقعی pipeline چندایجنتی، retry، Windows و فایل‌های LaTeX هنوز انجام نشده است.
 - ریسک‌های باز: cleanup داخل write_single_paper فقط پس از preflight وجود خروجی قبلی انجام می‌شود؛ آزمون retry/crash لازم است. utils/pdf_utils.compile_latex هنوز source_pdf موجود در cwd را حذف می‌کند؛ باید مالکیت فایل و workspace ایمن‌تر بررسی شود.
+
+
+### 6.13 بازبینی امنیت مسیر workspace برای Windows — 2026-11-22
+- بازبینی مجدد helper پس از CI موفق کشف کرد اعتبارسنجی نام workspace به os.path.basename سیستم میزبان متکی بود؛ روی runner لینوکس، جداکننده backslash ویندوز به‌عنوان مسیر تشخیص داده نمی‌شد.
+- اصلاح: PureWindowsPath نیز بررسی می‌شود؛ نام‌های دارای drive، absolute path، slash یا backslash رد می‌شوند تا اعتبارسنجی روی runner لینوکس هم مسیرهای Windows را پوشش دهد.
+- آزمون‌های traversal گسترش یافتند تا ../، جداکننده backslash و مسیر drive ویندوز را بررسی کنند.
+- نتیجه آزمون این تغییر هنوز منتظر اجرای CI است.

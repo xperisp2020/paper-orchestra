@@ -1,6 +1,7 @@
 """Helpers for creating user-data-safe output workspaces."""
 
 import os
+from pathlib import PureWindowsPath
 
 
 def create_new_workspace(parent_dir: str, workspace_name: str) -> str:
@@ -9,6 +10,10 @@ def create_new_workspace(parent_dir: str, workspace_name: str) -> str:
         not workspace_name
         or workspace_name in {".", ".."}
         or os.path.isabs(workspace_name)
+        or PureWindowsPath(workspace_name).is_absolute()
+        or bool(PureWindowsPath(workspace_name).drive)
+        or "/" in workspace_name
+        or chr(92) in workspace_name
         or os.path.basename(workspace_name) != workspace_name
     ):
         raise ValueError("Workspace name must be a single, non-empty path component.")
