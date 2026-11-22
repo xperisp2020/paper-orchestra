@@ -19,6 +19,10 @@ if (-not (Test-Path -LiteralPath $requirementsFile -PathType Leaf)) {
 }
 
 $python = (Resolve-Path -LiteralPath $PythonExecutable).Path
+& $python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)"
+if ($LASTEXITCODE -ne 0) {
+    throw "Python 3.12 or newer is required."
+}
 $runtime = [System.IO.Path]::GetFullPath($RuntimeDirectory)
 if (Test-Path -LiteralPath $runtime) {
     throw "Refusing to overwrite an existing runtime directory: $runtime"
