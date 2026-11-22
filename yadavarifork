@@ -833,3 +833,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اگر ذخیره هنگام جابه‌جایی شکست بخورد، انتخاب قبلی با QSignalBlocker بازگردانده می‌شود و متن ویرایش‌شده روی صفحه باقی می‌ماند؛ خطا در status label نشان داده می‌شود.
 - smoke test اکنون به‌جای کلیک مستقیم Save، بین بخش‌ها جابه‌جا می‌شود و بازگشت متن را بررسی می‌کند؛ بنابراین autosave هنگام تغییر بخش در هر دو editor آزموده می‌شود.
 - نتیجه build و smoke پس از این اصلاح هنوز منتظر CI است.
+
+
+### 6.74 نتیجه CI autosave و نسخه‌های Windows به‌روز — 2026-11-22
+- CI run ID=45041385145 روی commit b848a8a8a54bd9944012659f40ae74a2bd0c80ce کاملاً success شد: Build، smoke، DOCX XML validation، 16-page layout check، PNG signature checks، portable packaging، Inno Setup compile و clean-runner verification.
+- smoke test تأیید کرد تغییرات بدون کلیک Save با جابه‌جایی بین بخش‌ها در هر دو editor پروپوزال و پژوهش ذخیره و دوباره بارگذاری می‌شوند.
+- clean Windows runner: اجرای ZIP پرتابل با exit code صفر؛ نصب بی‌صدا، اجرای برنامه نصب‌شده، حذف بی‌صدا و حفظ فایل sentinel در data همگی موفق.
+- Artifact portable: ID=14761504081، حجم=25,077,839 bytes، SHA256=73927f64efeec18dfb913b363d2fe5cd64b6b3bfde20e78ea0146fefe5925b4c، run=45041385145، expires=2027-02-20.
+- Artifact installer: ID=14762235136، حجم=17,962,248 bytes، SHA256=919ba0b47b0b0dd088e7a651c971c1eb4a96358dceb54867e9f97db84cc1c9cd، همان run و انقضا.
+- این نسخه نسبت به artifact قبلی autosave و محافظت در برابر از دست‌رفتن ویرایش را اضافه می‌کند. نصب فیزیکی روی دستگاه شخصی کاربر و آزمون Word 2010 واقعی همچنان خارج از runner CI است.
