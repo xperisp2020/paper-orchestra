@@ -30,6 +30,13 @@
 
 #include "project_store.h"
 #include "document_export.h"
+#include "research_engine_runner.h"
+
+#include <QDateTime>
+#include <QEventLoop>
+#include <QFileInfo>
+#include <QProcessEnvironment>
+#include <QTimer>
 
 class WelcomeWindow final : public QMainWindow {
 public:
@@ -157,9 +164,53 @@ public:
         sourceLayout->addWidget(researchSourcesList_);
         sourceLayout->addLayout(sourceButtons);
         static_cast<QVBoxLayout *>(researchPage->layout())->addWidget(researchSourcesGroup_, 2);
+        auto *engineButtons = new QHBoxLayout;
+        runResearchEngine_ = new QPushButton;
+        runResearchEngine_->setObjectName(QStringLiteral("runResearchEngineButton"));
+        cancelResearchEngine_ = new QPushButton;
+        cancelResearchEngine_->setObjectName(QStringLiteral("cancelResearchEngineButton"));
+        cancelResearchEngine_->setEnabled(false);
+        engineButtons->addWidget(runResearchEngine_);
+        engineButtons->addWidget(cancelResearchEngine_);
+        static_cast<QVBoxLayout *>(researchPage->layout())->addLayout(engineButtons);
         researchStatus_ = new QLabel;
         researchStatus_->setWordWrap(true);
         static_cast<QVBoxLayout *>(researchPage->layout())->addWidget(researchStatus_);
+        engineRunner_ = new ResearchEngineRunner(this);
+        connect(runResearchEngine_, &QPushButton::clicked, this, [this] { configureAndRunResearchEngine(); });
+        connect(cancelResearchEngine_, &QPushButton::clicked, this, [this] {
+            if (engineRunner_) engineRunner_->cancel();
+        });
+        connect(engineRunner_, &ResearchEngineRunner::started, this, [this] {
+            runResearchEngine_->setEnabled(false);
+            cancelResearchEngine_->setEnabled(true);
+            researchStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("موتور پژوهش در حال اجراست؛ خروجی‌ها به‌صورت زنده نمایش داده می‌شوند.")
+                : QStringLiteral("Research engine is running; output is streamed below."));
+        });
+        connect(engineRunner_, &ResearchEngineRunner::outputLine, this, [this](const QString &line) {
+            const QString current = researchStatus_->text();
+            const QString combined = current + (current.isEmpty() ? QString() : QStringLiteral("\n")) + line;
+            researchStatus_->setText(combined.right(6000));
+        });
+        connect(engineRunner_, &ResearchEngineRunner::finished, this, [this](int exitCode, bool normalExit) {
+            runResearchEngine_->setEnabled(true);
+            cancelResearchEngine_->setEnabled(false);
+            const bool success = normalExit && exitCode == 0;
+            researchStatus_->setText(researchStatus_->text() + QStringLiteral("\n") +
+                (success
+                    ? (language_->currentData().toString() == QStringLiteral("fa")
+                        ? QStringLiteral("فرایند موتور با کد صفر پایان یافت. خروجی را در پوشهٔ run بررسی کنید.")
+                        : QStringLiteral("Engine process exited successfully. Review the run output folder."))
+                    : (language_->currentData().toString() == QStringLiteral("fa")
+                        ? QStringLiteral("اجرای موتور موفق نبود؛ کد خروج: %1").arg(exitCode)
+                        : QStringLiteral("Engine run failed; exit code: %1").arg(exitCode))));
+        });
+        connect(engineRunner_, &ResearchEngineRunner::failed, this, [this](const QString &message) {
+            runResearchEngine_->setEnabled(true);
+            cancelResearchEngine_->setEnabled(false);
+            researchStatus_->setText(researchStatus_->text() + QStringLiteral("\n") + message);
+        });
         pages_->addWidget(researchPage);
 
         auto *navigation = new QWidget;
@@ -538,11 +589,41 @@ public:
         if (reopenedResearch.projectId_ || !reopenedResearch.language_->isEnabled() ||
             !reopenedResearch.taskMode_->isEnabled() || reopenedResearch.pages_->currentIndex() != 0)
             return 55;
+        ResearchEngineRunner bridge;
+        QStringList bridgeOutput;
+        bool bridgeFinished = false;
+        int bridgeExitCode = -1;
+        QObject::connect(&bridge, &ResearchEngineRunner::outputLine, &bridge,
+                         [&](const QString &line) { bridgeOutput.append(line); });
+        QObject::connect(&bridge, &ResearchEngineRunner::finished, &bridge,
+                         [&](int code, bool normalExit) {
+                             bridgeFinished = normalExit;
+                             bridgeExitCode = code;
+                         });
+        if (!bridge.start(QCoreApplication::applicationFilePath(),
+                          {QStringLiteral("--bridge-child-test")},
+                          QDir::tempPath(), QProcessEnvironment::systemEnvironment()))
+            return 69;
+        QEventLoop bridgeLoop;
+        QObject::connect(&bridge, &ResearchEngineRunner::finished, &bridgeLoop, &QEventLoop::quit);
+        QTimer::singleShot(10000, &bridgeLoop, &QEventLoop::quit);
+        bridgeLoop.exec();
+        if (!bridgeFinished || bridgeExitCode != 0 ||
+            !bridgeOutput.join(QString()).contains(QStringLiteral("bridge-child-ok")))
+            return 70;
         return 0;
     }
 
 protected:
     void closeEvent(QCloseEvent *event) override {
+        if (engineRunner_ && engineRunner_->isRunning()) {
+            engineRunner_->cancel();
+            event->ignore();
+            researchStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("ابتدا لغو اجرای موتور تکمیل شود؛ سپس برنامه را ببندید.")
+                : QStringLiteral("Wait for engine cancellation to finish before closing the application."));
+            return;
+        }
         if (!saveActiveProposalSection() || !saveActiveResearchSection()) {
             event->ignore();
             return;
@@ -672,6 +753,8 @@ private:
         saveResearchSection_->setText(persian ? QStringLiteral("ذخیره بخش") : QStringLiteral("Save section"));
         addResearchSource_->setText(persian ? QStringLiteral("افزودن منبع") : QStringLiteral("Add source"));
         deleteResearchSource_->setText(persian ? QStringLiteral("حذف منبع") : QStringLiteral("Delete source"));
+        runResearchEngine_->setText(persian ? QStringLiteral("اجرای موتور چندعاملی") : QStringLiteral("Run multi-agent engine"));
+        cancelResearchEngine_->setText(persian ? QStringLiteral("لغو اجرا") : QStringLiteral("Cancel run"));
         researchSourcesGroup_->setTitle(persian ? QStringLiteral("منابع ثبت‌شده — تأییدنشده") : QStringLiteral("Recorded sources — unverified"));
         updateAiDescription();
         updateSummary();
@@ -1003,6 +1086,156 @@ private:
         if (!projectId_ || !researchSectionList_->currentItem()) return false;
         const QString key = researchSectionList_->currentItem()->data(Qt::UserRole).toString();
         return saveResearchSection(key, researchEditor_->toPlainText());
+    }
+
+    void configureAndRunResearchEngine() {
+        if (!projectId_ || taskMode_->currentData().toString() != QStringLiteral("research"))
+            return;
+        if (engineRunner_ && engineRunner_->isRunning())
+            return;
+        if (!saveActiveResearchSection())
+            return;
+
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        QDialog dialog(this);
+        dialog.setWindowTitle(persian ? QStringLiteral("تنظیم اجرای موتور پژوهش") :
+                                        QStringLiteral("Configure research engine"));
+        auto *form = new QFormLayout(&dialog);
+        auto addPathRow = [&](const QString &label, QLineEdit *&field, bool directory,
+                              const QString &filter, const QString &initial) {
+            auto *row = new QWidget(&dialog);
+            auto *layout = new QHBoxLayout(row);
+            layout->setContentsMargins(0, 0, 0, 0);
+            field = new QLineEdit(initial, row);
+            auto *browse = new QPushButton(persian ? QStringLiteral("انتخاب") : QStringLiteral("Browse"), row);
+            layout->addWidget(field, 1);
+            layout->addWidget(browse);
+            connect(browse, &QPushButton::clicked, &dialog, [&, field, directory, filter] {
+                const QString selected = directory
+                    ? QFileDialog::getExistingDirectory(&dialog,
+                        persian ? QStringLiteral("انتخاب پوشه") : QStringLiteral("Select folder"),
+                        field->text())
+                    : QFileDialog::getOpenFileName(&dialog,
+                        persian ? QStringLiteral("انتخاب فایل") : QStringLiteral("Select file"),
+                        field->text(), filter);
+                if (!selected.isEmpty()) field->setText(QDir::cleanPath(selected));
+            });
+            form->addRow(label, row);
+        };
+
+        QString pythonDefault = QStandardPaths::findExecutable(QStringLiteral("python"));
+        if (pythonDefault.isEmpty())
+            pythonDefault = QStandardPaths::findExecutable(QStringLiteral("python3"));
+        QString scriptDefault = QDir(QCoreApplication::applicationDirPath())
+                                    .filePath(QStringLiteral("../paper_writing_cli.py"));
+        if (!QFileInfo::exists(scriptDefault))
+            scriptDefault = QDir::current().filePath(QStringLiteral("paper_writing_cli.py"));
+        QString templateDefault = QDir(QCoreApplication::applicationDirPath())
+                                      .filePath(QStringLiteral("templates"));
+        if (!QFileInfo::exists(templateDefault))
+            templateDefault = QDir::current().filePath(QStringLiteral("templates"));
+
+        QLineEdit *pythonField = nullptr;
+        QLineEdit *scriptField = nullptr;
+        QLineEdit *materialsField = nullptr;
+        QLineEdit *templateField = nullptr;
+        addPathRow(persian ? QStringLiteral("مفسر Python") : QStringLiteral("Python executable"),
+                   pythonField, false, QStringLiteral("Programs (*.exe);;All files (*)"), pythonDefault);
+        addPathRow(persian ? QStringLiteral("اسکریپت CLI") : QStringLiteral("CLI script"),
+                   scriptField, false, QStringLiteral("Python files (*.py);;All files (*)"), scriptDefault);
+        addPathRow(persian ? QStringLiteral("پوشه داده‌های خام") : QStringLiteral("Raw materials folder"),
+                   materialsField, true, QString(), QString());
+        addPathRow(persian ? QStringLiteral("قالب LaTeX") : QStringLiteral("LaTeX template folder"),
+                   templateField, true, QString(), templateDefault);
+        auto *notice = new QLabel(persian
+            ? QStringLiteral("این نسخه Python و وابستگی‌های موتور را همراه خود بسته‌بندی نکرده است. کلید Gemini باید از متغیر محیطی سیستم فراهم باشد؛ کلید هرگز در آرگومان، پایگاه داده یا گزارش ذخیره نمی‌شود.")
+            : QStringLiteral("Python and engine dependencies are not bundled in this build. A Gemini key must be supplied through the process environment; credentials are never stored in arguments, the database, or logs."));
+        notice->setWordWrap(true);
+        form->addRow(notice);
+        auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+        buttons->button(QDialogButtonBox::Ok)->setText(persian ? QStringLiteral("شروع") : QStringLiteral("Start"));
+        buttons->button(QDialogButtonBox::Cancel)->setText(persian ? QStringLiteral("انصراف") : QStringLiteral("Cancel"));
+        form->addRow(buttons);
+        connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+        if (dialog.exec() != QDialog::Accepted)
+            return;
+
+        const QString python = QFileInfo(pythonField->text().trimmed()).absoluteFilePath();
+        const QString script = QFileInfo(scriptField->text().trimmed()).absoluteFilePath();
+        const QString materials = QFileInfo(materialsField->text().trimmed()).absoluteFilePath();
+        const QString templateDir = QFileInfo(templateField->text().trimmed()).absoluteFilePath();
+        auto fail = [&](const QString &message) {
+            researchStatus_->setText(message);
+            QMessageBox::warning(this, QStringLiteral("Yadavarifork"), message);
+        };
+        if (!QFileInfo(python).isFile() || !QFileInfo(script).isFile() ||
+            !QFileInfo(materials).isDir() || !QFileInfo(templateDir).isDir()) {
+            fail(persian ? QStringLiteral("یکی از مسیرهای انتخاب‌شده معتبر نیست.") :
+                            QStringLiteral("One or more selected paths are invalid."));
+            return;
+        }
+        if (!QFileInfo(QDir(materials).filePath(QStringLiteral("idea_sparse.md"))).isFile() ||
+            !QFileInfo(QDir(materials).filePath(QStringLiteral("experimental_log.md"))).isFile()) {
+            fail(persian
+                ? QStringLiteral("پوشه داده خام باید شامل idea_sparse.md و experimental_log.md باشد.")
+                : QStringLiteral("The raw materials folder must contain idea_sparse.md and experimental_log.md."));
+            return;
+        }
+        if (!QFileInfo(QDir(templateDir).filePath(QStringLiteral("template.tex"))).isFile() ||
+            !QFileInfo(QDir(templateDir).filePath(QStringLiteral("guidelines.md"))).isFile()) {
+            fail(persian
+                ? QStringLiteral("قالب انتخابی باید شامل template.tex و guidelines.md باشد.")
+                : QStringLiteral("The selected template must contain template.tex and guidelines.md."));
+            return;
+        }
+        const QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+        const QStringList keyNames{QStringLiteral("GEMINI_API_KEY"), QStringLiteral("GOOGLE_API_KEY"),
+                                   QStringLiteral("GOOGLE_GENAI_API_KEY")};
+        bool hasProviderKey = false;
+        for (const QString &key : keyNames)
+            hasProviderKey = hasProviderKey || (!environment.value(key).trimmed().isEmpty());
+        if (!hasProviderKey) {
+            fail(persian
+                ? QStringLiteral("کلید Gemini در محیط سیستم پیدا نشد. GEMINI_API_KEY یا GOOGLE_API_KEY را در محیط سیستم تنظیم و برنامه را دوباره اجرا کنید.")
+                : QStringLiteral("No Gemini key found in the process environment. Set GEMINI_API_KEY or GOOGLE_API_KEY and restart the application."));
+            return;
+        }
+
+        const QString dataRoot = QDir(QCoreApplication::applicationDirPath())
+                                     .filePath(QStringLiteral("data/research_runs"));
+        if (!QDir().mkpath(dataRoot)) {
+            fail(persian ? QStringLiteral("پوشه خروجی قابل ایجاد نیست.") :
+                            QStringLiteral("Cannot create research run directory."));
+            return;
+        }
+        const QString output = QDir(dataRoot).filePath(
+            QStringLiteral("project_%1_%2").arg(*projectId_)
+                .arg(QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz"))));
+        if (QFileInfo::exists(output)) {
+            fail(persian ? QStringLiteral("مسیر خروجی از قبل وجود دارد؛ اجرای جدید متوقف شد.") :
+                            QStringLiteral("Output path already exists; refusing to overwrite it."));
+            return;
+        }
+        const QStringList arguments{
+            script,
+            QStringLiteral("--raw_materials_dir"), materials,
+            QStringLiteral("--output_dir"), output,
+            QStringLiteral("--latex_template_dir"), templateDir
+        };
+        if (!store_.saveProjectMetadata(*projectId_, QStringLiteral("research_engine_last_output"),
+                                        output, nullptr)) {
+            fail(persian ? QStringLiteral("ثبت مسیر اجرای پژوهش در پروژه ناموفق بود.") :
+                            QStringLiteral("Could not save the research run path in the project."));
+            return;
+        }
+        researchStatus_->clear();
+        if (!engineRunner_->start(python, arguments, QFileInfo(script).absolutePath(), environment)) {
+            runResearchEngine_->setEnabled(true);
+            cancelResearchEngine_->setEnabled(false);
+            fail(persian ? QStringLiteral("راه‌اندازی فرایند موتور ناموفق بود؛ مسیر Python و دسترسی‌ها را بررسی کنید.") :
+                            QStringLiteral("Could not start the engine process; check Python path and permissions."));
+        }
     }
 
     void refreshResearchSources() {
@@ -1378,6 +1611,9 @@ private:
     QPushButton *addResearchSource_{};
     QPushButton *deleteResearchSource_{};
     QLabel *researchStatus_{};
+    QPushButton *runResearchEngine_{};
+    QPushButton *cancelResearchEngine_{};
+    ResearchEngineRunner *engineRunner_{};
     QPushButton *openExistingProject_{};
     QPushButton *newProject_{};
     QList<QLabel *> headings_;
@@ -1393,6 +1629,10 @@ private:
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
+    if (app.arguments().contains(QStringLiteral("--bridge-child-test"))) {
+        std::cout << "bridge-child-ok\\n";
+        return 0;
+    }
     if (app.arguments().contains(QStringLiteral("--smoke-test"))) {
         QTemporaryDir temporaryData;
         if (!temporaryData.isValid())
