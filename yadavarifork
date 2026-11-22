@@ -1067,3 +1067,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI C++ شماره 45052319595 روی commit 2608208c434b973a8de96a7cdbb6ee2884fd1618 هنوز در مرحله build/smoke است؛ لغو process تا پایان آن تأییدشده محسوب نمی‌شود.
 - CI Python: https://github.com/xperisp2020/paper-orchestra/actions/runs/45052405480
 - CI C++: https://github.com/xperisp2020/paper-orchestra/actions/runs/45052319595
+
+
+### 6.93.1 تأیید نهایی CI لغو فرایند و پیش‌نیاز CLI
+- C++ Windows portable CI شماره 45052319595 روی commit 2608208c434b973a8de96a7cdbb6ee2884fd1618 با conclusion=success کامل شد؛ build-windows و verify-portable-artifact هر دو موفق شدند.
+- Smoke جدید لغو process فرزند واقعی را تأیید کرد؛ همچنین انتقال environment و redaction قبلی همچنان موفق بود.
+- Artifactها: portable ID=14765478307 (25,117,323 bytes)، installer ID=14766186636 (17,990,866 bytes)، انقضا 2027-02-20T17:57:32Z.
+- Python safety CI شماره 45052405480 روی commit 0672f260832b7975170bd46ee80dd9e89ad6f21c با هر دو job Ubuntu و Windows موفق شد؛ تست اجرای main() ثابت کرد preflight مفقود، exit code=2 و JSONL failure می‌دهد و پوشه خروجی ایجاد نمی‌شود.
+- CIها: https://github.com/xperisp2020/paper-orchestra/actions/runs/45052319595 و https://github.com/xperisp2020/paper-orchestra/actions/runs/45052405480
+- این گیت‌ها لغو فرایند، رفتار پیش‌نیاز CLI، build، smoke، portable و clean-runner را تأیید می‌کنند؛ اجرای end-to-end چندعاملی با API واقعی و تولید مقاله نهایی همچنان انجام نشده است.
