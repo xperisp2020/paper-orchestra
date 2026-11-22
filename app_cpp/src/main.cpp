@@ -327,6 +327,18 @@ public:
             if (!saved.value(key).isEmpty())
                 return 61;
         }
+        if (!store_.saveProjectMetadata(*projectId_, QStringLiteral("final_details_status"),
+                                        QStringLiteral("skipped"), &storageError))
+            return 66;
+        WelcomeWindow reopenedSkippedProposal(store_);
+        if (!reopenedSkippedProposal.openProjectById(*projectId_) ||
+            !reopenedSkippedProposal.finalDetailsReviewed_)
+            return 67;
+        const auto stillEmpty = store_.loadSections(*projectId_, &storageError);
+        for (const QString &key : finalDetailKeys()) {
+            if (!stillEmpty.value(key).isEmpty())
+                return 68;
+        }
         QMap<QString, QString> smokeFinalDetails;
         for (const QString &key : finalDetailKeys())
             smokeFinalDetails.insert(key, QStringLiteral("Smoke test: ") + key);
@@ -855,6 +867,14 @@ private:
                 editorStatus_->setText(error);
                 return false;
             }
+            const QString reviewStatus = store_.loadProjectMetadata(
+                *projectId_, QStringLiteral("final_details_status"), &error);
+            if (!error.isEmpty()) {
+                editorStatus_->setText(error);
+                return false;
+            }
+            finalDetailsReviewed_ = (reviewStatus == QStringLiteral("skipped") ||
+                                     reviewStatus == QStringLiteral("completed"));
             for (const QString &key : finalDetailKeys()) {
                 if (!savedSections.value(key).trimmed().isEmpty()) {
                     finalDetailsReviewed_ = true;
@@ -1091,6 +1111,11 @@ private:
                 return false;
             }
         }
+        if (!store_.saveProjectMetadata(*projectId_, QStringLiteral("final_details_status"),
+                                         QStringLiteral("completed"), &error)) {
+            editorStatus_->setText(error);
+            return false;
+        }
         finalDetailsReviewed_ = true;
         editorStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
             ? QStringLiteral("مشخصات فردی و استاد ذخیره شد.")
@@ -1155,6 +1180,11 @@ private:
         if (dialog.exec() != QDialog::Accepted)
             return false;
         if (skipped) {
+            if (!store_.saveProjectMetadata(*projectId_, QStringLiteral("final_details_status"),
+                                            QStringLiteral("skipped"), &error)) {
+                editorStatus_->setText(error);
+                return false;
+            }
             finalDetailsReviewed_ = true;
             editorStatus_->setText(persian
                 ? QStringLiteral("مشخصات فردی و استاد فعلاً خالی ماند؛ هر زمان خواستید از دکمه تکمیل مشخصات اقدام کنید.")
