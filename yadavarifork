@@ -450,3 +450,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - windeployqt با گزینه --sql اجرا می‌شود تا pluginهای درایور SQL برای بسته portable بررسی/کپی شوند.
 - نتیجه build و smoke تست C++/Windows برای این commit هنوز منتظر CI است.
 - محدودیت: این commit لایه داده و smoke test را می‌سازد؛ UI هنوز پروژه را ایجاد/ویرایش نمی‌کند و فرم رسمی دانشگاه آزاد و خروجی DOCX/PDF/PNG هنوز پیاده نشده‌اند.
+
+
+### 6.23 نتیجه CI و بسته‌بندی SQLite برای C++ — 2026-11-22
+- CI Windows commit d782a493148cbdb2687bbb50a35acd2a61505dbc با run ID=45033836593 موفق شد.
+- مراحل نصب Qt 6.12.0، CMake Configure، Build، CTest smoke test، windeployqt با --sql، اجرای مجدد executable مستقرشده و ZIP همگی موفق بودند.
+- Smoke test واقعی Windows با درایور QSQLITE پروژه ساخت، بخش problem_statement را ذخیره و دوباره بارگذاری کرد و تعداد 21 بخش را بررسی کرد.
+- artifact: yadavarifork-windows-portable، ID=14758986693، اندازه 24,804,445 bytes، انقضا 2027-02-20.
+- این موفقیت فقط لایه SQLite و wizard موجود را در runner ویندوز تأیید می‌کند؛ UI هنوز به ProjectStore متصل نشده و برنامه هنوز محصول کامل پژوهش/پروپوزال نیست.
