@@ -496,3 +496,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - علت شکست محصول نبود؛ آزمون از context manager اتصال sqlite3 استفاده کرده بود و این context manager connection را close نمی‌کند. روی Windows فایل دیتابیس تا پایان test method قفل می‌ماند.
 - اصلاح آزمون: اتصال مستقیم sqlite3 اکنون در finally صریحاً close می‌شود؛ این اصلاح همان نکته‌ای است که پیش‌تر در ProjectStore production رفع شده بود.
 - CI مجدد پس از این اصلاح در انتظار است.
+
+
+### 6.29 نتیجه مهاجرت 60 فیلد و آزمون Windows — 2026-11-22
+- CI C++ روی commit a7b58b0eee7f2d725e82ee08075f465b28a6fc56 با run ID=45034681807 موفق شد؛ CMake، Build، CTest، QSQLITE، windeployqt و ZIP ویندوز همگی success. artifact ID=14758869509، اندازه 24,835,839 bytes.
+- CI Python ابتدا در run 45034681799 فقط آزمون مهاجرت را به‌علت handle باز در کد تست شکست داد؛ آزمون اصلاح شد و اتصال SQLite در finally بسته می‌شود.
+- CI مجدد روی commit 0d6bd334e07b676d1ada8de514442cf9be4e76c3 با run ID=45034818664 موفق شد؛ Python 3.15.2، 9 آزمون دامنه/GUI با نتیجه OK.
+- آزمون migration ثابت کرد داده قبلی problem_statement حفظ می‌شود و final_approval جدید خالی ایجاد می‌شود؛ کلیدهای legacy references و budget نیز باقی می‌مانند.
+- هر دو پیاده‌سازی Python و C++ اکنون 60 فیلد پایه دارند. تطبیق محتوایی/چیدمان صفحه‌به‌صفحه با نسخه اصلی فرم و خروجی‌های چاپی هنوز نیازمند تکمیل است.
