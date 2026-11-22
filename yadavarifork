@@ -1134,3 +1134,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Python safety CI شماره 45054389521 روی commit 97a2d55ba6efe11e860855d34312d2fa96ecf6eb با هر دو job Ubuntu و Windows success شد.
 - CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45054389521
 - این مرحله چرخه manifest CLI را با موفقیت و شکست واقعی کنترل‌شده تأیید می‌کند؛ اجرای agentهای واقعی و provider API همچنان جداگانه باقی است.
+
+
+### 6.98 محیط جداگانه Python برای موتور پژوهش در Windows
+- requirements-research.txt به‌عنوان مجموعه dependencyهای CLI پژوهش ایجاد شد؛ نسبت به requirements.txt رابط Streamlit قدیمی را حذف می‌کند و سایر کتابخانه‌های runtime موجود را نگه می‌دارد. CLI preflight اکنون این فایل تخصصی را بررسی می‌کند.
+- scripts/setup_research_runtime.ps1 اضافه شد: ساخت venv جدید بدون overwrite، الزام Python 3.12+، نصب requirements-research، بررسی importهای اصلی و تشخیص pdflatex/bibtex. در صورت نبود LaTeX با exit code=3 و پیام روشن خارج می‌شود.
+- اسکریپت هیچ API key را دریافت، تنظیم یا ذخیره نمی‌کند. README و متن راهنمای UI مسیر آماده‌سازی و انتخاب Scripts\\python.exe را توضیح می‌دهند.
+- تست‌های static برای نبود Streamlit در requirements پژوهش و عدم دسترسی اسکریپت به credentialها اضافه شدند. Python safety CI شماره 45054872427 روی Ubuntu و Windows success شد.
+- CI Python: https://github.com/xperisp2020/paper-orchestra/actions/runs/45054872427
+- CI ویندوزی تغییر متن راهنمای Qt شماره 45054780391 هنوز در حال اجراست.
+- محدودیت: اسکریپت bootstrap در runner اجرا نشده تا بسته‌های بزرگ Python از اینترنت نصب نشوند؛ تنها محتوای اسکریپت، requirements و safety tests بررسی شده‌اند. نصب واقعی Python/LaTeX و اجرای end-to-end موتور همچنان نیازمند آزمون محیط کاربری است.
