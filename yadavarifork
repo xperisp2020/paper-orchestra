@@ -1097,3 +1097,9 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Smoke ویندوزی آزمون ایجاد و به‌روزرسانی manifest و حفظ project_id را اضافه کرده است. README نیز قرارداد manifest و history را توضیح می‌دهد.
 - فایل‌های تغییرکرده: paper_writing_cli.py، tests/test_cli_safety.py، app_cpp/src/main.cpp، app_cpp/README.md.
 - CI ویندوزی برای manifest/history UI هنوز باید build، smoke، portable و clean-runner را تأیید کند؛ CI Python برای helper در commit اصلاح‌شده موفق شده است.
+
+
+### 6.95.1 اصلاح خطای کامپایل در smoke manifest
+- CIهای میانی 45053170155 و 45053197050 در Build با C2065 شکست خوردند؛ smoke test به متغیر temporaryData ارجاع داده بود که در runSmokeTest وجود نداشت. پوشه موقت معتبر همان exportData بود.
+- ارجاع اصلاح و commit 481a5aa224929acf3a647f85fca52ef9c20fdc7e ثبت شد. CI نهایی 45053446512 روی این commit در حال اجراست؛ نتیجه هنوز تأیید نشده است.
+- CIهای ناموفق صرفاً به دلیل محدوده متغیر تست بودند؛ Build متوقف شد و smoke/portable اجرا نشد.
