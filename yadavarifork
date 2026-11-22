@@ -588,3 +588,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 ### 6.42 بهبود گزارش کد خروجی smoke در PowerShell — 2026-11-22
 - بررسی لاگ run 45036386211 نشان داد PowerShell مقدار 8 را پس از شکست CTest گزارش کرد؛ برای اطمینان از اینکه این مقدار کد خروجی خود executable است، اجرای مستقیم به Start-Process -PassThru تغییر می‌کند تا ExitCode فرایند مستقل خوانده شود.
 - این تغییر فقط تشخیصی است و نتیجه عیب‌یابی smoke هنوز نامشخص است.
+
+
+### 6.43 نتیجه ماتریس ایمنی پس از حذف TOCTOU cleanup — 2026-11-22
+- CI run ID=45036562138 روی commit c81e4541b274084281e63ac126b03b00ea3b7307 در Ubuntu و Windows 2022 هر دو success شد.
+- لاگ Ubuntu Python 3.12.16 تعداد 17 تست را با نتیجه OK ثبت کرد؛ job Windows نیز success شد.
+- آزمون‌ها اکنون حفظ source، باقی‌ماندن partial destination در copy failure، رد overwrite، حفظ workspace و preflight خروجی‌ها را پوشش می‌دهند.
+- C++ run ID=45036386211 روی commit 5704736645da46e965e50fe966035727841cccb2: Configure و Build موفق؛ app_smoke ناموفق. اجرای مستقیم از PowerShell گزارش 8 داد که با کد CTest هم‌خوان بود و به‌تنهایی کد خروجی برنامه را اثبات نمی‌کرد.
+- اصلاح workflow: اجرای مستقیم smoke اکنون با Start-Process -PassThru انجام می‌شود تا ExitCode فرایند مستقل ثبت شود. run جدید 45036688564 در حال اجراست؛ نتیجه هنوز مشخص نیست.
