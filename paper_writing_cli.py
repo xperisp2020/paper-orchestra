@@ -57,6 +57,50 @@ def validate_runtime_prerequisites(requirements_path=None):
     return missing
 
 
+
+def update_run_manifest(output_dir, status, stage, error=None):
+    """Atomically persist non-secret lifecycle metadata for a single research run."""
+    import uuid
+    from utils.security_utils import redact_secrets
+
+    os.makedirs(output_dir, exist_ok=True)
+    manifest_path = os.path.join(output_dir, "run_manifest.json")
+    manifest = {}
+    if os.path.exists(manifest_path):
+        with open(manifest_path, encoding="utf-8") as existing:
+            manifest = json.load(existing)
+        if not isinstance(manifest, dict):
+            raise ValueError("Existing run manifest must contain a JSON object.")
+
+    now = datetime.now().astimezone().isoformat(timespec="seconds")
+    manifest.setdefault("schema_version", 1)
+    manifest.setdefault("run_id", uuid.uuid4().hex)
+    manifest.setdefault("created_at", now)
+    manifest.update({
+        "updated_at": now,
+        "status": status,
+        "stage": stage,
+    })
+    if error:
+        manifest["error"] = redact_secrets(error)
+    else:
+        manifest.pop("error", None)
+
+    temporary_path = manifest_path + ".tmp-" + uuid.uuid4().hex
+    try:
+        with open(temporary_path, "x", encoding="utf-8") as temporary:
+            json.dump(manifest, temporary, ensure_ascii=False, indent=2)
+            temporary.write("\\n")
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, manifest_path)
+    finally:
+        if os.path.exists(temporary_path):
+            os.unlink(temporary_path)
+    return manifest
+
+
+
 def emit_event(enabled: bool, event: str, **details) -> None:
     """Emit optional machine-readable JSONL events for desktop integrations."""
     if not enabled:
@@ -197,10 +241,16 @@ def main():
         base_dir = f"./paper_output_{timestamp}"
 
     os.makedirs(base_dir, exist_ok=True)
+    manifest = update_run_manifest(base_dir, "running", "preparing_inputs")
 
     target_raw_materials = os.path.join(base_dir, "raw_materials")
-    if os.path.abspath(target_raw_materials) != os.path.abspath(args.raw_materials_dir):
-        prepare_raw_materials(args.raw_materials_dir, target_raw_materials)
+    try:
+        if os.path.abspath(target_raw_materials) != os.path.abspath(args.raw_materials_dir):
+            prepare_raw_materials(args.raw_materials_dir, target_raw_materials)
+    except Exception as exc:
+        update_run_manifest(base_dir, "failed", "preparing_inputs", error=exc)
+        emit_event(args.events_jsonl, "pipeline_failed", stage="preparing_inputs", error=str(exc))
+        raise
 
     if not args.use_plotting:
         has_figures = False
@@ -228,10 +278,12 @@ def main():
             )
             print("=" * 80 + "\n")
 
+    manifest = update_run_manifest(base_dir, "running", "paper_generation")
     emit_event(
         args.events_jsonl,
         "pipeline_started",
         stage="paper_generation",
+        run_id=manifest["run_id"],
         mode="with_plotting" if args.use_plotting else "without_plotting",
         output_dir=os.path.abspath(base_dir),
     )
@@ -269,12 +321,15 @@ def main():
                 research_cutoff=args.research_cutoff,
             )
     except Exception as exc:
+        update_run_manifest(base_dir, "failed", "paper_generation", error=exc)
         emit_event(args.events_jsonl, "pipeline_failed", stage="paper_generation", error=str(exc))
         raise
+    update_run_manifest(base_dir, "completed", "completed")
     emit_event(
         args.events_jsonl,
         "pipeline_completed",
-        stage="paper_generation",
+        stage="completed",
+        run_id=manifest["run_id"],
         output_dir=os.path.abspath(base_dir),
     )
 
