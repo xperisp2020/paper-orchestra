@@ -1076,3 +1076,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Python safety CI شماره 45052405480 روی commit 0672f260832b7975170bd46ee80dd9e89ad6f21c با هر دو job Ubuntu و Windows موفق شد؛ تست اجرای main() ثابت کرد preflight مفقود، exit code=2 و JSONL failure می‌دهد و پوشه خروجی ایجاد نمی‌شود.
 - CIها: https://github.com/xperisp2020/paper-orchestra/actions/runs/45052319595 و https://github.com/xperisp2020/paper-orchestra/actions/runs/45052405480
 - این گیت‌ها لغو فرایند، رفتار پیش‌نیاز CLI، build، smoke، portable و clean-runner را تأیید می‌کنند؛ اجرای end-to-end چندعاملی با API واقعی و تولید مقاله نهایی همچنان انجام نشده است.
+
+
+### 6.94 عیب‌یابی شکست آزمون manifest و اصلاح newline
+- CI Python safety شماره 45052816984 روی Ubuntu و Windows هر دو failure شدند؛ تنها خطای تست، JSONDecodeError در به‌روزرسانی دوم manifest بود.
+- علت دقیق: helper در فایل Python به‌جای newline واقعی، literal دوکاراکتری backslash+n به انتهای JSON اضافه می‌کرد؛ در نتیجه json.load خطای Extra data می‌داد.
+- اصلاح: temporary.write اکنون newline واقعی می‌نویسد. آزمون atomic update و redaction بدون تغییر در قرارداد manifest باقی می‌ماند.
+- نتیجه CI اصلاح‌شده هنوز دریافت نشده است.
