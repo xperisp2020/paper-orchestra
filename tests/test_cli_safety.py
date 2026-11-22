@@ -7,7 +7,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from paper_writing_cli import emit_event, main, prepare_raw_materials, validate_runtime_prerequisites
+from paper_writing_cli import emit_event, main, prepare_raw_materials, update_run_manifest, validate_runtime_prerequisites
 from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, paths_are_same, publish_file_no_overwrite
 from utils.security_utils import redact_secrets
 
@@ -72,6 +72,36 @@ class RuntimePreflightTests(unittest.TestCase):
             self.assertEqual(event["event"], "pipeline_failed")
             self.assertEqual(event["stage"], "runtime_preflight")
             self.assertEqual(event["missing"], ["Python package: missing-demo"])
+
+
+class RunManifestTests(unittest.TestCase):
+    def test_manifest_updates_are_atomic_and_preserve_run_identity(self):
+        with tempfile.TemporaryDirectory() as temp:
+            first = update_run_manifest(temp, "running", "preparing_inputs")
+            second = update_run_manifest(temp, "failed", "paper_generation", error="Authorization: Bearer manifest-secret")
+            self.assertEqual(first["run_id"], second["run_id"])
+            self.assertEqual(first["created_at"], second["created_at"])
+            self.assertEqual(second["status"], "failed")
+            self.assertEqual(second["stage"], "paper_generation")
+            self.assertNotIn("manifest-secret", second["error"])
+            self.assertIn("[REDACTED]", second["error"])
+            with open(os.path.join(temp, "run_manifest.json"), encoding="utf-8") as stream:
+                persisted = json.load(stream)
+            self.assertEqual(persisted, second)
+            self.assertEqual(
+                [name for name in os.listdir(temp) if name.startswith("run_manifest.json.tmp-")],
+                [],
+            )
+
+    def test_corrupt_existing_manifest_is_not_silently_overwritten(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = os.path.join(temp, "run_manifest.json")
+            with open(path, "w", encoding="utf-8") as stream:
+                stream.write("{invalid")
+            with self.assertRaises(json.JSONDecodeError):
+                update_run_manifest(temp, "running", "preparing_inputs")
+            with open(path, encoding="utf-8") as stream:
+                self.assertEqual(stream.read(), "{invalid")
 
 
 class CliJsonlEventTests(unittest.TestCase):
