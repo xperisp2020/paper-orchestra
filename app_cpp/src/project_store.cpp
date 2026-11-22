@@ -140,6 +140,12 @@ bool ProjectStore::initialize(QString *error) {
             "content TEXT NOT NULL DEFAULT '',"
             "PRIMARY KEY(project_id, section_key))"),
         QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS project_metadata ("
+            "project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,"
+            "metadata_key TEXT NOT NULL,"
+            "metadata_value TEXT NOT NULL DEFAULT '',"
+            "PRIMARY KEY(project_id, metadata_key))"),
+        QStringLiteral(
             "CREATE TABLE IF NOT EXISTS research_sources ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,"
@@ -370,6 +376,54 @@ QMap<QString, QString> ProjectStore::loadSections(qint64 projectId, QString *err
     while (query.next())
         sections.insert(query.value(0).toString(), query.value(1).toString());
     return sections;
+}
+
+
+bool ProjectStore::saveProjectMetadata(qint64 projectId, const QString &key,
+                                       const QString &value, QString *error) {
+    if (error) error->clear();
+    if (key.trimmed().isEmpty()) {
+        setError(error, QStringLiteral("Project metadata key cannot be empty."));
+        return false;
+    }
+    if (!database_.isOpen() && !initialize(error))
+        return false;
+    QSqlQuery query(database_);
+    query.prepare(QStringLiteral(
+        "INSERT INTO project_metadata(project_id, metadata_key, metadata_value) VALUES (?, ?, ?) "
+        "ON CONFLICT(project_id, metadata_key) DO UPDATE SET metadata_value=excluded.metadata_value"));
+    query.addBindValue(projectId);
+    query.addBindValue(key);
+    query.addBindValue(value.isNull() ? QStringLiteral("") : value);
+    if (!query.exec()) {
+        setError(error, query.lastError().text());
+        return false;
+    }
+    QSqlQuery update(database_);
+    update.prepare(QStringLiteral("UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?"));
+    update.addBindValue(projectId);
+    if (!update.exec()) {
+        setError(error, update.lastError().text());
+        return false;
+    }
+    return true;
+}
+
+QString ProjectStore::loadProjectMetadata(qint64 projectId, const QString &key,
+                                          QString *error) {
+    if (error) error->clear();
+    if (!database_.isOpen() && !initialize(error))
+        return {};
+    QSqlQuery query(database_);
+    query.prepare(QStringLiteral(
+        "SELECT metadata_value FROM project_metadata WHERE project_id=? AND metadata_key=?"));
+    query.addBindValue(projectId);
+    query.addBindValue(key);
+    if (!query.exec()) {
+        setError(error, query.lastError().text());
+        return {};
+    }
+    return query.next() ? query.value(0).toString() : QString();
 }
 
 QStringList ProjectStore::researchSectionKeys() {
