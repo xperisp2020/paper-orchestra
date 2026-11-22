@@ -259,6 +259,10 @@ bool ProjectStore::saveSection(qint64 projectId, const QString &sectionKey,
     if (!database_.isOpen() && !initialize(error))
         return false;
 
+    if (!database_.transaction()) {
+        setError(error, database_.lastError().text());
+        return false;
+    }
     QSqlQuery query(database_);
     query.prepare(QStringLiteral(
         "INSERT INTO proposal_sections(project_id, section_key, content) VALUES (?, ?, ?) "
@@ -268,6 +272,7 @@ bool ProjectStore::saveSection(qint64 projectId, const QString &sectionKey,
     query.addBindValue(content);
     if (!query.exec()) {
         setError(error, query.lastError().text());
+        database_.rollback();
         return false;
     }
     QSqlQuery update(database_);
@@ -277,6 +282,12 @@ bool ProjectStore::saveSection(qint64 projectId, const QString &sectionKey,
         setError(error, update.lastError().text().isEmpty()
                             ? QStringLiteral("Project does not exist.")
                             : update.lastError().text());
+        database_.rollback();
+        return false;
+    }
+    if (!database_.commit()) {
+        setError(error, database_.lastError().text());
+        database_.rollback();
         return false;
     }
     return true;
@@ -324,6 +335,10 @@ bool ProjectStore::saveResearchSection(qint64 projectId, const QString &sectionK
     }
     if (!database_.isOpen() && !initialize(error))
         return false;
+    if (!database_.transaction()) {
+        setError(error, database_.lastError().text());
+        return false;
+    }
     QSqlQuery query(database_);
     query.prepare(QStringLiteral(
         "INSERT INTO research_sections(project_id, section_key, content) VALUES (?, ?, ?) "
@@ -333,6 +348,7 @@ bool ProjectStore::saveResearchSection(qint64 projectId, const QString &sectionK
     query.addBindValue(content);
     if (!query.exec()) {
         setError(error, query.lastError().text());
+        database_.rollback();
         return false;
     }
     QSqlQuery update(database_);
@@ -342,6 +358,12 @@ bool ProjectStore::saveResearchSection(qint64 projectId, const QString &sectionK
         setError(error, update.lastError().text().isEmpty()
                             ? QStringLiteral("Project does not exist.")
                             : update.lastError().text());
+        database_.rollback();
+        return false;
+    }
+    if (!database_.commit()) {
+        setError(error, database_.lastError().text());
+        database_.rollback();
         return false;
     }
     return true;
@@ -374,6 +396,10 @@ std::optional<qint64> ProjectStore::addResearchSource(qint64 projectId,
     }
     if (!database_.isOpen() && !initialize(error))
         return std::nullopt;
+    if (!database_.transaction()) {
+        setError(error, database_.lastError().text());
+        return std::nullopt;
+    }
     QSqlQuery query(database_);
     query.prepare(QStringLiteral(
         "INSERT INTO research_sources(project_id, title, authors, publication_year, doi, url, notes) "
@@ -387,16 +413,26 @@ std::optional<qint64> ProjectStore::addResearchSource(qint64 projectId,
     query.addBindValue(source.notes.trimmed());
     if (!query.exec()) {
         setError(error, query.lastError().text());
+        database_.rollback();
         return std::nullopt;
     }
+    const qint64 sourceId = query.lastInsertId().toLongLong();
     QSqlQuery update(database_);
     update.prepare(QStringLiteral("UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?"));
     update.addBindValue(projectId);
-    if (!update.exec()) {
-        setError(error, update.lastError().text());
+    if (!update.exec() || update.numRowsAffected() == 0) {
+        setError(error, update.lastError().text().isEmpty()
+                            ? QStringLiteral("Project does not exist.")
+                            : update.lastError().text());
+        database_.rollback();
         return std::nullopt;
     }
-    return query.lastInsertId().toLongLong();
+    if (!database_.commit()) {
+        setError(error, database_.lastError().text());
+        database_.rollback();
+        return std::nullopt;
+    }
+    return sourceId;
 }
 
 QList<ResearchSource> ProjectStore::loadResearchSources(qint64 projectId, QString *error) {
@@ -430,6 +466,10 @@ QList<ResearchSource> ProjectStore::loadResearchSources(qint64 projectId, QStrin
 bool ProjectStore::deleteResearchSource(qint64 projectId, qint64 sourceId, QString *error) {
     if (!database_.isOpen() && !initialize(error))
         return false;
+    if (!database_.transaction()) {
+        setError(error, database_.lastError().text());
+        return false;
+    }
     QSqlQuery query(database_);
     query.prepare(QStringLiteral(
         "DELETE FROM research_sources WHERE id=? AND project_id=?"));
@@ -439,10 +479,21 @@ bool ProjectStore::deleteResearchSource(qint64 projectId, qint64 sourceId, QStri
         setError(error, query.lastError().text().isEmpty()
                             ? QStringLiteral("Source does not exist in this project.")
                             : query.lastError().text());
+        database_.rollback();
         return false;
     }
     QSqlQuery update(database_);
     update.prepare(QStringLiteral("UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?"));
     update.addBindValue(projectId);
-    return update.exec();
+    if (!update.exec()) {
+        setError(error, update.lastError().text());
+        database_.rollback();
+        return false;
+    }
+    if (!database_.commit()) {
+        setError(error, database_.lastError().text());
+        database_.rollback();
+        return false;
+    }
+    return true;
 }
