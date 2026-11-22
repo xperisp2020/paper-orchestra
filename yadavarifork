@@ -703,3 +703,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - clean-runner verify-portable-artifact نیز روی Windows Server 2022 موفق شد؛ ZIP در runner مستقل استخراج شد، DLLها و Qt platform plugin و SQLite plugin بررسی شدند و yadavarifork.exe از داخل ZIP با QT_QPA_PLATFORM=windows و --smoke-test در حدود 8 ثانیه با exit code صفر خاتمه یافت.
 - Artifact جدید: ID=14760833122، نام=yadavarifork-windows-portable، حجم=25,050,437 bytes، SHA256=f5149e89709e0ff3ca80038fd26a7798c1862f90424eb499a7d693f49dd92e0d، run=45039092377، commit build=bc04bf3e236c7e651d88eb955993a12093c3369e، انقضا=2027-02-20.
 - نکته: بسته‌بندی portable و clean-runner smoke تأیید شده‌اند؛ این هنوز معادل آزمون نصب روی دستگاه واقعی کاربر، سازگاری Word 2010 واقعی یا تکمیل قابلیت پژوهش زنده نیست.
+
+
+### 6.58 راستی‌آزمایی دستی ساختار artifact پرتابل — 2026-11-22
+- Artifact ID=14760833122 دانلود و outer ZIP بررسی شد: zipfile.testzip() نتیجه None؛ SHA256 outer=f5149e89709e0ff3ca80038fd26a7798c1862f90424eb499a7d693f49dd92e0d.
+- ZIP داخلی نیز سالم است: 28 entry، testzip=None، SHA256=bbf006c40074231d08c44b4ace55b0f6ab85a9ffdf526e8fd84c338059af02e2.
+- بررسی محتوا تأیید کرد تنها executable بسته yadavarifork.exe است؛ Qt6Core.dll، Qt6Widgets.dll، platforms/qwindows.dll، sqldrivers/qsqlite.dll و README.txt حاضرند؛ yadavarifork_smoke.exe در بسته وجود ندارد.
+- فایل executable اندازه 255,488 bytes دارد؛ آزمون clean-runner مستقل علاوه بر این بررسی ساختاری، اجرای موفق خود برنامه را ثبت کرده است.
