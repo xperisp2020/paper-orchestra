@@ -20,6 +20,43 @@ import json
 from datetime import datetime
 
 
+
+def validate_runtime_prerequisites(requirements_path=None):
+    """Return actionable missing runtime prerequisites before creating a run."""
+    import importlib.metadata
+    import re
+
+    if requirements_path is None:
+        requirements_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt")
+
+    missing = []
+    try:
+        with open(requirements_path, encoding="utf-8") as requirements:
+            packages = []
+            for raw_line in requirements:
+                line = raw_line.split("#", 1)[0].strip()
+                if not line:
+                    continue
+                package = re.split(r"[<>=!~;\\[]", line, maxsplit=1)[0].strip()
+                if package:
+                    packages.append(package)
+    except OSError as exc:
+        missing.append(f"Cannot read requirements file: {exc}")
+        packages = []
+
+    for package in packages:
+        try:
+            importlib.metadata.distribution(package)
+        except importlib.metadata.PackageNotFoundError:
+            missing.append(f"Python package: {package}")
+
+    for executable in ("pdflatex", "bibtex"):
+        if shutil.which(executable) is None:
+            missing.append(f"LaTeX executable: {executable}")
+
+    return missing
+
+
 def emit_event(enabled: bool, event: str, **details) -> None:
     """Emit optional machine-readable JSONL events for desktop integrations."""
     if not enabled:
@@ -143,6 +180,15 @@ def main():
             f"Error: Raw materials directory '{args.raw_materials_dir}' does not exist."
         )
         sys.exit(1)
+
+    missing_prerequisites = validate_runtime_prerequisites()
+    if missing_prerequisites:
+        details = "; ".join(missing_prerequisites)
+        message = "Runtime preflight failed: " + details
+        print(message, file=sys.stderr, flush=True)
+        emit_event(args.events_jsonl, "pipeline_failed", stage="runtime_preflight",
+                   error=message, missing=missing_prerequisites)
+        sys.exit(2)
 
     if args.output_dir:
         base_dir = args.output_dir
