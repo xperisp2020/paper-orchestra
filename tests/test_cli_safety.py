@@ -122,6 +122,15 @@ class CliJsonlEventTests(unittest.TestCase):
         self.assertEqual(stream.getvalue(), "")
 
 
+    def test_event_error_text_redacts_bearer_credentials(self):
+        stream = io.StringIO()
+        with patch("sys.stdout", stream):
+            emit_event(True, "pipeline_failed", error="Authorization: Bearer event-secret-value")
+        event = json.loads(stream.getvalue())
+        self.assertNotIn("event-secret-value", event["error"])
+        self.assertIn("[REDACTED]", event["error"])
+
+
 class RawMaterialsSafetyTests(unittest.TestCase):
     def test_existing_destination_is_preserved_and_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
