@@ -405,8 +405,10 @@ public:
         source.doi = QStringLiteral("10.0000/example-unverified");
         source.url = QStringLiteral("https://example.invalid/source");
         const auto sourceId = store_.addResearchSource(*researchWindow.projectId_, source, &storageError);
-        if (!sourceId || !storageError.isEmpty())
+        if (!sourceId || !storageError.isEmpty()) {
+            std::cerr << "addResearchSource smoke failure: " << storageError.toStdString() << std::endl;
             return 47;
+        }
         const auto sources = store_.loadResearchSources(*researchWindow.projectId_, &storageError);
         if (!storageError.isEmpty() || sources.size() != 1 ||
             sources.first().verificationStatus != QStringLiteral("user_provided_unverified"))
