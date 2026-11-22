@@ -31,18 +31,68 @@ ProjectStore::~ProjectStore() {
 
 QStringList ProjectStore::proposalSectionKeys() {
     return {
-        QStringLiteral("title_fa"), QStringLiteral("title_en"),
-        QStringLiteral("field"), QStringLiteral("main_question"),
-        QStringLiteral("problem_statement"), QStringLiteral("necessity"),
-        QStringLiteral("literature_review"), QStringLiteral("innovation"),
-        QStringLiteral("keywords"), QStringLiteral("objectives"),
-        QStringLiteral("beneficiaries"), QStringLiteral("questions"),
-        QStringLiteral("hypotheses"), QStringLiteral("definitions"),
-        QStringLiteral("references"), QStringLiteral("methodology"),
-        QStringLiteral("data_collection"), QStringLiteral("analysis"),
-        QStringLiteral("variables"), QStringLiteral("timeline"),
-        QStringLiteral("budget")
+        QStringLiteral("title_fa"),
+        QStringLiteral("title_en"),
+        QStringLiteral("degree"),
+        QStringLiteral("field"),
+        QStringLiteral("specialization"),
+        QStringLiteral("supervisor"),
+        QStringLiteral("consultant"),
+        QStringLiteral("student_name"),
+        QStringLiteral("student_id"),
+        QStringLiteral("archive_number"),
+        QStringLiteral("approval_date"),
+        QStringLiteral("student_information"),
+        QStringLiteral("supervisor_information"),
+        QStringLiteral("academic_records"),
+        QStringLiteral("previous_theses"),
+        QStringLiteral("thesis_specifications"),
+        QStringLiteral("main_question"),
+        QStringLiteral("problem_statement"),
+        QStringLiteral("necessity"),
+        QStringLiteral("literature_review"),
+        QStringLiteral("innovation"),
+        QStringLiteral("keywords"),
+        QStringLiteral("objectives"),
+        QStringLiteral("beneficiaries"),
+        QStringLiteral("questions"),
+        QStringLiteral("hypotheses"),
+        QStringLiteral("definitions"),
+        QStringLiteral("references_fa"),
+        QStringLiteral("references_en"),
+        QStringLiteral("references"),
+        QStringLiteral("azad_challenge"),
+        QStringLiteral("azad_goals"),
+        QStringLiteral("azad_strategy"),
+        QStringLiteral("azad_constellation"),
+        QStringLiteral("azad_landscape"),
+        QStringLiteral("research_program"),
+        QStringLiteral("research_goal"),
+        QStringLiteral("research_relation"),
+        QStringLiteral("methodology"),
+        QStringLiteral("data_collection"),
+        QStringLiteral("research_tools"),
+        QStringLiteral("analysis"),
+        QStringLiteral("timeline"),
+        QStringLiteral("variables"),
+        QStringLiteral("personnel_cost"),
+        QStringLiteral("materials_equipment"),
+        QStringLiteral("miscellaneous_costs"),
+        QStringLiteral("total_costs"),
+        QStringLiteral("budget"),
+        QStringLiteral("supervisor_confirmation"),
+        QStringLiteral("consultant_confirmation"),
+        QStringLiteral("project_information"),
+        QStringLiteral("student_commitment"),
+        QStringLiteral("supervisor_commitment"),
+        QStringLiteral("researcher_commitment"),
+        QStringLiteral("committee_opinion"),
+        QStringLiteral("scientific_evaluation"),
+        QStringLiteral("group_council_minutes"),
+        QStringLiteral("faculty_research_council_opinion"),
+        QStringLiteral("final_approval"),
     };
+
 }
 
 bool ProjectStore::initialize(QString *error) {
@@ -81,6 +131,17 @@ bool ProjectStore::initialize(QString *error) {
     for (const QString &statement : statements) {
         if (!query.exec(statement)) {
             setError(error, query.lastError().text());
+            return false;
+        }
+    }
+    QSqlQuery migration(database_);
+    migration.prepare(QStringLiteral(
+        "INSERT OR IGNORE INTO proposal_sections(project_id, section_key, content) "
+        "SELECT id, ?, '' FROM projects WHERE workflow='proposal'"));
+    for (const QString &key : proposalSectionKeys()) {
+        migration.bindValue(0, key);
+        if (!migration.exec()) {
+            setError(error, migration.lastError().text());
             return false;
         }
     }

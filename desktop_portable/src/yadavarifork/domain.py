@@ -10,19 +10,67 @@ import sqlite3
 from typing import Iterable
 
 PROPOSAL_SECTIONS: tuple[tuple[str, str], ...] = (
-    ("title_fa", "عنوان فارسی"), ("title_en", "عنوان انگلیسی"),
-    ("field", "رشته و گرایش"), ("main_question", "پرسش اصلی"),
-    ("problem_statement", "بیان مسئله"), ("necessity", "اهمیت و ضرورت"),
-    ("literature_review", "پیشینه پژوهش"), ("innovation", "نوآوری"),
-    ("keywords", "کلیدواژه‌ها"), ("objectives", "اهداف"),
-    ("beneficiaries", "بهره‌وران"), ("questions", "پرسش‌ها"),
-    ("hypotheses", "فرضیه‌ها"), ("definitions", "تعاریف"),
-    ("references", "منابع"), ("methodology", "روش‌شناسی"),
-    ("data_collection", "روش گردآوری اطلاعات"), ("analysis", "روش تحلیل"),
-    ("variables", "متغیرها"), ("timeline", "زمان‌بندی"),
-    ("budget", "برآورد هزینه‌ها"),
+    ("title_fa", "عنوان فارسی"),
+    ("title_en", "عنوان انگلیسی"),
+    ("degree", "مقطع تحصیلی"),
+    ("field", "رشته تحصیلی"),
+    ("specialization", "گرایش"),
+    ("supervisor", "استاد راهنما"),
+    ("consultant", "استاد مشاور"),
+    ("student_name", "نام دانشجو"),
+    ("student_id", "شماره دانشجویی"),
+    ("archive_number", "شماره بایگانی"),
+    ("approval_date", "تاریخ تصویب"),
+    ("student_information", "اطلاعات دانشجو"),
+    ("supervisor_information", "اطلاعات استاد راهنما"),
+    ("academic_records", "سوابق تحصیلی"),
+    ("previous_theses", "پایان‌نامه‌های پیشین"),
+    ("thesis_specifications", "مشخصات پایان‌نامه"),
+    ("main_question", "پرسش اصلی"),
+    ("problem_statement", "بیان مسئله"),
+    ("necessity", "اهمیت و ضرورت"),
+    ("literature_review", "پیشینه پژوهش"),
+    ("innovation", "نوآوری"),
+    ("keywords", "کلیدواژه‌ها"),
+    ("objectives", "اهداف"),
+    ("beneficiaries", "بهره‌وران"),
+    ("questions", "پرسش‌ها"),
+    ("hypotheses", "فرضیه‌ها"),
+    ("definitions", "تعاریف"),
+    ("references_fa", "منابع فارسی"),
+    ("references_en", "منابع غیرفارسی"),
+    ("references", "منابع تکمیلی (سازگاری با پرونده‌های قبلی)"),
+    ("azad_challenge", "چالش پایش آزاد"),
+    ("azad_goals", "اهداف پایش آزاد"),
+    ("azad_strategy", "راهبرد پایش آزاد"),
+    ("azad_constellation", "منظومه پایش آزاد"),
+    ("azad_landscape", "منظر پایش آزاد"),
+    ("research_program", "برنامه پژوهشی"),
+    ("research_goal", "هدف پژوهش"),
+    ("research_relation", "ارتباط پژوهش با برنامه"),
+    ("methodology", "روش‌شناسی"),
+    ("data_collection", "روش گردآوری اطلاعات"),
+    ("research_tools", "ابزارهای پژوهش"),
+    ("analysis", "روش تحلیل"),
+    ("timeline", "زمان‌بندی"),
+    ("variables", "متغیرها"),
+    ("personnel_cost", "هزینه پرسنلی"),
+    ("materials_equipment", "مواد و وسایل"),
+    ("miscellaneous_costs", "هزینه‌های متفرقه"),
+    ("total_costs", "جمع کل هزینه‌ها"),
+    ("budget", "برآورد کلی هزینه‌ها (سازگاری با پرونده‌های قبلی)"),
+    ("supervisor_confirmation", "تأیید استاد راهنما"),
+    ("consultant_confirmation", "تأیید استاد مشاور"),
+    ("project_information", "اطلاعات فرم طرح"),
+    ("student_commitment", "تعهدنامه دانشجو"),
+    ("supervisor_commitment", "تعهدنامه استاد راهنما"),
+    ("researcher_commitment", "سایر تعهدات پژوهش"),
+    ("committee_opinion", "نظر کمیته تخصصی"),
+    ("scientific_evaluation", "ارزیابی علمی"),
+    ("group_council_minutes", "صورت‌جلسه شورای گروه"),
+    ("faculty_research_council_opinion", "نظر شورای پژوهشی دانشکده"),
+    ("final_approval", "تأیید نهایی"),
 )
-
 @dataclass(frozen=True)
 class Project:
     project_id: int
@@ -70,6 +118,13 @@ class ProjectStore:
                 content TEXT NOT NULL DEFAULT '',
                 PRIMARY KEY(project_id, section_key)
             )""")
+            # Add newly introduced form fields to existing projects without replacing content.
+            for section_key, _label in PROPOSAL_SECTIONS:
+                db.execute(
+                    "INSERT OR IGNORE INTO sections(project_id, section_key, content) "
+                    "SELECT id, ?, '' FROM projects WHERE workflow='proposal'",
+                    (section_key,),
+                )
 
     def create_project(self, title: str, language: str, ai_mode: str, workflow: str) -> Project:
         clean_title = title.strip()
