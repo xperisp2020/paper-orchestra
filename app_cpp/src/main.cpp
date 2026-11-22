@@ -1393,8 +1393,8 @@ private:
         addPathRow(persian ? QStringLiteral("قالب LaTeX") : QStringLiteral("LaTeX template folder"),
                    templateField, true, QString(), templateDefault);
         auto *notice = new QLabel(persian
-            ? QStringLiteral("Python و وابستگی‌های موتور همراه برنامه بسته‌بندی نشده‌اند. برای ساخت محیط جداگانه، scripts/setup_research_runtime.ps1 را اجرا و سپس Scripts\\\\python.exe ساخته‌شده را انتخاب کنید. ابزارهای pdflatex و bibtex نیز لازم‌اند. کلید Gemini فقط از محیط سیستم خوانده می‌شود و ذخیره نمی‌شود.")
-            : QStringLiteral("Python and engine dependencies are not bundled. Run scripts/setup_research_runtime.ps1 to create an isolated environment, then select its Scripts\\\\python.exe. pdflatex and bibtex are also required. Gemini credentials are read only from the process environment and are never stored."));
+            ? QStringLiteral("Python و وابستگی‌های موتور همراه برنامه بسته‌بندی نشده‌اند. برای ساخت محیط جداگانه، scripts/setup_research_runtime.ps1 را اجرا و سپس Scripts\\python.exe ساخته‌شده را انتخاب کنید. ابزارهای pdflatex و bibtex نیز لازم‌اند. کلید Gemini فقط از محیط سیستم خوانده می‌شود و ذخیره نمی‌شود.")
+            : QStringLiteral("Python and engine dependencies are not bundled. Run scripts/setup_research_runtime.ps1 to create an isolated environment, then select its Scripts\\python.exe. pdflatex and bibtex are also required. Gemini credentials are read only from the process environment and are never stored."));
         notice->setWordWrap(true);
         form->addRow(notice);
         auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
