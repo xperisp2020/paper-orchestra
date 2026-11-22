@@ -365,3 +365,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - هر دو write_single_paper پیش از شروع، وجود latex_writeup، final_paper.pdf یا content_refinement_workdir قبلی را بررسی می‌کنند و در صورت وجود، بدون حذف آن‌ها متوقف می‌شوند. پاک‌سازی content_refinement_workdir در retry فقط پس از preflight و درون همان اجرای تازه باقی مانده است؛ نیازمند آزمون چرخه retry است.
 - سه آزمون جدید اضافه شد: حفظ workspace موجود، رد نام مسیر traversal و ایجاد workspace جدید. نتیجه CI این commit هنوز مشخص نیست.
 - موارد باز برای چرخه بعد: تست retry pipeline و بررسی پاک‌سازی workspace در crash؛ بازبینی os.remove در pdf_utils.compile_latex برای اطمینان از مالکیت فایل موقت؛ تست مسیرهای Windows و symlink.
+
+
+### 6.12 نتیجه آزمون بازبینی workspace و رگرسیون — 2026-11-22
+- CI روی commit aadffdcda4e6c0dfc33b5a4b23ea2f2ea7972776 با run ID=45031763075 و job ID=137236685890 نتیجه success داد.
+- لاگ واقعی runner Python 3.12.16، اجرای unittest discover را با 8 تست و نتیجه OK ثبت کرد: چهار تست raw_materials، یک تست AST اسکن همه فایل‌های Python برای چاپ کلید، و سه تست workspace.
+- آزمون AST با موفقیت همه فایل‌های Python را parse کرد؛ بنابراین خطای syntax در فایل‌های پایتون موجود در زمان این commit مشاهده نشد. این به معنی اجرای integration pipeline یا import تمام dependencyها نیست.
+- بازبینی پس از اصلاح تأیید کرد هر دو writer از create_new_workspace استفاده می‌کنند، rmtree روی paper_dest_dir حذف شده و helper قبل از ایجاد مقصد از os.mkdir استفاده می‌کند که مقصد موجود را overwrite نمی‌کند.
+- وضعیت این چرخه: اصلاحات ثبت و آزمون‌های ایمنی CI موفق؛ آزمون واقعی pipeline چندایجنتی، retry، Windows و فایل‌های LaTeX هنوز انجام نشده است.
+- ریسک‌های باز: cleanup داخل write_single_paper فقط پس از preflight وجود خروجی قبلی انجام می‌شود؛ آزمون retry/crash لازم است. utils/pdf_utils.compile_latex هنوز source_pdf موجود در cwd را حذف می‌کند؛ باید مالکیت فایل و workspace ایمن‌تر بررسی شود.
