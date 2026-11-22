@@ -455,11 +455,30 @@ public:
             reopenedResearch.projectTitle_->text() != QStringLiteral("Offline research workspace smoke test") ||
             reopenedResearch.researchSectionList_->count() != 11)
             return 53;
+        reopenedResearch.researchEditor_->setPlainText(QStringLiteral("Saved when research window closes."));
+        if (!reopenedResearch.close())
+            return 56;
+        storageError.clear();
+        const auto closedResearchSections = store_.loadResearchSections(*researchWindow.projectId_, &storageError);
+        if (!storageError.isEmpty() ||
+            closedResearchSections.value(QStringLiteral("research_question")) !=
+                QStringLiteral("Saved when research window closes."))
+            return 57;
+
         WelcomeWindow reopenedProposal(store_);
         if (!reopenedProposal.openProjectById(*projectId_) ||
             reopenedProposal.pages_->currentIndex() != 4 ||
             reopenedProposal.sectionList_->count() != ProjectStore::proposalSectionKeys().size())
             return 54;
+        reopenedProposal.sectionEditor_->setPlainText(QStringLiteral("Saved when proposal window closes."));
+        if (!reopenedProposal.close())
+            return 58;
+        storageError.clear();
+        const auto closedProposalSections = store_.loadSections(*projectId_, &storageError);
+        if (!storageError.isEmpty() ||
+            closedProposalSections.value(QStringLiteral("title_fa")) !=
+                QStringLiteral("Saved when proposal window closes."))
+            return 59;
         reopenedResearch.startNewProject();
         if (reopenedResearch.projectId_ || !reopenedResearch.language_->isEnabled() ||
             !reopenedResearch.taskMode_->isEnabled() || reopenedResearch.pages_->currentIndex() != 0)
