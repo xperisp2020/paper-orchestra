@@ -1152,3 +1152,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Artifactها: portable ID=14767351613 (25,127,531 bytes)، installer ID=14767660090 (17,996,798 bytes)، انقضا 2027-02-20T18:23:14Z.
 - CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45054780391
 - این CI تغییر راهنمای Qt و رابط را تأیید می‌کند؛ اسکریپت bootstrap عمداً در runner اجرا نشده و نصب واقعی runtime همچنان تأیید نشده است.
+
+
+### 6.98.2 تأیید PowerShell bootstrap syntax و CI کامل Windows
+- PowerShell Parser در C++ Windows CI فایل scripts/setup_research_runtime.ps1 را بدون اجرای نصب/دانلود parse کرد و هیچ خطای نحوی گزارش نشد.
+- Python safety CI شماره 45055376031 روی Ubuntu و Windows success شد؛ شامل تست‌های requirements پژوهش، bootstrap script و محدودیت دسترسی به credentialها.
+- C++ Windows portable CI شماره 45055282517 روی commit bde429b651069b4aca59f02424156cf7039f2ed1 با conclusion=success کامل شد: PowerShell syntax check، Configure، Build، Smoke، portable ZIP، Inno Setup installer و clean-runner verification همگی موفق شدند.
+- Artifactها: portable ID=14767282744 (25,127,527 bytes)، installer ID=14767297771 (17,997,072 bytes)، انقضا 2027-02-20T18:28:31Z.
+- CI Python: https://github.com/xperisp2020/paper-orchestra/actions/runs/45055376031
+- CI Windows: https://github.com/xperisp2020/paper-orchestra/actions/runs/45055282517
+- این نتایج syntax، static safety و بسته‌های ویندوزی را تأیید می‌کنند؛ bootstrap نصب واقعی Python dependencies و LaTeX در runner عمداً اجرا نشده و اجرای واقعی pipeline با API معتبر هنوز نیازمند محیط عملیاتی و credential مجاز است.
