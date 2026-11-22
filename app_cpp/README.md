@@ -21,3 +21,7 @@ The CI workflow pins the aqtinstall revision that added Qt 6.11+ repository-layo
 
 ## Current scope
 The first increment implements the language, AI mode, and workflow selection screens. It does not yet implement proposal generation, research agents, local persistence, document export, printing, or portable packaging. The no-API mode is a local workflow and does not claim to provide a generative model.
+
+
+## Proposal document output
+The C++ portable application exports proposal content to PDF, DOCX (Office Open XML), and paginated PNG images. Printing uses the Qt print dialog. Existing output files and image folders are not overwritten.

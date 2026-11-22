@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Sql)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Sql PrintSupport)
 
 enable_testing()
 
@@ -16,8 +16,10 @@ qt_add_executable(yadavarifork
     src/main.cpp
     src/project_store.cpp
     src/project_store.h
+    src/document_export.cpp
+    src/document_export.h
 )
-target_link_libraries(yadavarifork PRIVATE Qt6::Widgets Qt6::Sql)
+target_link_libraries(yadavarifork PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport)
 
 if(WIN32)
     set_target_properties(yadavarifork PROPERTIES WIN32_EXECUTABLE TRUE)
