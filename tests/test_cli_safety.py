@@ -7,7 +7,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from paper_writing_cli import emit_event, prepare_raw_materials, validate_runtime_prerequisites
+from paper_writing_cli import emit_event, main, prepare_raw_materials, validate_runtime_prerequisites
 from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, paths_are_same, publish_file_no_overwrite
 from utils.security_utils import redact_secrets
 
@@ -41,6 +41,37 @@ class RuntimePreflightTests(unittest.TestCase):
                 self.assertEqual(validate_runtime_prerequisites(requirements_path), [])
         finally:
             os.unlink(requirements_path)
+
+
+    def test_cli_preflight_stops_before_creating_output_and_emits_failure_event(self):
+        with tempfile.TemporaryDirectory() as temp:
+            raw = os.path.join(temp, "raw")
+            template = os.path.join(temp, "template")
+            output = os.path.join(temp, "run-output")
+            os.makedirs(raw)
+            os.makedirs(template)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            argv = [
+                "paper_writing_cli.py",
+                "--raw_materials_dir", raw,
+                "--output_dir", output,
+                "--latex_template_dir", template,
+                "--events_jsonl",
+            ]
+            with patch("sys.argv", argv), \
+                 patch("paper_writing_cli.validate_runtime_prerequisites",
+                       return_value=["Python package: missing-demo"]), \
+                 patch("sys.stdout", stdout), patch("sys.stderr", stderr):
+                with self.assertRaises(SystemExit) as raised:
+                    main()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(os.path.exists(output))
+            self.assertIn("Runtime preflight failed", stderr.getvalue())
+            event = json.loads(stdout.getvalue().strip().splitlines()[-1])
+            self.assertEqual(event["event"], "pipeline_failed")
+            self.assertEqual(event["stage"], "runtime_preflight")
+            self.assertEqual(event["missing"], ["Python package: missing-demo"])
 
 
 class CliJsonlEventTests(unittest.TestCase):
