@@ -8,14 +8,16 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Sql)
 
 enable_testing()
 
 qt_add_executable(yadavarifork
     src/main.cpp
+    src/project_store.cpp
+    src/project_store.h
 )
-target_link_libraries(yadavarifork PRIVATE Qt6::Widgets)
+target_link_libraries(yadavarifork PRIVATE Qt6::Widgets Qt6::Sql)
 
 if(WIN32)
     set_target_properties(yadavarifork PROPERTIES WIN32_EXECUTABLE TRUE)

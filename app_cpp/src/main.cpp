@@ -9,6 +9,9 @@
 #include <QStringList>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QTemporaryDir>
+
+#include "project_store.h"
 
 class WelcomeWindow final : public QMainWindow {
 public:
@@ -88,6 +91,27 @@ public:
 
     bool runSmokeTest() {
         if (!language_ || !aiMode_ || !taskMode_ || !pages_ || pages_->count() != 4)
+            return false;
+
+        QTemporaryDir temporaryData;
+        if (!temporaryData.isValid())
+            return false;
+        ProjectStore store(temporaryData.filePath(QStringLiteral("smoke.sqlite3")));
+        QString storageError;
+        if (!store.initialize(&storageError))
+            return false;
+        const auto projectId = store.createProject(
+            QStringLiteral("Smoke test"), QStringLiteral("fa"),
+            QStringLiteral("no_api"), QStringLiteral("proposal"), &storageError);
+        if (!projectId)
+            return false;
+        if (!store.saveSection(*projectId, QStringLiteral("problem_statement"),
+                               QStringLiteral("Persisted smoke test"), &storageError))
+            return false;
+        const auto sections = store.loadSections(*projectId, &storageError);
+        if (sections.value(QStringLiteral("problem_statement")) !=
+            QStringLiteral("Persisted smoke test") ||
+            sections.size() != ProjectStore::proposalSectionKeys().size())
             return false;
 
         language_->setCurrentIndex(1);

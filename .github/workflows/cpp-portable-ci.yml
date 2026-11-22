@@ -36,7 +36,7 @@ jobs:
           $exe = Join-Path $PWD 'build/Release/yadavarifork.exe'
           if (!(Test-Path $exe)) { throw "Application executable not found: $exe" }
           $deploy = Get-Command windeployqt -ErrorAction Stop
-          & $deploy.Source --release --no-translations $exe
+          & $deploy.Source --release --no-translations --sql $exe
           if ($LASTEXITCODE -ne 0) { throw "windeployqt failed with exit code $LASTEXITCODE" }
           Copy-Item app_cpp/README.md build/Release/README.txt
           $env:QT_QPA_PLATFORM = 'offscreen'
