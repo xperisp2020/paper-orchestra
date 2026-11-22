@@ -656,6 +656,17 @@ public:
 
         ResearchEngineRunner cancellableBridge;
         bool cancellationFinished = false;
+        bool cancellationChildStarted = false;
+        QStringList cancellationOutput;
+        QObject::connect(&cancellableBridge, &ResearchEngineRunner::outputLine,
+                         &cancellableBridge, [&](const QString &line) { cancellationOutput.append(line); });
+        QObject::connect(&cancellableBridge, &ResearchEngineRunner::started,
+                         &cancellableBridge, [&] {
+            cancellationChildStarted = true;
+            QTimer::singleShot(100, &cancellableBridge, [&cancellableBridge] {
+                cancellableBridge.cancel();
+            });
+        });
         QObject::connect(&cancellableBridge, &ResearchEngineRunner::finished,
                          &cancellableBridge, [&](int, bool) { cancellationFinished = true; });
         if (!cancellableBridge.start(QCoreApplication::applicationFilePath(),
@@ -665,12 +676,10 @@ public:
         QEventLoop cancellationLoop;
         QObject::connect(&cancellableBridge, &ResearchEngineRunner::finished,
                          &cancellationLoop, &QEventLoop::quit);
-        QTimer::singleShot(100, &cancellationLoop, [&cancellableBridge] {
-            cancellableBridge.cancel();
-        });
         QTimer::singleShot(8000, &cancellationLoop, &QEventLoop::quit);
         cancellationLoop.exec();
-        if (!cancellationFinished || cancellableBridge.isRunning())
+        if (!cancellationChildStarted || !cancellationFinished || cancellableBridge.isRunning() ||
+            !cancellationOutput.join(QStringLiteral("\\n")).contains(QStringLiteral("bridge-child-sleeping")))
             return 72;
         return 0;
     }
