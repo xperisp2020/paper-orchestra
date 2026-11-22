@@ -162,8 +162,11 @@ public:
         setCentralWidget(root);
 
         connect(back_, &QPushButton::clicked, this, [this] {
-            if (pages_->currentIndex() > 0)
-                pages_->setCurrentIndex(pages_->currentIndex() - 1);
+            const int index = pages_->currentIndex();
+            if (index >= 4)
+                pages_->setCurrentIndex(3);
+            else if (index > 0)
+                pages_->setCurrentIndex(index - 1);
             updateNavigation();
         });
         connect(next_, &QPushButton::clicked, this, [this] {
@@ -345,6 +348,63 @@ public:
         updateNavigation();
         if (!summary_->text().contains(QStringLiteral("Language: English")))
             return 39;
+
+        WelcomeWindow researchWindow(store_);
+        if (researchWindow.pages_->count() != 6)
+            return 42;
+        researchWindow.projectTitle_->setText(QStringLiteral("Offline research workspace smoke test"));
+        researchWindow.taskMode_->setCurrentIndex(1);
+        researchWindow.pages_->setCurrentIndex(2);
+        researchWindow.next_->click();
+        researchWindow.next_->click();
+        if (researchWindow.pages_->currentIndex() != 5 || !researchWindow.projectId_ ||
+            *researchWindow.projectId_ == *projectId_)
+            return 43;
+        if (researchWindow.researchSectionList_->count() != 11)
+            return 44;
+
+        int questionRow = -1;
+        for (int row = 0; row < researchWindow.researchSectionList_->count(); ++row) {
+            if (researchWindow.researchSectionList_->item(row)->data(Qt::UserRole).toString() ==
+                QStringLiteral("research_question")) {
+                questionRow = row;
+                break;
+            }
+        }
+        if (questionRow < 0)
+            return 45;
+        researchWindow.researchSectionList_->setCurrentRow(questionRow);
+        researchWindow.researchEditor_->setPlainText(QStringLiteral("A locally saved research question."));
+        researchWindow.saveResearchSection_->click();
+        const auto researchSections = store_.loadResearchSections(*researchWindow.projectId_, &storageError);
+        if (!storageError.isEmpty() ||
+            researchSections.value(QStringLiteral("research_question")) !=
+                QStringLiteral("A locally saved research question.") ||
+            !store_.loadResearchSections(*projectId_).isEmpty())
+            return 46;
+
+        ResearchSource source;
+        source.title = QStringLiteral("User-entered source for smoke test");
+        source.authors = QStringLiteral("Researcher");
+        source.publicationYear = QStringLiteral("2024");
+        source.doi = QStringLiteral("10.0000/example-unverified");
+        source.url = QStringLiteral("https://example.invalid/source");
+        const auto sourceId = store_.addResearchSource(*researchWindow.projectId_, source, &storageError);
+        if (!sourceId || !storageError.isEmpty())
+            return 47;
+        const auto sources = store_.loadResearchSources(*researchWindow.projectId_, &storageError);
+        if (!storageError.isEmpty() || sources.size() != 1 ||
+            sources.first().verificationStatus != QStringLiteral("user_provided_unverified"))
+            return 48;
+        researchWindow.refreshResearchSources();
+        if (researchWindow.researchSourcesList_->count() != 1)
+            return 49;
+        if (!store_.deleteResearchSource(*researchWindow.projectId_, *sourceId, &storageError) ||
+            !store_.loadResearchSources(*researchWindow.projectId_).isEmpty())
+            return 50;
+        researchWindow.back_->click();
+        if (researchWindow.pages_->currentIndex() != 3)
+            return 51;
         return 0;
     }
 
