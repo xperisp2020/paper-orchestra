@@ -1,0 +1,32 @@
+name: C++ Windows portable CI
+on:
+  push:
+    branches: [work/yadavarifork]
+    paths:
+      - 'app_cpp/**'
+      - '.github/workflows/cpp-portable-ci.yml'
+  pull_request:
+    branches: [work/yadavarifork]
+    paths:
+      - 'app_cpp/**'
+      - '.github/workflows/cpp-portable-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.12.0'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          modules: 'qtbase'
+      - name: Configure
+        run: cmake -S app_cpp -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Smoke test
+        run: ctest --test-dir build -C Release --output-on-failure
