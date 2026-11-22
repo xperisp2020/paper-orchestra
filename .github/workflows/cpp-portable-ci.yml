@@ -5,6 +5,8 @@ on:
     paths:
       - 'app_cpp/**'
       - 'packaging/windows/**'
+      - 'scripts/setup_research_runtime.ps1'
+      - 'requirements-research.txt'
       - '.github/workflows/cpp-portable-ci.yml'
   pull_request:
     branches: [work/yadavarifork]
@@ -19,6 +21,21 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
+      - name: Validate research runtime bootstrap syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $PWD 'scripts/setup_research_runtime.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "Research runtime bootstrap PowerShell syntax is valid."
       - uses: jurplel/install-qt-action@v4
         with:
           version: '6.12.0'
