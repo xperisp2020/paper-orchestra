@@ -720,3 +720,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI installer را از همان خروجی windeployqt شده می‌سازد؛ artifact مستقل setup.exe اضافه شد.
 - clean-runner acceptance شامل نصب بی‌صدا، بررسی فایل اجرایی، اجرای --smoke-test، ایجاد sentinel در data، حذف بی‌صدا و تأیید باقی‌ماندن sentinel است.
 - script و workflow آماده شدند؛ نتیجه ساخت و نصب واقعی هنوز منتظر CI است.
+
+
+### 6.60 مدل داده پژوهش آفلاین و منابع دستی — 2026-11-22
+- schema SQLite برای research_sections و research_sources افزوده شد تا حالت پژوهش به workspace واقعی محلی تبدیل شود.
+- research_sections یازده بخش قابل ویرایش دارد: پرسش، پیشینه، اهداف، روش‌شناسی، راهبرد جستجو، معیارهای ورود/خروج، سنتز شواهد، یافته‌ها، محدودیت‌ها و کار آینده.
+- research_sources اطلاعات عنوان، نویسندگان، سال، DOI، URL و یادداشت را ذخیره می‌کند؛ verification_status پیش‌فرض user_provided_unverified است و منبع دستی به‌عنوان تأییدشده جا زده نمی‌شود.
+- initialize برای پروژه‌های پژوهشی قبلی migration می‌کند؛ createProject بخش‌های اولیه را در همان transaction می‌سازد.
+- APIهای save/load/delete منابع و save/load بخش‌های پژوهش افزوده شدند؛ UI و آزمون‌های persistence در گام بعد اضافه می‌شوند.
+- نتیجه CI این تغییر هنوز اجرا نشده است.

@@ -126,7 +126,25 @@ bool ProjectStore::initialize(QString *error) {
             "project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,"
             "section_key TEXT NOT NULL,"
             "content TEXT NOT NULL DEFAULT '',"
-            "PRIMARY KEY(project_id, section_key))")
+            "PRIMARY KEY(project_id, section_key))"),
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS research_sections ("
+            "project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,"
+            "section_key TEXT NOT NULL,"
+            "content TEXT NOT NULL DEFAULT '',"
+            "PRIMARY KEY(project_id, section_key))"),
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS research_sources ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,"
+            "title TEXT NOT NULL,"
+            "authors TEXT NOT NULL DEFAULT '',"
+            "publication_year TEXT NOT NULL DEFAULT '',"
+            "doi TEXT NOT NULL DEFAULT '',"
+            "url TEXT NOT NULL DEFAULT '',"
+            "notes TEXT NOT NULL DEFAULT '',"
+            "verification_status TEXT NOT NULL DEFAULT 'user_provided_unverified',"
+            "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
     };
     for (const QString &statement : statements) {
         if (!query.exec(statement)) {
@@ -142,6 +160,17 @@ bool ProjectStore::initialize(QString *error) {
         migration.bindValue(0, key);
         if (!migration.exec()) {
             setError(error, migration.lastError().text());
+            return false;
+        }
+    }
+    QSqlQuery researchMigration(database_);
+    researchMigration.prepare(QStringLiteral(
+        "INSERT OR IGNORE INTO research_sections(project_id, section_key, content) "
+        "SELECT id, ?, '' FROM projects WHERE workflow='research'"));
+    for (const QString &key : researchSectionKeys()) {
+        researchMigration.bindValue(0, key);
+        if (!researchMigration.exec()) {
+            setError(error, researchMigration.lastError().text());
             return false;
         }
     }
@@ -191,6 +220,19 @@ std::optional<qint64> ProjectStore::createProject(const QString &title,
         sectionInsert.prepare(QStringLiteral(
             "INSERT INTO proposal_sections(project_id, section_key, content) VALUES (?, ?, '')"));
         for (const QString &key : proposalSectionKeys()) {
+            sectionInsert.bindValue(0, projectId);
+            sectionInsert.bindValue(1, key);
+            if (!sectionInsert.exec()) {
+                setError(error, sectionInsert.lastError().text());
+                database_.rollback();
+                return std::nullopt;
+            }
+        }
+    } else {
+        QSqlQuery sectionInsert(database_);
+        sectionInsert.prepare(QStringLiteral(
+            "INSERT INTO research_sections(project_id, section_key, content) VALUES (?, ?, '')"));
+        for (const QString &key : researchSectionKeys()) {
             sectionInsert.bindValue(0, projectId);
             sectionInsert.bindValue(1, key);
             if (!sectionInsert.exec()) {
@@ -256,4 +298,151 @@ QMap<QString, QString> ProjectStore::loadSections(qint64 projectId, QString *err
     while (query.next())
         sections.insert(query.value(0).toString(), query.value(1).toString());
     return sections;
+}
+
+QStringList ProjectStore::researchSectionKeys() {
+    return {
+        QStringLiteral("research_question"),
+        QStringLiteral("research_background"),
+        QStringLiteral("research_objectives"),
+        QStringLiteral("research_methodology"),
+        QStringLiteral("search_strategy"),
+        QStringLiteral("inclusion_criteria"),
+        QStringLiteral("exclusion_criteria"),
+        QStringLiteral("evidence_synthesis"),
+        QStringLiteral("findings"),
+        QStringLiteral("limitations"),
+        QStringLiteral("future_work")
+    };
+}
+
+bool ProjectStore::saveResearchSection(qint64 projectId, const QString &sectionKey,
+                                       const QString &content, QString *error) {
+    if (!researchSectionKeys().contains(sectionKey)) {
+        setError(error, QStringLiteral("Unknown research section: %1").arg(sectionKey));
+        return false;
+    }
+    if (!database_.isOpen() && !initialize(error))
+        return false;
+    QSqlQuery query(database_);
+    query.prepare(QStringLiteral(
+        "INSERT INTO research_sections(project_id, section_key, content) VALUES (?, ?, ?) "
+        "ON CONFLICT(project_id, section_key) DO UPDATE SET content=excluded.content"));
+    query.addBindValue(projectId);
+    query.addBindValue(sectionKey);
+    query.addBindValue(content);
+    if (!query.exec()) {
+        setError(error, query.lastError().text());
+        return false;
+    }
+    QSqlQuery update(database_);
+    update.prepare(QStringLiteral("UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?"));
+    update.addBindValue(projectId);
+    if (!update.exec() || update.numRowsAffected() == 0) {
+        setError(error, update.lastError().text().isEmpty()
+                            ? QStringLiteral("Project does not exist.")
+                            : update.lastError().text());
+        return false;
+    }
+    return true;
+}
+
+QMap<QString, QString> ProjectStore::loadResearchSections(qint64 projectId, QString *error) {
+    QMap<QString, QString> sections;
+    if (!database_.isOpen() && !initialize(error))
+        return sections;
+    QSqlQuery query(database_);
+    query.prepare(QStringLiteral(
+        "SELECT section_key, content FROM research_sections WHERE project_id=?"));
+    query.addBindValue(projectId);
+    if (!query.exec()) {
+        setError(error, query.lastError().text());
+        return sections;
+    }
+    while (query.next())
+        sections.insert(query.value(0).toString(), query.value(1).toString());
+    return sections;
+}
+
+std::optional<qint64> ProjectStore::addResearchSource(qint64 projectId,
+                                                      const ResearchSource &source,
+                                                      QString *error) {
+    const QString title = source.title.trimmed();
+    if (title.isEmpty()) {
+        setError(error, QStringLiteral("Source title is required."));
+        return std::nullopt;
+    }
+    if (!database_.isOpen() && !initialize(error))
+        return std::nullopt;
+    QSqlQuery query(database_);
+    query.prepare(QStringLiteral(
+        "INSERT INTO research_sources(project_id, title, authors, publication_year, doi, url, notes) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)"));
+    query.addBindValue(projectId);
+    query.addBindValue(title);
+    query.addBindValue(source.authors.trimmed());
+    query.addBindValue(source.publicationYear.trimmed());
+    query.addBindValue(source.doi.trimmed());
+    query.addBindValue(source.url.trimmed());
+    query.addBindValue(source.notes.trimmed());
+    if (!query.exec()) {
+        setError(error, query.lastError().text());
+        return std::nullopt;
+    }
+    QSqlQuery update(database_);
+    update.prepare(QStringLiteral("UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?"));
+    update.addBindValue(projectId);
+    if (!update.exec()) {
+        setError(error, update.lastError().text());
+        return std::nullopt;
+    }
+    return query.lastInsertId().toLongLong();
+}
+
+QList<ResearchSource> ProjectStore::loadResearchSources(qint64 projectId, QString *error) {
+    QList<ResearchSource> sources;
+    if (!database_.isOpen() && !initialize(error))
+        return sources;
+    QSqlQuery query(database_);
+    query.prepare(QStringLiteral(
+        "SELECT id, title, authors, publication_year, doi, url, notes, verification_status "
+        "FROM research_sources WHERE project_id=? ORDER BY id"));
+    query.addBindValue(projectId);
+    if (!query.exec()) {
+        setError(error, query.lastError().text());
+        return sources;
+    }
+    while (query.next()) {
+        ResearchSource source;
+        source.id = query.value(0).toLongLong();
+        source.title = query.value(1).toString();
+        source.authors = query.value(2).toString();
+        source.publicationYear = query.value(3).toString();
+        source.doi = query.value(4).toString();
+        source.url = query.value(5).toString();
+        source.notes = query.value(6).toString();
+        source.verificationStatus = query.value(7).toString();
+        sources.append(source);
+    }
+    return sources;
+}
+
+bool ProjectStore::deleteResearchSource(qint64 projectId, qint64 sourceId, QString *error) {
+    if (!database_.isOpen() && !initialize(error))
+        return false;
+    QSqlQuery query(database_);
+    query.prepare(QStringLiteral(
+        "DELETE FROM research_sources WHERE id=? AND project_id=?"));
+    query.addBindValue(sourceId);
+    query.addBindValue(projectId);
+    if (!query.exec() || query.numRowsAffected() == 0) {
+        setError(error, query.lastError().text().isEmpty()
+                            ? QStringLiteral("Source does not exist in this project.")
+                            : query.lastError().text());
+        return false;
+    }
+    QSqlQuery update(database_);
+    update.prepare(QStringLiteral("UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?"));
+    update.addBindValue(projectId);
+    return update.exec();
 }
