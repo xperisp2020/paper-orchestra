@@ -61,3 +61,30 @@ jobs:
           name: yadavarifork-windows-portable
           path: build/yadavarifork-windows-portable.zip
           if-no-files-found: error
+
+  verify-portable-artifact:
+    needs: build-windows
+    runs-on: windows-2022
+    steps:
+      - name: Download portable artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: yadavarifork-windows-portable
+          path: artifact
+      - name: Extract and verify on a clean runner
+        shell: pwsh
+        run: |
+          $archive = Join-Path $PWD 'artifact/yadavarifork-windows-portable.zip'
+          if (!(Test-Path $archive)) { throw "Portable archive is missing." }
+          Expand-Archive -LiteralPath $archive -DestinationPath 'portable'
+          $root = Join-Path $PWD 'portable'
+          $exe = Join-Path $root 'yadavarifork.exe'
+          if (!(Test-Path $exe)) { throw "Portable executable is missing." }
+          foreach ($required in @('README.txt', 'Qt6Core.dll', 'Qt6Widgets.dll', 'platforms/qwindows.dll', 'sqldrivers/qsqlite.dll')) {
+            if (!(Test-Path (Join-Path $root $required))) { throw "Required portable file is missing: $required" }
+          }
+          if (Test-Path (Join-Path $root 'yadavarifork_smoke.exe')) { throw "Test-only executable leaked into portable package." }
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -NoNewWindow -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Clean-runner portable smoke test failed with exit code $($process.ExitCode)." }
+          Write-Host "Clean-runner portable smoke test passed."

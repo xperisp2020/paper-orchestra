@@ -650,3 +650,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - همه مسیرهای PDF/DOCX/PNG/print پیش از تولید، اعتبارسنجی صفحه‌بندی را اجرا می‌کنند؛ smoke test نیز کد 40 را برای شکست پوشش layout دارد.
 - شمارش اولیه صفحه‌ها 60 کلید گروه‌بندی‌شده نشان داد؛ آزمون رسمی C++ در CI جدید باید برابری دقیق مجموعه کلیدها را اثبات کند.
 - نتیجه CI این commit در انتظار است.
+
+
+### 6.51 آزمون پذیرش ZIP پرتابل روی Windows runner مستقل — 2026-11-22
+- Artifact run 45038258683 دانلود و از نظر ساختار بررسی شد: outer artifact SHA256=0e9f70bc05f331454c59ae7dd2be60d5b9eb269b0377763d80787813fc8376ae؛ ZIP داخلی سالم با SHA256=ece1c38157ed043034877dbf55db7eb29393b74728e3d2d3fb2a98cc5380f602 و 28 فایل.
+- فهرست بسته شامل yadavarifork.exe، Qt6Core/Gui/Widgets/Sql/PrintSupport، platforms/qwindows.dll، sqldrivers/qsqlite.dll و README.txt است؛ فایل smoke exe داخل بسته نیست.
+- CI اکنون job مستقل verify-portable-artifact دارد: artifact را روی Windows runner تازه دانلود/استخراج می‌کند، DLLها و plugins ضروری را بررسی می‌کند و executable داخل ZIP را بدون نصب Qt جداگانه با --smoke-test اجرا می‌کند.
+- این آزمون پذیرش مستقل برای commit فعلی هنوز منتظر اجراست.
