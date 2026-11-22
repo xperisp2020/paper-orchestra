@@ -1,23 +1,31 @@
 #include <QApplication>
 #include <QComboBox>
+#include <QCoreApplication>
+#include <QDir>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QList>
+#include <QLineEdit>
+#include <QListWidget>
 #include <QMainWindow>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QStringList>
+#include <QTemporaryDir>
+#include <QTextEdit>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <QTemporaryDir>
+
+#include <optional>
 
 #include "project_store.h"
 
 class WelcomeWindow final : public QMainWindow {
 public:
-    explicit WelcomeWindow(QWidget *parent = nullptr) : QMainWindow(parent) {
+    explicit WelcomeWindow(ProjectStore &store, QWidget *parent = nullptr)
+        : QMainWindow(parent), store_(store) {
         setObjectName(QStringLiteral("welcomeWindow"));
-        setMinimumSize(680, 460);
+        setMinimumSize(860, 600);
         pages_ = new QStackedWidget;
         pages_->setObjectName(QStringLiteral("wizardPages"));
 
@@ -27,6 +35,7 @@ public:
         language_->addItem(QStringLiteral("فارسی"), QStringLiteral("fa"));
         language_->addItem(QStringLiteral("English"), QStringLiteral("en"));
         static_cast<QVBoxLayout *>(languagePage->layout())->addWidget(language_);
+        static_cast<QVBoxLayout *>(languagePage->layout())->addStretch();
         pages_->addWidget(languagePage);
 
         auto *aiPage = makePage(QStringLiteral("aiPage"));
@@ -35,7 +44,11 @@ public:
         aiMode_->addItem(QStringLiteral("کاملاً رایگان، بدون API"), QStringLiteral("no_api"));
         aiMode_->addItem(QStringLiteral("سرویس‌های دارای طرح رایگان"), QStringLiteral("free_tier"));
         aiMode_->addItem(QStringLiteral("سرویس‌های پولی"), QStringLiteral("paid"));
+        aiDescription_ = new QLabel;
+        aiDescription_->setWordWrap(true);
         static_cast<QVBoxLayout *>(aiPage->layout())->addWidget(aiMode_);
+        static_cast<QVBoxLayout *>(aiPage->layout())->addWidget(aiDescription_);
+        static_cast<QVBoxLayout *>(aiPage->layout())->addStretch();
         pages_->addWidget(aiPage);
 
         auto *taskPage = makePage(QStringLiteral("taskPage"));
@@ -43,15 +56,40 @@ public:
         taskMode_->setObjectName(QStringLiteral("taskModeSelector"));
         taskMode_->addItem(QStringLiteral("تکمیل پروپوزال"), QStringLiteral("proposal"));
         taskMode_->addItem(QStringLiteral("انجام پژوهش"), QStringLiteral("research"));
+        projectTitle_ = new QLineEdit;
+        projectTitle_->setObjectName(QStringLiteral("projectTitle"));
+        taskStatus_ = new QLabel;
+        taskStatus_->setWordWrap(true);
         static_cast<QVBoxLayout *>(taskPage->layout())->addWidget(taskMode_);
+        static_cast<QVBoxLayout *>(taskPage->layout())->addWidget(projectTitle_);
+        static_cast<QVBoxLayout *>(taskPage->layout())->addWidget(taskStatus_);
+        static_cast<QVBoxLayout *>(taskPage->layout())->addStretch();
         pages_->addWidget(taskPage);
 
         auto *summaryPage = makePage(QStringLiteral("summaryPage"));
         summary_ = new QLabel;
         summary_->setObjectName(QStringLiteral("selectionSummary"));
         summary_->setWordWrap(true);
+        summaryStatus_ = new QLabel;
+        summaryStatus_->setWordWrap(true);
         static_cast<QVBoxLayout *>(summaryPage->layout())->addWidget(summary_);
+        static_cast<QVBoxLayout *>(summaryPage->layout())->addWidget(summaryStatus_);
+        static_cast<QVBoxLayout *>(summaryPage->layout())->addStretch();
         pages_->addWidget(summaryPage);
+
+        auto *editorPage = makePage(QStringLiteral("proposalEditorPage"));
+        auto *editorRow = new QHBoxLayout;
+        sectionList_ = new QListWidget;
+        sectionList_->setObjectName(QStringLiteral("proposalSectionList"));
+        sectionEditor_ = new QTextEdit;
+        sectionEditor_->setObjectName(QStringLiteral("proposalSectionEditor"));
+        editorRow->addWidget(sectionList_, 1);
+        editorRow->addWidget(sectionEditor_, 3);
+        static_cast<QVBoxLayout *>(editorPage->layout())->addLayout(editorRow);
+        editorStatus_ = new QLabel;
+        editorStatus_->setWordWrap(true);
+        static_cast<QVBoxLayout *>(editorPage->layout())->addWidget(editorStatus_);
+        pages_->addWidget(editorPage);
 
         auto *navigation = new QWidget;
         auto *buttons = new QHBoxLayout(navigation);
@@ -75,14 +113,29 @@ public:
             updateNavigation();
         });
         connect(next_, &QPushButton::clicked, this, [this] {
-            if (pages_->currentIndex() == 2)
+            const int index = pages_->currentIndex();
+            if (index < 2) {
+                pages_->setCurrentIndex(index + 1);
+            } else if (index == 2) {
+                taskStatus_->clear();
                 updateSummary();
-            if (pages_->currentIndex() < pages_->count() - 1)
-                pages_->setCurrentIndex(pages_->currentIndex() + 1);
+                pages_->setCurrentIndex(3);
+            } else if (index == 3) {
+                createOrOpenProject();
+            }
             updateNavigation();
         });
         connect(language_, &QComboBox::currentIndexChanged, this, [this](int) {
             applyLanguage();
+        });
+        connect(aiMode_, &QComboBox::currentIndexChanged, this, [this](int) {
+            updateAiDescription();
+        });
+        connect(sectionList_, &QListWidget::currentRowChanged, this, [this](int) {
+            loadSelectedSection();
+        });
+        connect(saveSection_, &QPushButton::clicked, this, [this] {
+            saveSelectedSection();
         });
 
         applyLanguage();
@@ -90,28 +143,7 @@ public:
     }
 
     bool runSmokeTest() {
-        if (!language_ || !aiMode_ || !taskMode_ || !pages_ || pages_->count() != 4)
-            return false;
-
-        QTemporaryDir temporaryData;
-        if (!temporaryData.isValid())
-            return false;
-        ProjectStore store(temporaryData.filePath(QStringLiteral("smoke.sqlite3")));
-        QString storageError;
-        if (!store.initialize(&storageError))
-            return false;
-        const auto projectId = store.createProject(
-            QStringLiteral("Smoke test"), QStringLiteral("fa"),
-            QStringLiteral("no_api"), QStringLiteral("proposal"), &storageError);
-        if (!projectId)
-            return false;
-        if (!store.saveSection(*projectId, QStringLiteral("problem_statement"),
-                               QStringLiteral("Persisted smoke test"), &storageError))
-            return false;
-        const auto sections = store.loadSections(*projectId, &storageError);
-        if (sections.value(QStringLiteral("problem_statement")) !=
-            QStringLiteral("Persisted smoke test") ||
-            sections.size() != ProjectStore::proposalSectionKeys().size())
+        if (!language_ || !aiMode_ || !taskMode_ || !pages_ || pages_->count() != 5)
             return false;
 
         language_->setCurrentIndex(1);
@@ -130,18 +162,55 @@ public:
                 pages_->setCurrentIndex(1);
                 next_->click();
                 next_->click();
-                if (pages_->currentIndex() != 3 || !summary_->text().contains(aiMode_->currentText())
-                    || !summary_->text().contains(taskMode_->currentText())) return false;
+                if (pages_->currentIndex() != 3 ||
+                    !summary_->text().contains(aiMode_->currentText()) ||
+                    !summary_->text().contains(taskMode_->currentText()))
+                    return false;
                 back_->click();
-                if (pages_->currentIndex() != 2) return false;
+                if (pages_->currentIndex() != 2)
+                    return false;
                 back_->click();
-                if (pages_->currentIndex() != 1) return false;
+                if (pages_->currentIndex() != 1)
+                    return false;
             }
         }
+
+        language_->setCurrentIndex(0);
+        aiMode_->setCurrentIndex(0);
+        taskMode_->setCurrentIndex(0);
+        projectTitle_->setText(QStringLiteral("SQLite proposal smoke test"));
+        pages_->setCurrentIndex(2);
+        next_->click();
+        if (pages_->currentIndex() != 3)
+            return false;
+        next_->click();
+        if (pages_->currentIndex() != 4 || !projectId_)
+            return false;
+
+        int problemRow = -1;
+        for (int row = 0; row < sectionList_->count(); ++row) {
+            if (sectionList_->item(row)->data(Qt::UserRole).toString() ==
+                QStringLiteral("problem_statement")) {
+                problemRow = row;
+                break;
+            }
+        }
+        if (problemRow < 0)
+            return false;
+        sectionList_->setCurrentRow(problemRow);
+        sectionEditor_->setPlainText(QStringLiteral("Persisted by GUI smoke test"));
+        saveSelectedSection();
+        QString storageError;
+        const auto saved = store_.loadSections(*projectId_, &storageError);
+        if (saved.value(QStringLiteral("problem_statement")) !=
+            QStringLiteral("Persisted by GUI smoke test"))
+            return false;
+
         language_->setCurrentIndex(1);
-        pages_->setCurrentIndex(3);
-        updateSummary();
-        if (!summary_->text().contains(QStringLiteral("Language: English"))) return false;
+        pages_->setCurrentIndex(4);
+        updateNavigation();
+        if (!summary_->text().contains(QStringLiteral("Language: English")))
+            return false;
         return true;
     }
 
@@ -155,9 +224,38 @@ private:
         heading->setWordWrap(true);
         heading->setStyleSheet(QStringLiteral("font-size: 22px; font-weight: 600;"));
         layout->addWidget(heading);
-        layout->addStretch();
         headings_.append(heading);
         return page;
+    }
+
+    QString sectionLabel(const QString &key, bool persian) const {
+        static const QMap<QString, QPair<QString, QString>> labels = {
+            {QStringLiteral("title_fa"), {QStringLiteral("عنوان فارسی"), QStringLiteral("Persian title")}},
+            {QStringLiteral("title_en"), {QStringLiteral("عنوان انگلیسی"), QStringLiteral("English title")}},
+            {QStringLiteral("field"), {QStringLiteral("رشته و گرایش"), QStringLiteral("Field and specialization")}},
+            {QStringLiteral("main_question"), {QStringLiteral("پرسش اصلی"), QStringLiteral("Main research question")}},
+            {QStringLiteral("problem_statement"), {QStringLiteral("بیان مسئله"), QStringLiteral("Problem statement")}},
+            {QStringLiteral("necessity"), {QStringLiteral("اهمیت و ضرورت"), QStringLiteral("Significance and necessity")}},
+            {QStringLiteral("literature_review"), {QStringLiteral("پیشینه پژوهش"), QStringLiteral("Literature review")}},
+            {QStringLiteral("innovation"), {QStringLiteral("نوآوری"), QStringLiteral("Original contribution")}},
+            {QStringLiteral("keywords"), {QStringLiteral("کلیدواژه‌ها"), QStringLiteral("Keywords")}},
+            {QStringLiteral("objectives"), {QStringLiteral("اهداف"), QStringLiteral("Objectives")}},
+            {QStringLiteral("beneficiaries"), {QStringLiteral("بهره‌وران"), QStringLiteral("Beneficiaries")}},
+            {QStringLiteral("questions"), {QStringLiteral("پرسش‌ها"), QStringLiteral("Research questions")}},
+            {QStringLiteral("hypotheses"), {QStringLiteral("فرضیه‌ها"), QStringLiteral("Hypotheses")}},
+            {QStringLiteral("definitions"), {QStringLiteral("تعاریف"), QStringLiteral("Definitions")}},
+            {QStringLiteral("references"), {QStringLiteral("منابع"), QStringLiteral("References")}},
+            {QStringLiteral("methodology"), {QStringLiteral("روش‌شناسی"), QStringLiteral("Methodology")}},
+            {QStringLiteral("data_collection"), {QStringLiteral("گردآوری اطلاعات"), QStringLiteral("Data collection")}},
+            {QStringLiteral("analysis"), {QStringLiteral("روش تحلیل"), QStringLiteral("Analysis method")}},
+            {QStringLiteral("variables"), {QStringLiteral("متغیرها"), QStringLiteral("Variables")}},
+            {QStringLiteral("timeline"), {QStringLiteral("زمان‌بندی"), QStringLiteral("Timeline")}},
+            {QStringLiteral("budget"), {QStringLiteral("برآورد هزینه‌ها"), QStringLiteral("Estimated budget")}}
+        };
+        const auto it = labels.constFind(key);
+        if (it == labels.cend())
+            return key;
+        return persian ? it->first : it->second;
     }
 
     void applyLanguage() {
@@ -169,8 +267,9 @@ private:
 
         headings_[0]->setText(persian ? QStringLiteral("زبان برنامه") : QStringLiteral("Application language"));
         headings_[1]->setText(persian ? QStringLiteral("حالت هوش مصنوعی") : QStringLiteral("AI mode"));
-        headings_[2]->setText(persian ? QStringLiteral("نوع فعالیت") : QStringLiteral("Workspace"));
+        headings_[2]->setText(persian ? QStringLiteral("نوع فعالیت و عنوان پروژه") : QStringLiteral("Workspace and project title"));
         headings_[3]->setText(persian ? QStringLiteral("بازبینی انتخاب‌ها") : QStringLiteral("Review selections"));
+        headings_[4]->setText(persian ? QStringLiteral("ویرایش پروپوزال") : QStringLiteral("Proposal editor"));
 
         language_->setItemText(0, QStringLiteral("فارسی"));
         language_->setItemText(1, QStringLiteral("English"));
@@ -179,51 +278,188 @@ private:
         aiMode_->setItemText(2, persian ? QStringLiteral("سرویس‌های پولی") : QStringLiteral("Paid AI services"));
         taskMode_->setItemText(0, persian ? QStringLiteral("تکمیل پروپوزال") : QStringLiteral("Complete proposal"));
         taskMode_->setItemText(1, persian ? QStringLiteral("انجام پژوهش") : QStringLiteral("Conduct research"));
+        projectTitle_->setPlaceholderText(persian ? QStringLiteral("عنوان پروژه") : QStringLiteral("Project title"));
         back_->setText(persian ? QStringLiteral("قبلی") : QStringLiteral("Back"));
+        saveSection_->setText(persian ? QStringLiteral("ذخیره بخش") : QStringLiteral("Save section"));
+        updateAiDescription();
+        updateSummary();
+        populateSectionList();
         updateNavigation();
-        if (pages_->currentIndex() == 3)
-            updateSummary();
+    }
+
+    void updateAiDescription() {
+        const QString mode = aiMode_->currentData().toString();
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        if (mode == QStringLiteral("no_api")) {
+            aiDescription_->setText(persian
+                ? QStringLiteral("ابزارهای محلی و قواعد قطعی؛ بدون تولید متن توسط مدل زبانی.")
+                : QStringLiteral("Local tools and deterministic rules; no language-model generation."));
+        } else if (mode == QStringLiteral("free_tier")) {
+            aiDescription_->setText(persian
+                ? QStringLiteral("اتصال اختیاری به سرویس‌های دارای طرح رایگان؛ وابسته به سهمیه و دسترسی.")
+                : QStringLiteral("Optional free-tier provider access, subject to availability and quotas."));
+        } else {
+            aiDescription_->setText(persian
+                ? QStringLiteral("اتصال اختیاری به ارائه‌دهندگان پولی؛ کلیدها باید پیش از استفاده امن‌سازی شوند.")
+                : QStringLiteral("Optional paid-provider access; secure credential storage is required before use."));
+        }
     }
 
     void updateSummary() {
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
-        const QString language = language_->currentText();
-        const QString ai = aiMode_->currentText();
-        const QString task = taskMode_->currentText();
         if (persian) {
-            summary_->setText(QStringLiteral("زبان: %1\nحالت هوش مصنوعی: %2\nفعالیت: %3")
-                .arg(language, ai, task));
+            summary_->setText(QStringLiteral("عنوان: %1\nزبان: %2\nحالت هوش مصنوعی: %3\nفعالیت: %4")
+                .arg(projectTitle_->text().trimmed(), language_->currentText(),
+                     aiMode_->currentText(), taskMode_->currentText()));
         } else {
-            summary_->setText(QStringLiteral("Language: %1\nAI mode: %2\nWorkspace: %3")
-                .arg(language, ai, task));
+            summary_->setText(QStringLiteral("Project: %1\nLanguage: %2\nAI mode: %3\nWorkspace: %4")
+                .arg(projectTitle_->text().trimmed(), language_->currentText(),
+                     aiMode_->currentText(), taskMode_->currentText()));
         }
+    }
+
+    void populateSectionList() {
+        if (!sectionList_)
+            return;
+        QString currentKey;
+        if (sectionList_->currentItem())
+            currentKey = sectionList_->currentItem()->data(Qt::UserRole).toString();
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        sectionList_->clear();
+        const QStringList keys = ProjectStore::proposalSectionKeys();
+        for (const QString &key : keys) {
+            auto *item = new QListWidgetItem(sectionLabel(key, persian));
+            item->setData(Qt::UserRole, key);
+            sectionList_->addItem(item);
+            if (key == currentKey)
+                sectionList_->setCurrentItem(item);
+        }
+        if (sectionList_->currentRow() < 0 && sectionList_->count() > 0)
+            sectionList_->setCurrentRow(0);
+    }
+
+    void loadSelectedSection() {
+        if (!projectId_ || !sectionList_->currentItem())
+            return;
+        QString error;
+        const auto sections = store_.loadSections(*projectId_, &error);
+        if (!error.isEmpty()) {
+            editorStatus_->setText(error);
+            return;
+        }
+        const QString key = sectionList_->currentItem()->data(Qt::UserRole).toString();
+        sectionEditor_->setPlainText(sections.value(key));
+    }
+
+    void saveSelectedSection() {
+        if (!projectId_ || !sectionList_->currentItem())
+            return;
+        const QString key = sectionList_->currentItem()->data(Qt::UserRole).toString();
+        QString error;
+        if (!store_.saveSection(*projectId_, key, sectionEditor_->toPlainText(), &error)) {
+            editorStatus_->setText(error);
+            return;
+        }
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        editorStatus_->setText(persian ? QStringLiteral("ذخیره شد") : QStringLiteral("Saved"));
+    }
+
+    void createOrOpenProject() {
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        if (projectId_) {
+            if (taskMode_->currentData().toString() == QStringLiteral("proposal")) {
+                populateSectionList();
+                pages_->setCurrentIndex(4);
+            }
+            updateNavigation();
+            return;
+        }
+        QString error;
+        projectId_ = store_.createProject(
+            projectTitle_->text(), language_->currentData().toString(),
+            aiMode_->currentData().toString(), taskMode_->currentData().toString(), &error);
+        if (!projectId_) {
+            summaryStatus_->setText(error.isEmpty()
+                ? (persian ? QStringLiteral("ایجاد پروژه ناموفق بود.") : QStringLiteral("Project creation failed."))
+                : error);
+            return;
+        }
+        if (taskMode_->currentData().toString() == QStringLiteral("proposal")) {
+            populateSectionList();
+            pages_->setCurrentIndex(4);
+        } else {
+            summaryStatus_->setText(persian
+                ? QStringLiteral("پروژه پژوهش ذخیره شد؛ اتصال عامل‌های پژوهش هنوز در دست توسعه است.")
+                : QStringLiteral("Research project saved; research-agent integration is still under development."));
+        }
+        updateNavigation();
     }
 
     void updateNavigation() {
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
         const int index = pages_->currentIndex();
         back_->setEnabled(index > 0);
-        next_->setEnabled(index < pages_->count() - 1);
-        next_->setText(index == pages_->count() - 2
-            ? (persian ? QStringLiteral("بازبینی") : QStringLiteral("Review"))
-            : (persian ? QStringLiteral("بعدی") : QStringLiteral("Next")));
+        const bool researchCreated = index == 3 && projectId_ &&
+            taskMode_->currentData().toString() == QStringLiteral("research");
+        next_->setEnabled(index < 4 && !researchCreated);
+        if (index == 2)
+            next_->setText(persian ? QStringLiteral("بازبینی") : QStringLiteral("Review"));
+        else if (index == 3)
+            next_->setText(projectId_
+                ? (persian ? QStringLiteral("باز کردن پروپوزال") : QStringLiteral("Open proposal"))
+                : (persian ? QStringLiteral("ایجاد پروژه") : QStringLiteral("Create project")));
+        else
+            next_->setText(persian ? QStringLiteral("بعدی") : QStringLiteral("Next"));
     }
 
+    ProjectStore &store_;
     QStackedWidget *pages_{};
     QComboBox *language_{};
     QComboBox *aiMode_{};
     QComboBox *taskMode_{};
+    QLineEdit *projectTitle_{};
+    QLabel *aiDescription_{};
+    QLabel *taskStatus_{};
     QLabel *summary_{};
+    QLabel *summaryStatus_{};
+    QListWidget *sectionList_{};
+    QTextEdit *sectionEditor_{};
+    QLabel *editorStatus_{};
     QPushButton *back_{};
     QPushButton *next_{};
+    QPushButton *saveSection_{};
     QList<QLabel *> headings_;
+    std::optional<qint64> projectId_;
 };
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
-    WelcomeWindow window;
-    if (app.arguments().contains(QStringLiteral("--smoke-test")))
+    if (app.arguments().contains(QStringLiteral("--smoke-test"))) {
+        QTemporaryDir temporaryData;
+        if (!temporaryData.isValid())
+            return 3;
+        ProjectStore store(temporaryData.filePath(QStringLiteral("smoke.sqlite3")));
+        QString error;
+        if (!store.initialize(&error))
+            return 4;
+        WelcomeWindow window(store);
         return window.runSmokeTest() ? 0 : 2;
+    }
+
+    const QString dataDirectory = QDir(QCoreApplication::applicationDirPath())
+                                      .filePath(QStringLiteral("data"));
+    if (!QDir().mkpath(dataDirectory)) {
+        QMessageBox::critical(nullptr, QStringLiteral("Yadavarifork"),
+                              QStringLiteral("Cannot create the portable data directory."));
+        return 5;
+    }
+    ProjectStore store(QDir(dataDirectory).filePath(QStringLiteral("projects.sqlite3")));
+    QString error;
+    if (!store.initialize(&error)) {
+        QMessageBox::critical(nullptr, QStringLiteral("Yadavarifork"), error);
+        return 6;
+    }
+    WelcomeWindow window(store);
     window.show();
     return app.exec();
 }
