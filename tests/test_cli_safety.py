@@ -25,8 +25,7 @@ class RuntimePreflightTests(unittest.TestCase):
                     return object()
                 raise __import__("importlib").metadata.PackageNotFoundError(name)
 
-            with patch("importlib.metadata.distribution", side_effect=distribution), \\
-                 patch("shutil.which", side_effect=lambda name: None if name == "bibtex" else "/usr/bin/pdflatex"):
+            with patch("importlib.metadata.distribution", side_effect=distribution), patch("shutil.which", side_effect=lambda name: None if name == "bibtex" else "/usr/bin/pdflatex"):
                 missing = validate_runtime_prerequisites(requirements_path)
             self.assertEqual(missing, ["Python package: PyMuPDF", "LaTeX executable: bibtex"])
         finally:
@@ -38,8 +37,7 @@ class RuntimePreflightTests(unittest.TestCase):
             stream.write(requirements)
             requirements_path = stream.name
         try:
-            with patch("importlib.metadata.distribution", return_value=object()), \\
-                 patch("shutil.which", return_value="/usr/bin/tool"):
+            with patch("importlib.metadata.distribution", return_value=object()), patch("shutil.which", return_value="/usr/bin/tool"):
                 self.assertEqual(validate_runtime_prerequisites(requirements_path), [])
         finally:
             os.unlink(requirements_path)
