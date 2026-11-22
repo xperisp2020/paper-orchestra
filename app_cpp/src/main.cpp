@@ -656,7 +656,7 @@ public:
             return 55;
 
         reopenedResearch.currentResearchRunOutput_ =
-            temporaryData.filePath(QStringLiteral("research_runs/project_manifest_smoke"));
+            exportData.filePath(QStringLiteral("research_runs/project_manifest_smoke"));
         reopenedResearch.currentResearchRunProjectId_ = researchWindow.projectId_;
         if (!reopenedResearch.writeResearchRunManifest(QStringLiteral("starting"),
                                                         QStringLiteral("smoke_test")))
