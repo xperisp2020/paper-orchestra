@@ -332,6 +332,7 @@ public:
             smokeFinalDetails.insert(key, QStringLiteral("Smoke test: ") + key);
         if (!saveFinalDetails(smokeFinalDetails))
             return 62;
+        WelcomeWindow reopenedProposal(store_);
         if (!reopenedProposal.openProjectById(*projectId_) ||
             !reopenedProposal.finalDetailsReviewed_)
             return 65;
@@ -500,7 +501,6 @@ public:
                 QStringLiteral("Saved when research window closes."))
             return 57;
 
-        WelcomeWindow reopenedProposal(store_);
         if (!reopenedProposal.openProjectById(*projectId_) ||
             reopenedProposal.pages_->currentIndex() != 4 ||
             reopenedProposal.sectionList_->count() !=
