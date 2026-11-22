@@ -44,6 +44,14 @@ public:
         language_->addItem(QStringLiteral("فارسی"), QStringLiteral("fa"));
         language_->addItem(QStringLiteral("English"), QStringLiteral("en"));
         static_cast<QVBoxLayout *>(languagePage->layout())->addWidget(language_);
+        auto *savedProjectActions = new QHBoxLayout;
+        openExistingProject_ = new QPushButton;
+        openExistingProject_->setObjectName(QStringLiteral("openExistingProjectButton"));
+        newProject_ = new QPushButton;
+        newProject_->setObjectName(QStringLiteral("newProjectButton"));
+        savedProjectActions->addWidget(openExistingProject_);
+        savedProjectActions->addWidget(newProject_);
+        static_cast<QVBoxLayout *>(languagePage->layout())->addLayout(savedProjectActions);
         static_cast<QVBoxLayout *>(languagePage->layout())->addStretch();
         pages_->addWidget(languagePage);
 
@@ -184,6 +192,12 @@ public:
         });
         connect(language_, &QComboBox::currentIndexChanged, this, [this](int) {
             applyLanguage();
+        });
+        connect(openExistingProject_, &QPushButton::clicked, this, [this] {
+            openExistingProject();
+        });
+        connect(newProject_, &QPushButton::clicked, this, [this] {
+            startNewProject();
         });
         connect(aiMode_, &QComboBox::currentIndexChanged, this, [this](int) {
             updateAiDescription();
@@ -406,6 +420,25 @@ public:
         researchWindow.back_->click();
         if (researchWindow.pages_->currentIndex() != 3)
             return 51;
+
+        const auto allProjects = store_.listProjects(&storageError);
+        if (!storageError.isEmpty() || allProjects.size() != 2)
+            return 52;
+        WelcomeWindow reopenedResearch(store_);
+        if (!reopenedResearch.openProjectById(*researchWindow.projectId_) ||
+            reopenedResearch.pages_->currentIndex() != 5 ||
+            reopenedResearch.projectTitle_->text() != QStringLiteral("Offline research workspace smoke test") ||
+            reopenedResearch.researchSectionList_->count() != 11)
+            return 53;
+        WelcomeWindow reopenedProposal(store_);
+        if (!reopenedProposal.openProjectById(*projectId_) ||
+            reopenedProposal.pages_->currentIndex() != 4 ||
+            reopenedProposal.sectionList_->count() != ProjectStore::proposalSectionKeys().size())
+            return 54;
+        reopenedResearch.startNewProject();
+        if (reopenedResearch.projectId_ || !reopenedResearch.language_->isEnabled() ||
+            !reopenedResearch.taskMode_->isEnabled() || reopenedResearch.pages_->currentIndex() != 0)
+            return 55;
         return 0;
     }
 
@@ -520,6 +553,8 @@ private:
         exportDocx_->setText(persian ? QStringLiteral("خروجی Word") : QStringLiteral("Export Word"));
         exportPng_->setText(persian ? QStringLiteral("خروجی تصویر") : QStringLiteral("Export PNG"));
         printDocument_->setText(persian ? QStringLiteral("چاپ") : QStringLiteral("Print"));
+        openExistingProject_->setText(persian ? QStringLiteral("بازکردن پروژه ذخیره‌شده") : QStringLiteral("Open saved project"));
+        newProject_->setText(persian ? QStringLiteral("پروژه جدید") : QStringLiteral("New project"));
         saveResearchSection_->setText(persian ? QStringLiteral("ذخیره بخش") : QStringLiteral("Save section"));
         addResearchSource_->setText(persian ? QStringLiteral("افزودن منبع") : QStringLiteral("Add source"));
         deleteResearchSource_->setText(persian ? QStringLiteral("حذف منبع") : QStringLiteral("Delete source"));
@@ -610,6 +645,91 @@ private:
         editorStatus_->setText(persian ? QStringLiteral("ذخیره شد") : QStringLiteral("Saved"));
     }
 
+
+    void openExistingProject() {
+        QString error;
+        const auto projects = store_.listProjects(&error);
+        if (!error.isEmpty()) {
+            QMessageBox::warning(this, QStringLiteral("Yadavarifork"), error);
+            return;
+        }
+        if (projects.isEmpty()) {
+            const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+            QMessageBox::information(this, QStringLiteral("Yadavarifork"),
+                persian ? QStringLiteral("هنوز پروژه‌ای ذخیره نشده است.")
+                        : QStringLiteral("No saved projects yet."));
+            return;
+        }
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        QDialog dialog(this);
+        dialog.setWindowTitle(persian ? QStringLiteral("انتخاب پروژه") : QStringLiteral("Select project"));
+        auto *layout = new QVBoxLayout(&dialog);
+        auto *list = new QListWidget(&dialog);
+        for (const ProjectInfo &project : projects) {
+            const QString workflowLabel = project.workflow == QStringLiteral("proposal")
+                ? (persian ? QStringLiteral("پروپوزال") : QStringLiteral("Proposal"))
+                : (persian ? QStringLiteral("پژوهش") : QStringLiteral("Research"));
+            auto *item = new QListWidgetItem(
+                QStringLiteral("%1 — %2 — %3").arg(project.title, workflowLabel, project.updatedAt));
+            item->setData(Qt::UserRole, project.id);
+            list->addItem(item);
+        }
+        if (list->count() > 0) list->setCurrentRow(0);
+        auto *buttons = new QDialogButtonBox(QDialogButtonBox::Open | QDialogButtonBox::Cancel, &dialog);
+        layout->addWidget(list);
+        layout->addWidget(buttons);
+        connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+        connect(list, &QListWidget::itemDoubleClicked, &dialog, &QDialog::accept);
+        if (dialog.exec() != QDialog::Accepted || !list->currentItem())
+            return;
+        openProjectById(list->currentItem()->data(Qt::UserRole).toLongLong());
+    }
+
+    bool openProjectById(qint64 projectId) {
+        QString error;
+        const auto project = store_.loadProject(projectId, &error);
+        if (!project) {
+            QMessageBox::warning(this, QStringLiteral("Yadavarifork"), error);
+            return false;
+        }
+        projectId_ = project->id;
+        projectTitle_->setText(project->title);
+        language_->setCurrentIndex(language_->findData(project->language));
+        aiMode_->setCurrentIndex(aiMode_->findData(project->aiMode));
+        taskMode_->setCurrentIndex(taskMode_->findData(project->workflow));
+        language_->setEnabled(false);
+        aiMode_->setEnabled(false);
+        taskMode_->setEnabled(false);
+        projectTitle_->setEnabled(false);
+        applyLanguage();
+        if (project->workflow == QStringLiteral("proposal")) {
+            populateSectionList();
+            pages_->setCurrentIndex(4);
+        } else {
+            populateResearchSectionList();
+            refreshResearchSources();
+            pages_->setCurrentIndex(5);
+        }
+        updateNavigation();
+        return true;
+    }
+
+    void startNewProject() {
+        projectId_.reset();
+        language_->setEnabled(true);
+        aiMode_->setEnabled(true);
+        taskMode_->setEnabled(true);
+        projectTitle_->setEnabled(true);
+        projectTitle_->clear();
+        summaryStatus_->clear();
+        editorStatus_->clear();
+        researchStatus_->clear();
+        sectionEditor_->clear();
+        researchEditor_->clear();
+        pages_->setCurrentIndex(0);
+        updateNavigation();
+    }
 
     QString researchSectionLabel(const QString &key, bool persian) const {
         static const QMap<QString, QPair<QString, QString>> labels = {
@@ -907,6 +1027,8 @@ private:
     QPushButton *addResearchSource_{};
     QPushButton *deleteResearchSource_{};
     QLabel *researchStatus_{};
+    QPushButton *openExistingProject_{};
+    QPushButton *newProject_{};
     QList<QLabel *> headings_;
     std::optional<qint64> projectId_;
 };
