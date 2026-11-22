@@ -163,16 +163,16 @@ public:
         updateNavigation();
     }
 
-    bool runSmokeTest() {
+    int runSmokeTest() {
         if (!language_ || !aiMode_ || !taskMode_ || !pages_ || pages_->count() != 5)
-            return false;
+            return 20;
 
         language_->setCurrentIndex(1);
         if (layoutDirection() != Qt::LeftToRight)
-            return false;
+            return 21;
         language_->setCurrentIndex(0);
         if (layoutDirection() != Qt::RightToLeft)
-            return false;
+            return 22;
 
         const QStringList aiIds{QStringLiteral("no_api"), QStringLiteral("free_tier"), QStringLiteral("paid")};
         const QStringList taskIds{QStringLiteral("proposal"), QStringLiteral("research")};
@@ -186,13 +186,13 @@ public:
                 if (pages_->currentIndex() != 3 ||
                     !summary_->text().contains(aiMode_->currentText()) ||
                     !summary_->text().contains(taskMode_->currentText()))
-                    return false;
+                    return 23;
                 back_->click();
                 if (pages_->currentIndex() != 2)
-                    return false;
+                    return 24;
                 back_->click();
                 if (pages_->currentIndex() != 1)
-                    return false;
+                    return 25;
             }
         }
 
@@ -203,10 +203,10 @@ public:
         pages_->setCurrentIndex(2);
         next_->click();
         if (pages_->currentIndex() != 3)
-            return false;
+            return 26;
         next_->click();
         if (pages_->currentIndex() != 4 || !projectId_)
-            return false;
+            return 27;
 
         int problemRow = -1;
         for (int row = 0; row < sectionList_->count(); ++row) {
@@ -217,7 +217,7 @@ public:
             }
         }
         if (problemRow < 0)
-            return false;
+            return 28;
         sectionList_->setCurrentRow(problemRow);
         sectionEditor_->setPlainText(QStringLiteral("Persisted by GUI smoke test"));
         saveSection_->click();
@@ -225,11 +225,11 @@ public:
         const auto saved = store_.loadSections(*projectId_, &storageError);
         if (saved.value(QStringLiteral("problem_statement")) !=
             QStringLiteral("Persisted by GUI smoke test"))
-            return false;
+            return 29;
 
         QTemporaryDir exportData;
         if (!exportData.isValid())
-            return false;
+            return 30;
         const auto labels = currentSectionLabels();
         const QString pdfPath = exportData.filePath(QStringLiteral("proposal.pdf"));
         const QString docxPath = exportData.filePath(QStringLiteral("proposal.docx"));
@@ -237,49 +237,49 @@ public:
         if (!DocumentExport::toPdf(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                    pdfPath, &storageError)) {
             qCritical().noquote() << "PDF export failed:" << storageError;
-            return false;
+            return 31;
         }
         if (!DocumentExport::toDocx(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                     docxPath, &storageError)) {
             qCritical().noquote() << "DOCX export failed:" << storageError;
-            return false;
+            return 32;
         }
         if (!DocumentExport::toPngPages(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                         pngDirectory, &storageError)) {
             qCritical().noquote() << "PNG export failed:" << storageError;
-            return false;
+            return 33;
         }
         QFile pdfFile(pdfPath);
         if (!pdfFile.open(QIODevice::ReadOnly) || !pdfFile.read(4).startsWith("%PDF")) {
             qCritical() << "PDF signature validation failed:" << pdfPath;
-            return false;
+            return 34;
         }
         QFile docxFile(docxPath);
         if (!docxFile.open(QIODevice::ReadOnly)) {
             qCritical() << "DOCX output cannot be opened:" << docxPath;
-            return false;
+            return 35;
         }
         const QByteArray docxBytes = docxFile.readAll();
         if (!docxBytes.startsWith("PK") ||
             !docxBytes.contains("word/document.xml") ||
             !docxBytes.contains(QByteArray::fromHex("504b0506"))) {
             qCritical() << "DOCX ZIP structure validation failed:" << docxBytes.size();
-            return false;
+            return 36;
         }
         if (QDir(pngDirectory).entryList({QStringLiteral("*.png")}, QDir::Files).isEmpty()) {
             qCritical() << "PNG page output is empty:" << pngDirectory;
-            return false;
+            return 37;
         }
         if (DocumentExport::toPdf(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                   pdfPath, &storageError))
-            return false;
+            return 38;
 
         language_->setCurrentIndex(1);
         pages_->setCurrentIndex(4);
         updateNavigation();
         if (!summary_->text().contains(QStringLiteral("Language: English")))
-            return false;
-        return true;
+            return 39;
+        return 0;
     }
 
 private:
@@ -636,7 +636,7 @@ int main(int argc, char *argv[]) {
         if (!store.initialize(&error))
             return 4;
         WelcomeWindow window(store);
-        return window.runSmokeTest() ? 0 : 2;
+        return window.runSmokeTest();
     }
 
     const QString dataDirectory = QDir(QCoreApplication::applicationDirPath())

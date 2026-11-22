@@ -546,3 +546,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اجرای کامل 17 تست ایمنی روی Ubuntu با Python 3.12.16 در run ID=45035940725 موفق شد.
 - workflow اکنون matrix دو runner ubuntu-latest و windows-2022 دارد تا عملیات O_EXCL، fsync، مسیرهای Windows، publish و preflight روی سیستم‌عامل هدف هم اجرا شوند.
 - آزمون Windows برای این تغییر هنوز منتظر نتیجه است.
+
+
+### 6.37 کدهای خروجی تفکیکی برای تشخیص شکست smoke ویندوز — 2026-11-22
+- Windows CI روی commit a32d156a07a6be3a2c844e7dcf77324625a2a387 مجدداً Build را موفق گذراند اما app_smoke همچنان شکست خورد؛ پیام qCritical از GUI subsystem در CTest دیده نشد.
+- runSmokeTest اکنون به‌جای bool، کد خروجی تفکیکی 20 به بالا برای هر شرط شکست برمی‌گرداند؛ main همان کد را مستقیماً به CTest تحویل می‌دهد.
+- این instrumentation کمک می‌کند failure مرحله تولید/اعتبارسنجی PDF/DOCX/PNG یا مسیر Wizard مشخص شود؛ پس از رفع علت باید کدها به assertionهای خوانا/گزارش تست تبدیل شوند.
+- نتیجه CI این commit در انتظار است.
