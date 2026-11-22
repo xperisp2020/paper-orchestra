@@ -187,6 +187,26 @@ class PdfOutputSafetyTests(unittest.TestCase):
                 publish_file_no_overwrite(os.path.join(temp, "missing"), os.path.join(temp, "out"))
 
 
+
+class RetryIsolationRegressionTests(unittest.TestCase):
+    def test_retry_attempt_workspaces_are_distinct_and_preserved(self):
+        with tempfile.TemporaryDirectory() as base:
+            first = create_new_workspace(base, "attempt_1")
+            with open(os.path.join(first, "partial.txt"), "w", encoding="utf-8") as f:
+                f.write("first attempt")
+            second = create_new_workspace(base, "attempt_2")
+            self.assertNotEqual(first, second)
+            self.assertTrue(os.path.isfile(os.path.join(first, "partial.txt")))
+            self.assertTrue(os.path.isdir(second))
+
+    def test_writer_retries_use_isolated_attempt_directories(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        for relative in ("methods/paper_writer.py", "methods/paper_writer_with_plotting.py"):
+            source = (repo_root / relative).read_text(encoding="utf-8")
+            self.assertIn('create_new_workspace(base_dir, f"attempt_{cur_try + 1}")', source)
+            self.assertNotIn("shutil.rmtree(content_refinement_workdir)", source)
+            self.assertIn("content_refinement_workdir = osp.join(attempt_dir", source)
+
 class SecretLoggingTests(unittest.TestCase):
     def test_semantic_scholar_api_key_is_not_printed_anywhere(self):
         repo_root = Path(__file__).resolve().parents[1]

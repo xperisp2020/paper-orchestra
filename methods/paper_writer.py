@@ -40,25 +40,17 @@ def write_single_paper(
     reflection_model_name: str = "gemini-3.1-pro-preview",
     research_cutoff: str = "2024-11",
 ):
-    latex_writeup_dir = osp.join(base_dir, "latex_writeup")
     pdf_file = osp.join(base_dir, "final_paper.pdf")
-
-    content_refinement_workdir = osp.join(base_dir, "content_refinement_workdir")
-    outline_file_path = osp.join(base_dir, "outline.json")
-    literature_agent_output_dir = osp.join(base_dir, "literature_agent_output")
     ensure_paths_absent((
-        latex_writeup_dir,
+        osp.join(base_dir, "latex_writeup"),
         pdf_file,
-        content_refinement_workdir,
-        outline_file_path,
-        literature_agent_output_dir,
+        osp.join(base_dir, "content_refinement_workdir"),
+        osp.join(base_dir, "outline.json"),
+        osp.join(base_dir, "literature_agent_output"),
     ))
 
     materials_dir = osp.join(base_dir, "raw_materials")
-
     old_figure_dir = osp.join(materials_dir, "figures")
-    new_figure_dir = osp.join(latex_writeup_dir, "figures")
-    figures_dir = new_figure_dir
 
     max_n_tries = 3
     cur_try = 0
@@ -70,7 +62,17 @@ def write_single_paper(
                 materials_dir
             ), f"Please make sure '{materials_dir}' exists!"
 
-            shutil.copytree(latex_template_dir, latex_writeup_dir, dirs_exist_ok=True)
+            # Every retry gets an isolated directory. Failed partial outputs are
+            # retained for diagnosis and never mixed into the next attempt.
+            attempt_dir = create_new_workspace(base_dir, f"attempt_{cur_try + 1}")
+            latex_writeup_dir = osp.join(attempt_dir, "latex_writeup")
+            content_refinement_workdir = osp.join(attempt_dir, "content_refinement_workdir")
+            outline_file_path = osp.join(attempt_dir, "outline.json")
+            literature_agent_output_dir = osp.join(attempt_dir, "literature_agent_output")
+            new_figure_dir = osp.join(latex_writeup_dir, "figures")
+            figures_dir = new_figure_dir
+
+            shutil.copytree(latex_template_dir, latex_writeup_dir)
             if osp.exists(old_figure_dir):
                 shutil.copytree(old_figure_dir, new_figure_dir, dirs_exist_ok=True)
 
@@ -156,17 +158,9 @@ def write_single_paper(
 
             ###############################################################################################
             # Step 4: Content Reflection
-            content_refinement_workdir = os.path.join(
-                base_dir, "content_refinement_workdir"
-            )
-            if os.path.exists(content_refinement_workdir):
-                shutil.rmtree(content_refinement_workdir)
-            os.makedirs(content_refinement_workdir, exist_ok=True)
-
             shutil.copytree(
                 latex_writeup_dir,
                 content_refinement_workdir,
-                dirs_exist_ok=True,
             )
 
             content_refinement_agent = ContentRefinementAgent(

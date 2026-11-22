@@ -664,3 +664,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - مرحله CI پس از CTest، PDF signature، سلامت CRC آرشیو DOCX، وجود اجزای ضروری Office Open XML، parse تمام XML/relationships، تعداد 15 page-break برای 16 گروه و signature تمام PNGها را با Python استاندارد بررسی می‌کند.
 - این تست اعتبار ساختاری DOCX را اثبات می‌کند، اما جایگزین آزمون بازکردن فایل در Word 2010 واقعی نیست.
 - نتیجه CI و clean-runner artifact verification برای این commit در انتظار است.
+
+
+### 6.53 ایزوله‌سازی retry موتور پژوهش و حفظ خروجی تلاش‌های ناموفق — 2026-11-22
+- بازبینی دوباره write_single_paper در هر دو موتور نشان داد preflight فقط یک بار پیش از حلقه retry اجرا می‌شد؛ پس از شکست تلاش اول، latex_writeup و outline/literature outputs باقی می‌ماندند و تلاش بعدی با dirs_exist_ok=True روی همان داده‌های نیمه‌کاره ادامه می‌داد. همچنین content_refinement_workdir با rmtree حذف می‌شد.
+- اصلاح: هر تلاش در attempt_1، attempt_2 یا attempt_3 مستقل درون base_dir اجرا می‌شود. همه خروجی‌های outline، literature، LaTeX، plotting، refinement و time breakdown به همان attempt اختصاص می‌یابند. مواد خام فقط از base_dir/raw_materials خوانده می‌شوند.
+- هیچ پوشه تلاش قبلی حذف یا بازنویسی نمی‌شود؛ این کار از آمیختن state نیمه‌کاره جلوگیری و داده شکست را برای تشخیص حفظ می‌کند. PDF نهایی همچنان فقط با publish_file_no_overwrite به base_dir/final_paper.pdf منتشر می‌شود.
+- plotting agent اکنون نتایج و تصویرها را در attempt جاری ذخیره/resolve می‌کند تا retry از تصاویر اجرای قبلی استفاده نکند.
+- سه آزمون رگرسیون افزوده شد: یکتایی و حفظ attemptها و بررسی استاتیک اتصال هر دو writer به workspace مجزا و حذف rmtree مربوط به refinement.
+- محدودیت: اجرای end-to-end چندایجنتی به API/provider و وابستگی‌های خارجی نیاز دارد؛ CI فعلی آزمون unit/ساختار را اجرا می‌کند، نه فراخوانی مدل‌های واقعی. نتیجه CI این تغییر هنوز نامشخص است.

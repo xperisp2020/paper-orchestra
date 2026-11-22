@@ -46,27 +46,16 @@ def write_single_paper(
     research_cutoff: str = "2024-11",
     plotting_max_critic_rounds: int = 3,
 ):
-    latex_writeup_dir = osp.join(base_dir, "latex_writeup")
     pdf_file = osp.join(base_dir, "final_paper.pdf")
-
-    time_log = {}
-    time_log["Start_Time_Absolute"] = time.time()
-
-    content_refinement_workdir = osp.join(base_dir, "content_refinement_workdir")
-    outline_file_path = osp.join(base_dir, "outline.json")
-    literature_agent_output_dir = osp.join(base_dir, "literature_agent_output")
     ensure_paths_absent((
-        latex_writeup_dir,
+        osp.join(base_dir, "latex_writeup"),
         pdf_file,
-        content_refinement_workdir,
-        outline_file_path,
-        literature_agent_output_dir,
+        osp.join(base_dir, "content_refinement_workdir"),
+        osp.join(base_dir, "outline.json"),
+        osp.join(base_dir, "literature_agent_output"),
     ))
 
     materials_dir = osp.join(base_dir, "raw_materials")
-
-    figures_dir = osp.join(latex_writeup_dir, "figures")
-    os.makedirs(figures_dir, exist_ok=True)
 
     max_n_tries = 3
     cur_try = 0
@@ -78,7 +67,18 @@ def write_single_paper(
                 materials_dir
             ), f"Please make sure '{materials_dir}' exists!"
 
-            shutil.copytree(latex_template_dir, latex_writeup_dir, dirs_exist_ok=True)
+            # Keep each retry isolated so partial outputs cannot contaminate
+            # later attempts. Previous attempt directories remain recoverable.
+            attempt_dir = create_new_workspace(base_dir, f"attempt_{cur_try + 1}")
+            time_log = {"Start_Time_Absolute": time.time()}
+            latex_writeup_dir = osp.join(attempt_dir, "latex_writeup")
+            content_refinement_workdir = osp.join(attempt_dir, "content_refinement_workdir")
+            outline_file_path = osp.join(attempt_dir, "outline.json")
+            literature_agent_output_dir = osp.join(attempt_dir, "literature_agent_output")
+
+            shutil.copytree(latex_template_dir, latex_writeup_dir)
+            figures_dir = osp.join(latex_writeup_dir, "figures")
+            os.makedirs(figures_dir, exist_ok=True)
 
             guidelines_path = osp.join(latex_writeup_dir, "guidelines.md")
             latex_template_path = osp.join(latex_writeup_dir, "template.tex")
@@ -118,7 +118,6 @@ def write_single_paper(
 
             ###############################################################################################
             # Step 2: Call HybridLiteratureAgent and PlottingAgent in parallel
-            literature_agent_output_dir = osp.join(base_dir, "literature_agent_output")
 
             def run_literature_agent():
                 print("[DEBUG] Starting run_literature_agent")
@@ -140,7 +139,7 @@ def write_single_paper(
 
             def run_plotting_agent():
                 print("[DEBUG] Starting run_plotting_agent")
-                plotting_results_path = osp.join(base_dir, "plotting_results.json")
+                plotting_results_path = osp.join(attempt_dir, "plotting_results.json")
                 plotting_agent = PlottingAgent(
                     model_name=plotting_model_name,
                     image_model_name=image_model_name,
@@ -166,7 +165,7 @@ def write_single_paper(
             figures_info = []
             for plot_obj in plot_results:
                 if "image_path" in plot_obj:
-                    src_plot = osp.join(base_dir, plot_obj["image_path"])
+                    src_plot = osp.join(attempt_dir, plot_obj["image_path"])
                     dst_plot = osp.join(latex_writeup_dir, plot_obj["image_path"])
                     if osp.exists(src_plot):
                         os.makedirs(osp.dirname(dst_plot), exist_ok=True)
@@ -215,17 +214,9 @@ def write_single_paper(
 
             ###############################################################################################
             # Step 4: Content Reflection
-            content_refinement_workdir = os.path.join(
-                base_dir, "content_refinement_workdir"
-            )
-            if os.path.exists(content_refinement_workdir):
-                shutil.rmtree(content_refinement_workdir)
-            os.makedirs(content_refinement_workdir, exist_ok=True)
-
             shutil.copytree(
                 latex_writeup_dir,
                 content_refinement_workdir,
-                dirs_exist_ok=True,
             )
 
             _t3 = time.time()
@@ -243,7 +234,7 @@ def write_single_paper(
             time_log["ContentRefinementAgent"] = time.time() - _t3
             time_log["Total_Time_Span"] = time.time() - time_log["Start_Time_Absolute"]
 
-            with open(osp.join(base_dir, "time_breakdown.json"), "w") as f:
+            with open(osp.join(attempt_dir, "time_breakdown.json"), "w") as f:
                 json.dump(time_log, f, indent=4)
 
             assert osp.exists(
