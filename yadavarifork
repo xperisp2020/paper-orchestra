@@ -997,3 +997,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - smoke test پل تقویت شد: فرایند فرزند مقدار sentinel کلید Gemini را از environment دریافت و چاپ می‌کند؛ آزمون باید ثابت کند کلید در خروجی به [REDACTED] تبدیل می‌شود و مقدار خام افشا نمی‌شود.
 - README محدودیت‌های فعلی را روشن می‌کند: Python و requirements bundled نیستند، routing رایگان و resume هنوز پیاده نشده‌اند و اجرای AI به محیط Python و کلید معتبر نیاز دارد.
 - CI جدید باید C++ build/smoke، تست redaction، بسته‌بندی portable و clean-runner install/uninstall را تأیید کند؛ تا آن زمان نتیجه تأییدشده نیست.
+
+
+### 6.89.3 آزمون JSONL و اصلاح کاراکترهای smoke
+- تست‌های Python برای صحت JSONL رویداد pipeline و خاموش‌بودن کامل خروجی رویدادها در حالت پیش‌فرض افزوده شد.
+- smoke child برای newline واقعی C++ اصلاح شد؛ تست environment همچنان باید ثابت کند مقدار sentinel کلید API در خروجی فرزند mask می‌شود.
+- اجرای موتور اکنون فقط در دسته paid فعال است؛ مسیرهای no_api و free_tier بدون provider routing معتبر اجازه اجرای Gemini Pro Preview ندارند.
+- CIهای C++ و Python برای commitهای جدید در حال اجرا هستند؛ موفقیت نهایی هنوز اعلام نمی‌شود.
