@@ -962,3 +962,14 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Portable artifact ID=14763883046، حجم=25,088,955 bytes، digest=sha256:f6bf92634abad36c68f97a7a5a9af02dab50c102d2cc9d8db99a3ee1821329c6.
 - artifactها تا 2027-02-20 معتبرند. خطای C2065 در اجرای قبلی 45047537373 با انتقال تعریف error به محدوده تابع اصلاح شد؛ CI نهایی این اصلاح را تأیید کرد.
 - این نتیجه تأیید clean CI است؛ نصب فیزیکی روی دستگاه کاربر و آزمون واقعی Word 2010 همچنان انجام نشده‌اند.
+
+
+### 6.88 ممیزی اتصال موتور چندعاملی به کارگاه Qt
+- CMake فعلی فقط Qt6 Widgets/Sql/PrintSupport را به دو executable ویندوزی وصل می‌کند؛ هنوز هیچ bridge یا target مربوط به Python در برنامه وجود ندارد.
+- UI پژوهش فعلی فیلدهای ساختاریافته‌ای مانند research_question و research_background دارد؛ ورودی‌های مستقل و دقیق idea_sparse.md و experimental_log.md هنوز تعریف نشده‌اند.
+- CLI موجود paper_writing_cli.py ورودی‌های raw_materials_dir و latex_template_dir را الزامی می‌گیرد، idea_sparse.md و experimental_log.md را به‌صورت پیش‌فرض می‌خواند و خروجی مستقل می‌سازد. انتخاب template فعلی در repository شامل cvpr2025 و iclr2025 است.
+- requirements.txt شامل dependencyهای متعدد از جمله google-genai، openai، streamlit، matplotlib، opencv-python، PyMuPDF و ... است؛ بسته‌بندی کامل آن در portable فعلی انجام نشده. نصب Python و LaTeX engine نیز prerequisite مستقل هستند.
+- خروجی CLI فعلاً عمدتاً print متنی است و پروتکل ساختاریافته progress/event برای UI Qt ندارد؛ resume پایدار هر run در سطح CLI نیز هنوز باید به manifest و checkpointهای واقعی متصل شود.
+- security_utils.py تابع redact_secrets دارد، اما bridge باید پیش از اجرا نیز از قراردادن credential در command-line args، manifest، SQLite یا log جلوگیری کند. credential فقط از environment/secure store به process منتقل شود.
+- تصمیم طراحی گام بعد: کلاس Qt مبتنی بر QProcess با اجرای asynchronous، argv جداگانه و بدون shell، working directory اختصاصی و safe-path validation، progress از stdout/stderr با قالب JSONL، cancellation، redaction، manifest/run ID و تشخیص prerequisiteهای Python/dependencies/LaTeX. اجرای AI باید تا آماده‌شدن prerequisiteها disabled/با پیام شفاف بماند.
+- این بخش ممیزی معماری است و به معنی اتصال یا اجرای واقعی موتور نیست. توسعه bridge، بسته‌بندی runtime و آزمون integration هنوز انجام نشده‌اند.
