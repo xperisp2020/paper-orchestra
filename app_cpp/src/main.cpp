@@ -2,6 +2,7 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDir>
+#include <QDebug>
 #include <QFile>
 #include <QFileDialog>
 #include <QHBoxLayout>
@@ -234,27 +235,41 @@ public:
         const QString docxPath = exportData.filePath(QStringLiteral("proposal.docx"));
         const QString pngDirectory = exportData.filePath(QStringLiteral("proposal_png"));
         if (!DocumentExport::toPdf(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
-                                   pdfPath, &storageError))
+                                   pdfPath, &storageError)) {
+            qCritical().noquote() << "PDF export failed:" << storageError;
             return false;
+        }
         if (!DocumentExport::toDocx(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
-                                    docxPath, &storageError))
+                                    docxPath, &storageError)) {
+            qCritical().noquote() << "DOCX export failed:" << storageError;
             return false;
+        }
         if (!DocumentExport::toPngPages(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
-                                        pngDirectory, &storageError))
+                                        pngDirectory, &storageError)) {
+            qCritical().noquote() << "PNG export failed:" << storageError;
             return false;
+        }
         QFile pdfFile(pdfPath);
-        if (!pdfFile.open(QIODevice::ReadOnly) || !pdfFile.read(4).startsWith("%PDF"))
+        if (!pdfFile.open(QIODevice::ReadOnly) || !pdfFile.read(4).startsWith("%PDF")) {
+            qCritical() << "PDF signature validation failed:" << pdfPath;
             return false;
+        }
         QFile docxFile(docxPath);
-        if (!docxFile.open(QIODevice::ReadOnly))
+        if (!docxFile.open(QIODevice::ReadOnly)) {
+            qCritical() << "DOCX output cannot be opened:" << docxPath;
             return false;
+        }
         const QByteArray docxBytes = docxFile.readAll();
         if (!docxBytes.startsWith("PK") ||
             !docxBytes.contains("word/document.xml") ||
-            !docxBytes.contains(QByteArray::fromHex("504b0506")))
+            !docxBytes.contains(QByteArray::fromHex("504b0506"))) {
+            qCritical() << "DOCX ZIP structure validation failed:" << docxBytes.size();
             return false;
-        if (QDir(pngDirectory).entryList({QStringLiteral("*.png")}, QDir::Files).isEmpty())
+        }
+        if (QDir(pngDirectory).entryList({QStringLiteral("*.png")}, QDir::Files).isEmpty()) {
+            qCritical() << "PNG page output is empty:" << pngDirectory;
             return false;
+        }
         if (DocumentExport::toPdf(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                   pdfPath, &storageError))
             return false;
