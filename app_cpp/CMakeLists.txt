@@ -18,14 +18,16 @@ set(YADAVARIFORK_SOURCES
     src/project_store.h
     src/document_export.cpp
     src/document_export.h
+    src/research_engine_runner.cpp
+    src/research_engine_runner.h
 )
 
 qt_add_executable(yadavarifork ${YADAVARIFORK_SOURCES})
-target_link_libraries(yadavarifork PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport)
+target_link_libraries(yadavarifork PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport Qt6::Core)
 
 # A console-subsystem test binary keeps diagnostics visible to CTest on Windows.
 qt_add_executable(yadavarifork_smoke EXCLUDE_FROM_ALL ${YADAVARIFORK_SOURCES})
-target_link_libraries(yadavarifork_smoke PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport)
+target_link_libraries(yadavarifork_smoke PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport Qt6::Core)
 if(WIN32)
     set_target_properties(yadavarifork_smoke PROPERTIES WIN32_EXECUTABLE FALSE)
 endif()
