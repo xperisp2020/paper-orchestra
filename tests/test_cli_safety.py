@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest
 
 from paper_writing_cli import prepare_raw_materials
-from utils.safe_workspace import create_new_workspace
+from utils.safe_workspace import create_new_workspace, publish_file_no_overwrite
 
 
 class RawMaterialsSafetyTests(unittest.TestCase):
@@ -77,6 +77,44 @@ class WorkspaceSafetyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as parent:
             path = create_new_workspace(parent, "paper-2")
             self.assertTrue(os.path.isdir(path))
+
+
+
+class PdfOutputSafetyTests(unittest.TestCase):
+    def test_publish_creates_destination_and_removes_owned_source(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = os.path.join(temp, "generated.pdf")
+            destination = os.path.join(temp, "published", "final.pdf")
+            with open(source, "wb") as f:
+                f.write(b"%PDF-generated")
+            self.assertEqual(publish_file_no_overwrite(source, destination), destination)
+            self.assertFalse(os.path.exists(source))
+            with open(destination, "rb") as f:
+                self.assertEqual(f.read(), b"%PDF-generated")
+
+    def test_existing_destination_is_preserved(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = os.path.join(temp, "generated.pdf")
+            destination = os.path.join(temp, "final.pdf")
+            with open(source, "wb") as f:
+                f.write(b"new")
+            with open(destination, "wb") as f:
+                f.write(b"keep")
+            with self.assertRaises(FileExistsError):
+                publish_file_no_overwrite(source, destination)
+            with open(destination, "rb") as f:
+                self.assertEqual(f.read(), b"keep")
+            self.assertTrue(os.path.exists(source))
+
+    def test_source_must_be_regular_file_and_distinct(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = os.path.join(temp, "source")
+            with open(source, "wb") as f:
+                f.write(b"data")
+            with self.assertRaises(ValueError):
+                publish_file_no_overwrite(source, source)
+            with self.assertRaises(FileNotFoundError):
+                publish_file_no_overwrite(os.path.join(temp, "missing"), os.path.join(temp, "out"))
 
 
 class SecretLoggingTests(unittest.TestCase):

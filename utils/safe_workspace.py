@@ -1,6 +1,7 @@
 """Helpers for creating user-data-safe output workspaces."""
 
 import os
+import shutil
 from pathlib import PureWindowsPath
 
 
@@ -23,3 +24,33 @@ def create_new_workspace(parent_dir: str, workspace_name: str) -> str:
     target = os.path.join(parent, workspace_name)
     os.mkdir(target)
     return target
+
+
+
+def publish_file_no_overwrite(source_path: str, destination_path: str) -> str:
+    """Publish a generated file without ever replacing an existing destination."""
+    source = os.path.abspath(source_path)
+    destination = os.path.abspath(destination_path)
+    if source == destination:
+        raise ValueError("Source and destination must be different paths.")
+    if not os.path.isfile(source) or os.path.islink(source):
+        raise FileNotFoundError(f"Generated source file is missing or not regular: {source}")
+    parent = os.path.dirname(destination)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+    descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666)
+    try:
+        with os.fdopen(descriptor, "wb") as output, open(source, "rb") as input_file:
+            shutil.copyfileobj(input_file, output)
+            output.flush()
+            os.fsync(output.fileno())
+    except Exception:
+        try:
+            os.unlink(destination)
+        except OSError:
+            pass
+        raise
+
+    os.unlink(source)
+    return destination

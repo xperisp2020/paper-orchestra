@@ -54,8 +54,6 @@ def write_single_paper(
 
     old_figure_dir = osp.join(materials_dir, "figures")
     new_figure_dir = osp.join(latex_writeup_dir, "figures")
-    if osp.exists(old_figure_dir):
-        shutil.copytree(old_figure_dir, new_figure_dir, dirs_exist_ok=True)
     figures_dir = new_figure_dir
 
     max_n_tries = 3
@@ -69,6 +67,8 @@ def write_single_paper(
             ), f"Please make sure '{materials_dir}' exists!"
 
             shutil.copytree(latex_template_dir, latex_writeup_dir, dirs_exist_ok=True)
+            if osp.exists(old_figure_dir):
+                shutil.copytree(old_figure_dir, new_figure_dir, dirs_exist_ok=True)
 
             guidelines_path = osp.join(latex_writeup_dir, "guidelines.md")
             latex_template_path = osp.join(latex_writeup_dir, "template.tex")

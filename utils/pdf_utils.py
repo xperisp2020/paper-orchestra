@@ -27,6 +27,8 @@ import numpy as np
 import cv2
 from pypdf import PdfReader  # type: ignore
 
+from utils.safe_workspace import publish_file_no_overwrite
+
 
 def load_paper(pdf_path, num_pages=None, min_size=100):
     try:
@@ -170,8 +172,16 @@ def compile_latex(cwd, pdf_file, texfile_name="template", timeout=30):
     import os, shutil, subprocess, traceback, rich
 
     source_pdf = os.path.join(cwd, f"{texfile_name}.pdf")
-    if os.path.exists(source_pdf):
-        os.remove(source_pdf)
+    if os.path.abspath(source_pdf) == os.path.abspath(pdf_file):
+        raise ValueError("LaTeX source and destination PDF paths must differ.")
+    if os.path.lexists(source_pdf):
+        raise FileExistsError(
+            f"Refusing to overwrite existing LaTeX build output: {source_pdf}"
+        )
+    if os.path.lexists(pdf_file):
+        raise FileExistsError(
+            f"Refusing to overwrite existing destination PDF: {pdf_file}"
+        )
 
     env = dict(os.environ)
     for var in ["TEXINPUTS", "TEXMFHOME", "TEXMF", "TEXMFVAR", "TEXMFCONFIG"]:
@@ -214,19 +224,22 @@ def compile_latex(cwd, pdf_file, texfile_name="template", timeout=30):
         except Exception as e:
             execution_logs.append({"cmd": cmd_str, "error": str(e)})
 
-    has_timeout = any(
-        "error" in log and "TIMEOUT" in log["error"] for log in execution_logs
+    commands_succeeded = all(
+        "error" not in entry and entry.get("returncode") == 0
+        for entry in execution_logs
     )
 
-    if os.path.exists(source_pdf) and not has_timeout:
+    if os.path.isfile(source_pdf) and commands_succeeded:
         try:
-            shutil.move(source_pdf, pdf_file)
+            publish_file_no_overwrite(source_pdf, pdf_file)
+            return True
         except Exception:
-            rich.print(f"[bold red]Error moving generated PDF to {pdf_file}[/bold red]")
+            rich.print(f"[bold red]Error publishing generated PDF to {pdf_file}[/bold red]")
             print(traceback.format_exc())
+            return False
     else:
         rich.print(
-            f"\n[bold red]❌ PDF Generation Failed (No PDF file produced)[/bold red]"
+            f"\n[bold red]❌ PDF Generation Failed (commands failed or no PDF file produced)[/bold red]"
         )
 
         for log in execution_logs:
@@ -248,6 +261,7 @@ def compile_latex(cwd, pdf_file, texfile_name="template", timeout=30):
                     rich.print(f"[dim]{log['stdout'].strip()}[/dim]")
                 if log["stderr"].strip():
                     rich.print(f"[red]{log['stderr'].strip()}[/red]")
+        return False
 
 
 def pdf_to_grid_images(pdf_path, output_dir, scale=2.0):
