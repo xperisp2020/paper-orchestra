@@ -53,7 +53,6 @@ public:
         buttons->addWidget(back_);
         buttons->addStretch();
         buttons->addWidget(next_);
-        static_cast<QVBoxLayout *>(centralWidget()->layout());
         auto *root = new QWidget;
         auto *rootLayout = new QVBoxLayout(root);
         rootLayout->addWidget(pages_, 1);
