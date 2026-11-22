@@ -654,6 +654,37 @@ public:
         if (reopenedResearch.projectId_ || !reopenedResearch.language_->isEnabled() ||
             !reopenedResearch.taskMode_->isEnabled() || reopenedResearch.pages_->currentIndex() != 0)
             return 55;
+
+        reopenedResearch.currentResearchRunOutput_ =
+            temporaryData.filePath(QStringLiteral("research_runs/project_manifest_smoke"));
+        reopenedResearch.currentResearchRunProjectId_ = researchWindow.projectId_;
+        if (!reopenedResearch.writeResearchRunManifest(QStringLiteral("starting"),
+                                                        QStringLiteral("smoke_test")))
+            return 73;
+        const QString manifestPath = QDir(reopenedResearch.currentResearchRunOutput_)
+                                         .filePath(QStringLiteral("run_manifest.json"));
+        QFile manifestFile(manifestPath);
+        if (!manifestFile.open(QIODevice::ReadOnly))
+            return 74;
+        QJsonDocument manifestDocument = QJsonDocument::fromJson(manifestFile.readAll());
+        manifestFile.close();
+        if (!manifestDocument.isObject() ||
+            manifestDocument.object().value(QStringLiteral("status")).toString() != QStringLiteral("starting") ||
+            manifestDocument.object().value(QStringLiteral("project_id")).toString() !=
+                QString::number(*researchWindow.projectId_))
+            return 75;
+        if (!reopenedResearch.writeResearchRunManifest(QStringLiteral("completed"),
+                                                       QStringLiteral("smoke_finished")))
+            return 76;
+        if (!manifestFile.open(QIODevice::ReadOnly))
+            return 77;
+        manifestDocument = QJsonDocument::fromJson(manifestFile.readAll());
+        if (!manifestDocument.isObject() ||
+            manifestDocument.object().value(QStringLiteral("status")).toString() != QStringLiteral("completed"))
+            return 78;
+        reopenedResearch.currentResearchRunOutput_.clear();
+        reopenedResearch.currentResearchRunProjectId_.reset();
+
         ResearchEngineRunner bridge;
         QStringList bridgeOutput;
         bool bridgeFinished = false;
