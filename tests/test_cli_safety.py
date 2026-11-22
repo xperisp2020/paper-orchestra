@@ -106,6 +106,25 @@ class RunManifestTests(unittest.TestCase):
                 self.assertEqual(stream.read(), "{invalid")
 
 
+class ResearchRuntimeSetupTests(unittest.TestCase):
+    def test_research_requirements_exclude_legacy_streamlit_frontend(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        requirements = (repo_root / "requirements-research.txt").read_text(encoding="utf-8")
+        self.assertIn("google-genai", requirements)
+        self.assertIn("PyMuPDF", requirements)
+        self.assertNotIn("streamlit", requirements.lower())
+
+    def test_windows_bootstrap_does_not_handle_provider_credentials(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        script = (repo_root / "scripts" / "setup_research_runtime.ps1").read_text(encoding="utf-8")
+        self.assertIn("python -m venv", script)
+        self.assertIn("requirements-research.txt", script)
+        self.assertIn("pdflatex", script)
+        self.assertIn("bibtex", script)
+        self.assertNotIn("GEMINI_API_KEY", script)
+        self.assertNotIn("OPENAI_API_KEY", script)
+
+
 class CliRunManifestIntegrationTests(unittest.TestCase):
     def _fake_methods(self, writer):
         package = types.ModuleType("methods")
