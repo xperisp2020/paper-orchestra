@@ -295,3 +295,15 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اجرای 45007147146 روی commit b2bfa86eb3cace31a1cbde31b3fab4c8972a491c با Qt 6.12.0 و smoke test توسعه‌یافته همه مراحل نصب، Configure، Build و Smoke test را success گذراند.
 - بنابراین ارتقای Qt 6.12.0 و تست ترکیب 3 حالت AI × 2 نوع فعالیت در CI تأیید شد.
 - گام بعدی workflow به‌روزرسانی شد تا پس از CTest، windeployqt اجرا کند، برنامه deployشده را دوباره smoke-test کند و ZIP قابل دریافت به‌عنوان artifact بارگذاری کند. این بسته‌بندی و اجرای برنامه در محیط runner است؛ آزمون روی Windows تمیز مستقل هنوز انجام نشده و محصول کامل نیست.
+
+
+### 6.6 ممیزی مخزن مرجع shiraztest2000-lang/paper-orchestra — 2026-11-22
+- مخزن مرجع عمومی و فعال است؛ شاخه پیش‌فرض main، مجوز Apache-2.0 و اندازه گزارش‌شده GitHub برابر 2228 KB است. آخرین commit بررسی‌شده d9bae997e793a015ed38bb1605be9eb58c00284f در 2026-11-15 است.
+- ساختار و هسته کد آن با مبنای PaperOrchestra که قبلاً در پروژه ما موجود بود یکسان است: autoraters، frontend/Streamlit، methods/agents، prompts، paper_writer و utils؛ قالب‌های ارائه‌شده CVPR 2025 و ICLR 2025 هستند. هیچ پیاده‌سازی C++/Qt، اپلیکیشن قابل‌نصب ویندوز یا فرم دانشگاه آزاد در این مخزن دیده نشد.
+- تفاوت تازه در دو commit اخیر upstream: فقط دو فایل prompt تغییر کرده‌اند: methods/prompts/content_refinement_agent.py و methods/prompts/format_agent.py (در مجموع 3 insertion و 3 deletion طبق compare endpoint). این تغییرات اصلاح escape sequenceهای رشته‌های LaTeX است؛ SHA هر دو فایل در شاخه ما با نسخه مرجع یکسان است، پس اصلاح از قبل در مبنای ما موجود است و cherry-pick یا کپی مجدد لازم نیست.
+- بررسی تطبیقی چند فایل کلیدی (outline/literature/section/refinement prompts، agentهای literature و refinement، paper_writer، CLI، scholar_utils، llm_backend_utils و requirements) نشان داد SHA فایل‌های بررسی‌شده در دو مخزن یکسان است؛ مخزن مرجع در این snapshot قابلیت جدیدی که لازم باشد وارد شاخه کاری شود ارائه نمی‌کند.
+- نکته امنیتی تأییدشده در utils/scholar_utils.py: مقدار SEMANTIC_SCHOLAR_API_KEY مستقیماً چاپ می‌شود. این رفتار نباید به محصول ما منتقل شود؛ کلیدها باید redacted باشند و هرگز در log ظاهر نشوند.
+- نکته ایمنی داده تأییدشده در paper_writing_cli.py: در مسیر output_dir، پوشه raw_materials موجود با shutil.rmtree حذف و از ورودی دوباره کپی می‌شود. برای محصول ما این الگو ممنوع است؛ حذف داده کاربر باید حذف شود یا با تأیید صریح، backup و مسیرهای محدود و ایمن انجام گیرد.
+- عامل ContentRefinementAgent در نسخه مرجع به Gemini و reviewer متکی است؛ این پیاده‌سازی را نباید به‌عنوان حالت رایگانِ بدون API معرفی کرد. حالت no-API محصول ما باید واقعاً محلی/قاعده‌محور باشد یا runtime و مدل محلی مستقل داشته باشد.
+- requirements.txt فاقد نسخه‌های pin شده است؛ برای بازتولید build و امنیت زنجیره تأمین، وابستگی‌های مسیر Python آینده باید با lockfile/constraints و اسکن آسیب‌پذیری مدیریت شوند.
+- نتیجه و تصمیم: از مخزن مرجع فقط دانش معماری چندایجنتی، تفکیک promptها، مرور ادبیات و اصلاح تکرارشونده محتوا/قالب به‌عنوان الگوی طراحی استفاده شود؛ کد تازه‌ای از آن در این دور ادغام نشد چون تغییرات upstream در کپی ما حاضر بود و ریسک‌های امنیتی/حذف داده نیز باید ابتدا اصلاح شوند. هیچ فایل یا شاخه‌ای در مخزن مرجع تغییر نکرد.
