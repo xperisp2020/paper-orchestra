@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from paper_writing_cli import prepare_raw_materials
-from utils.safe_workspace import create_new_workspace, paths_are_same, publish_file_no_overwrite
+from utils.safe_workspace import create_new_workspace, ensure_paths_absent, paths_are_same, publish_file_no_overwrite
 
 
 class RawMaterialsSafetyTests(unittest.TestCase):
@@ -52,6 +52,25 @@ class RawMaterialsSafetyTests(unittest.TestCase):
                 prepare_raw_materials(source, target)
 
 
+
+
+
+class OutputPreflightSafetyTests(unittest.TestCase):
+    def test_preflight_rejects_any_existing_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            existing_file = os.path.join(temp, "outline.json")
+            existing_directory = os.path.join(temp, "literature_agent_output")
+            with open(existing_file, "w", encoding="utf-8") as f:
+                f.write("keep")
+            os.mkdir(existing_directory)
+            with self.assertRaises(FileExistsError):
+                ensure_paths_absent((os.path.join(temp, "latex_writeup"), existing_file, existing_directory))
+            with open(existing_file, encoding="utf-8") as f:
+                self.assertEqual(f.read(), "keep")
+
+    def test_preflight_accepts_all_new_outputs(self):
+        with tempfile.TemporaryDirectory() as temp:
+            ensure_paths_absent((os.path.join(temp, "latex_writeup"), os.path.join(temp, "final.pdf")))
 
 
 class WorkspaceSafetyTests(unittest.TestCase):

@@ -79,6 +79,15 @@ def publish_file_no_overwrite(source_path: str, destination_path: str) -> str:
     return destination
 
 
+def ensure_paths_absent(paths) -> None:
+    """Fail before a pipeline starts if any generated output already exists."""
+    for path in paths:
+        if os.path.lexists(path):
+            raise FileExistsError(
+                f"Refusing to overwrite existing generated output: {path}"
+            )
+
+
 def paths_are_same(path_a: str, path_b: str) -> bool:
     """Compare paths after resolving relative segments and platform case rules."""
     return os.path.normcase(os.path.realpath(os.path.abspath(path_a))) == os.path.normcase(

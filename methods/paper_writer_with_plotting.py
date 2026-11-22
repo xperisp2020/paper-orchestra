@@ -31,7 +31,7 @@ from methods.agents.plotting_agent import PlottingAgent
 from utils.common_utils import (
     create_log_folder,
 )
-from utils.safe_workspace import create_new_workspace
+from utils.safe_workspace import create_new_workspace, ensure_paths_absent, publish_file_no_overwrite
 
 
 def write_single_paper(
@@ -53,11 +53,15 @@ def write_single_paper(
     time_log["Start_Time_Absolute"] = time.time()
 
     content_refinement_workdir = osp.join(base_dir, "content_refinement_workdir")
-    for existing_output in (latex_writeup_dir, pdf_file, content_refinement_workdir):
-        if osp.lexists(existing_output):
-            raise FileExistsError(
-                f"Refusing to overwrite existing generated output: {existing_output}"
-            )
+    outline_file_path = osp.join(base_dir, "outline.json")
+    literature_agent_output_dir = osp.join(base_dir, "literature_agent_output")
+    ensure_paths_absent((
+        latex_writeup_dir,
+        pdf_file,
+        content_refinement_workdir,
+        outline_file_path,
+        literature_agent_output_dir,
+    ))
 
     materials_dir = osp.join(base_dir, "raw_materials")
 
@@ -103,7 +107,6 @@ def write_single_paper(
             outline_agent = OutlineAgent(
                 model_name=writer_model_name, cutoff_date=research_cutoff
             )
-            outline_file_path = osp.join(base_dir, "outline.json")
             outline_agent.run(
                 idea_file=idea_file_path,
                 experimental_log_file=experimental_log_file_path,
@@ -251,7 +254,7 @@ def write_single_paper(
             print(
                 f" >> Copying final PDF from  {content_refinment_agent_output_pdf_path} to {final_pdf_path}...\n"
             )
-            shutil.copy(content_refinment_agent_output_pdf_path, final_pdf_path)
+            publish_file_no_overwrite(content_refinment_agent_output_pdf_path, final_pdf_path)
             print(" >> Final PDF saved to:\n", final_pdf_path)
 
             succeed = True

@@ -530,3 +530,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI run 45035516585: Build موفق بود، اما app_smoke در مرحله تولید/اعتبارسنجی خروجی ناموفق شد؛ CTest خروجی تشخیصی کافی نداشت.
 - اصلاح تشخیصی: smoke اکنون در صورت شکست PDF/DOCX/PNG، امضای PDF، ساختار ZIP یا نبود PNG علت دقیق را با qCritical ثبت می‌کند.
 - این تغییر صرفاً instrumentation برای تشخیص است؛ هیچ ادعای موفقیت خروجی‌ها ثبت نمی‌شود. CI مجدد در انتظار است.
+
+
+### 6.35 سخت‌سازی preflight تمام خروجی‌های موتور پژوهش — 2026-11-22
+- بررسی retry و اجرای مجدد write_single_paper نشان داد فقط latex_writeup، final_paper.pdf و content_refinement_workdir پیش‌بررسی می‌شدند؛ outline.json و literature_agent_output می‌توانستند در اجرای مجدد/دایرکت overwrite شوند.
+- helper ensure_paths_absent افزوده شد تا تمام مسیرهای خروجی تولیدشده را با lexists بررسی کند و وجود فایل، پوشه یا symlink را پیش از شروع رد کند.
+- هر دو موتور paper_writer و paper_writer_with_plotting اکنون پنج خروجی را پیش‌بررسی می‌کنند: latex_writeup، final_paper.pdf، content_refinement_workdir، outline.json و literature_agent_output.
+- انتشار final_paper.pdf اکنون با publish_file_no_overwrite انجام می‌شود تا مقصد موجود جایگزین نشود و منبع فقط در صورت اطمینان از مالکیت فایل حذف شود.
+- دو آزمون جدید برای preflight مقصدهای موجود و تازه افزوده شد.
+- Python safety workflow اکنون تغییرات methods/**، utils/** و autoraters/** را نیز trigger می‌کند؛ پیش از این بعضی اصلاحات اصلی pipeline ممکن بود CI را فعال نکنند.
+- نتیجه CI این commit در انتظار است.
