@@ -330,6 +330,10 @@ public:
         QMap<QString, QString> smokeFinalDetails;
         for (const QString &key : finalDetailKeys())
             smokeFinalDetails.insert(key, QStringLiteral("Smoke test: ") + key);
+        smokeFinalDetails.insert(QStringLiteral("student_information"),
+            QStringLiteral("Smoke test: student_information\\nSecond line"));
+        smokeFinalDetails.insert(QStringLiteral("supervisor_information"),
+            QStringLiteral("Smoke test: supervisor_information\\nSecond line"));
         if (!saveFinalDetails(smokeFinalDetails))
             return 62;
         WelcomeWindow reopenedProposal(store_);
@@ -368,19 +372,19 @@ public:
         const QString pdfPath = QDir(exportRoot).filePath(QStringLiteral("proposal.pdf"));
         const QString docxPath = QDir(exportRoot).filePath(QStringLiteral("proposal.docx"));
         const QString pngDirectory = QDir(exportRoot).filePath(QStringLiteral("proposal_png"));
-        if (!DocumentExport::toPdf(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
+        if (!DocumentExport::toPdf(detailsSaved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                    pdfPath, &storageError)) {
             qCritical().noquote() << "PDF export failed:" << storageError;
             std::cerr << "PDF export failed: " << storageError.toStdString() << std::endl;
             return 31;
         }
-        if (!DocumentExport::toDocx(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
+        if (!DocumentExport::toDocx(detailsSaved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                     docxPath, &storageError)) {
             qCritical().noquote() << "DOCX export failed:" << storageError;
             std::cerr << "DOCX export failed: " << storageError.toStdString() << std::endl;
             return 32;
         }
-        if (!DocumentExport::toPngPages(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
+        if (!DocumentExport::toPngPages(detailsSaved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                         pngDirectory, &storageError)) {
             qCritical().noquote() << "PNG export failed:" << storageError;
             return 33;
@@ -398,7 +402,10 @@ public:
         const QByteArray docxBytes = docxFile.readAll();
         if (!docxBytes.startsWith("PK") ||
             !docxBytes.contains("word/document.xml") ||
-            !docxBytes.contains(QByteArray::fromHex("504b0506"))) {
+            !docxBytes.contains(QByteArray::fromHex("504b0506")) ||
+            !docxBytes.contains("Smoke test: student_information") ||
+            !docxBytes.contains("Smoke test: supervisor_information") ||
+            !docxBytes.contains("Second line")) {
             qCritical() << "DOCX ZIP structure validation failed:" << docxBytes.size();
             return 36;
         }
@@ -1115,12 +1122,22 @@ private:
             : QStringLiteral("These details are collected at the end of proposal preparation. Leave unknown items empty; you can edit them later."));
         intro->setWordWrap(true);
         form->addRow(intro);
-        QMap<QString, QLineEdit *> inputs;
+        QMap<QString, QLineEdit *> lineInputs;
+        QMap<QString, QTextEdit *> multilineInputs;
         for (const QString &key : finalDetailKeys()) {
-            auto *input = new QLineEdit(&dialog);
-            input->setText(current.value(key));
-            inputs.insert(key, input);
-            form->addRow(sectionLabel(key, persian), input);
+            if (key == QStringLiteral("student_information") ||
+                key == QStringLiteral("supervisor_information")) {
+                auto *input = new QTextEdit(&dialog);
+                input->setPlainText(current.value(key));
+                input->setMinimumHeight(88);
+                multilineInputs.insert(key, input);
+                form->addRow(sectionLabel(key, persian), input);
+            } else {
+                auto *input = new QLineEdit(&dialog);
+                input->setText(current.value(key));
+                lineInputs.insert(key, input);
+                form->addRow(sectionLabel(key, persian), input);
+            }
         }
         auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
         auto *skipButton = new QPushButton(persian
@@ -1145,8 +1162,10 @@ private:
             return true;
         }
         QMap<QString, QString> values;
-        for (auto it = inputs.cbegin(); it != inputs.cend(); ++it)
+        for (auto it = lineInputs.cbegin(); it != lineInputs.cend(); ++it)
             values.insert(it.key(), it.value()->text().trimmed());
+        for (auto it = multilineInputs.cbegin(); it != multilineInputs.cend(); ++it)
+            values.insert(it.key(), it.value()->toPlainText().trimmed());
         return saveFinalDetails(values);
     }
 
