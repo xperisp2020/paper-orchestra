@@ -16,7 +16,20 @@ import argparse
 import sys
 import os
 import shutil
+import json
 from datetime import datetime
+
+
+def emit_event(enabled: bool, event: str, **details) -> None:
+    """Emit optional machine-readable JSONL events for desktop integrations."""
+    if not enabled:
+        return
+    payload = {
+        "event": event,
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        **details,
+    }
+    print(json.dumps(payload, ensure_ascii=False), flush=True)
 
 
 def prepare_raw_materials(source_dir: str, target_dir: str) -> bool:
@@ -114,6 +127,11 @@ def main():
         default=3,
         help="Maximum rounds of self-correction in the plotting agent.",
     )
+    parser.add_argument(
+        "--events_jsonl",
+        action="store_true",
+        help="Emit machine-readable JSON Lines lifecycle events for desktop clients.",
+    )
 
     args = parser.parse_args()
 
@@ -164,38 +182,55 @@ def main():
             )
             print("=" * 80 + "\n")
 
-    if args.use_plotting:
-        from methods.paper_writer_with_plotting import write_single_paper
+    emit_event(
+        args.events_jsonl,
+        "pipeline_started",
+        stage="paper_generation",
+        mode="with_plotting" if args.use_plotting else "without_plotting",
+        output_dir=os.path.abspath(base_dir),
+    )
+    try:
+        if args.use_plotting:
+            from methods.paper_writer_with_plotting import write_single_paper
 
-        print(f"🚀 Starting Paper Generation (WITH PLOTTING) in {base_dir}")
-        write_single_paper(
-            base_dir=base_dir,
-            latex_template_dir=args.latex_template_dir,
-            idea_filename=args.idea_filename,
-            experimental_log_filename=args.experimental_log_filename,
-            writer_model_name=args.writer_model_name,
-            reflection_model_name=args.reflection_model_name,
-            plotting_model_name=args.plotting_model_name,
-            image_model_name=args.image_model_name,
-            research_cutoff=args.research_cutoff,
-            plotting_max_critic_rounds=args.plotting_max_critic_rounds,
-        )
-    else:
-        from methods.paper_writer import write_single_paper
+            print(f"🚀 Starting Paper Generation (WITH PLOTTING) in {base_dir}")
+            write_single_paper(
+                base_dir=base_dir,
+                latex_template_dir=args.latex_template_dir,
+                idea_filename=args.idea_filename,
+                experimental_log_filename=args.experimental_log_filename,
+                writer_model_name=args.writer_model_name,
+                reflection_model_name=args.reflection_model_name,
+                plotting_model_name=args.plotting_model_name,
+                image_model_name=args.image_model_name,
+                research_cutoff=args.research_cutoff,
+                plotting_max_critic_rounds=args.plotting_max_critic_rounds,
+            )
+        else:
+            from methods.paper_writer import write_single_paper
 
-        provided_figures_dir = os.path.join(args.raw_materials_dir, "figures")
-        print(
-            f"🚀 Starting Paper Generation (WITHOUT PLOTTING), with figures stored in {provided_figures_dir}"
-        )
-        write_single_paper(
-            base_dir=base_dir,
-            latex_template_dir=args.latex_template_dir,
-            idea_filename=args.idea_filename,
-            experimental_log_filename=args.experimental_log_filename,
-            writer_model_name=args.writer_model_name,
-            reflection_model_name=args.reflection_model_name,
-            research_cutoff=args.research_cutoff,
-        )
+            provided_figures_dir = os.path.join(args.raw_materials_dir, "figures")
+            print(
+                f"🚀 Starting Paper Generation (WITHOUT PLOTTING), with figures stored in {provided_figures_dir}"
+            )
+            write_single_paper(
+                base_dir=base_dir,
+                latex_template_dir=args.latex_template_dir,
+                idea_filename=args.idea_filename,
+                experimental_log_filename=args.experimental_log_filename,
+                writer_model_name=args.writer_model_name,
+                reflection_model_name=args.reflection_model_name,
+                research_cutoff=args.research_cutoff,
+            )
+    except Exception as exc:
+        emit_event(args.events_jsonl, "pipeline_failed", stage="paper_generation", error=str(exc))
+        raise
+    emit_event(
+        args.events_jsonl,
+        "pipeline_completed",
+        stage="paper_generation",
+        output_dir=os.path.abspath(base_dir),
+    )
 
 
 if __name__ == "__main__":
