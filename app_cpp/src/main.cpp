@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QCloseEvent>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDir>
@@ -18,6 +19,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QStackedWidget>
+#include <QSignalBlocker>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QTextEdit>
@@ -171,6 +173,10 @@ public:
 
         connect(back_, &QPushButton::clicked, this, [this] {
             const int index = pages_->currentIndex();
+            if (index == 4 && !saveActiveProposalSection())
+                return;
+            if (index == 5 && !saveActiveResearchSection())
+                return;
             if (index >= 4)
                 pages_->setCurrentIndex(3);
             else if (index > 0)
@@ -207,6 +213,14 @@ public:
         });
         connect(researchSectionList_, &QListWidget::currentRowChanged, this, [this](int) {
             loadSelectedResearchSection();
+        });
+        connect(sectionEditor_, &QTextEdit::textChanged, this, [this] {
+            if (!loadingProposalSection_ && !currentProposalSectionKey_.isEmpty())
+                proposalSectionDirty_ = true;
+        });
+        connect(researchEditor_, &QTextEdit::textChanged, this, [this] {
+            if (!loadingResearchSection_ && !currentResearchSectionKey_.isEmpty())
+                researchSectionDirty_ = true;
         });
         connect(saveResearchSection_, &QPushButton::clicked, this, [this] {
             saveSelectedResearchSection();
@@ -286,7 +300,10 @@ public:
             return 28;
         sectionList_->setCurrentRow(problemRow);
         sectionEditor_->setPlainText(QStringLiteral("Persisted by GUI smoke test"));
-        saveSection_->click();
+        sectionList_->setCurrentRow(problemRow == 0 ? 1 : 0);
+        sectionList_->setCurrentRow(problemRow);
+        if (sectionEditor_->toPlainText() != QStringLiteral("Persisted by GUI smoke test"))
+            return 29;
         QString storageError;
         const auto saved = store_.loadSections(*projectId_, &storageError);
         if (saved.value(QStringLiteral("problem_statement")) !=
@@ -389,7 +406,11 @@ public:
             return 45;
         researchWindow.researchSectionList_->setCurrentRow(questionRow);
         researchWindow.researchEditor_->setPlainText(QStringLiteral("A locally saved research question."));
-        researchWindow.saveResearchSection_->click();
+        researchWindow.researchSectionList_->setCurrentRow(questionRow == 0 ? 1 : 0);
+        researchWindow.researchSectionList_->setCurrentRow(questionRow);
+        if (researchWindow.researchEditor_->toPlainText() !=
+            QStringLiteral("A locally saved research question."))
+            return 46;
         storageError = QStringLiteral("stale error from previous operation");
         const auto researchSections = store_.loadResearchSections(*researchWindow.projectId_, &storageError);
         if (!storageError.isEmpty() ||
@@ -444,6 +465,15 @@ public:
             !reopenedResearch.taskMode_->isEnabled() || reopenedResearch.pages_->currentIndex() != 0)
             return 55;
         return 0;
+    }
+
+protected:
+    void closeEvent(QCloseEvent *event) override {
+        if (!saveActiveProposalSection() || !saveActiveResearchSection()) {
+            event->ignore();
+            return;
+        }
+        QMainWindow::closeEvent(event);
     }
 
 private:
@@ -604,7 +634,7 @@ private:
     }
 
     void populateSectionList() {
-        if (!sectionList_)
+        if (!sectionList_ || !saveActiveProposalSection())
             return;
         QString currentKey;
         if (sectionList_->currentItem())
@@ -623,30 +653,64 @@ private:
             sectionList_->setCurrentRow(0);
     }
 
+    bool saveProposalSection(const QString &key, const QString &content) {
+        if (!projectId_ || key.isEmpty())
+            return true;
+        QString error;
+        if (!store_.saveSection(*projectId_, key, content, &error)) {
+            editorStatus_->setText(error);
+            return false;
+        }
+        currentProposalSectionKey_ = key;
+        proposalSectionDirty_ = false;
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        editorStatus_->setText(persian ? QStringLiteral("ذخیره شد") : QStringLiteral("Saved"));
+        return true;
+    }
+
+    bool saveActiveProposalSection() {
+        if (!proposalSectionDirty_)
+            return true;
+        return saveProposalSection(currentProposalSectionKey_, sectionEditor_->toPlainText());
+    }
+
     void loadSelectedSection() {
         if (!projectId_ || !sectionList_->currentItem())
             return;
+        const QString key = sectionList_->currentItem()->data(Qt::UserRole).toString();
+        if (proposalSectionDirty_ && currentProposalSectionKey_ != key &&
+            !saveActiveProposalSection()) {
+            int previousRow = -1;
+            for (int row = 0; row < sectionList_->count(); ++row) {
+                if (sectionList_->item(row)->data(Qt::UserRole).toString() == currentProposalSectionKey_) {
+                    previousRow = row;
+                    break;
+                }
+            }
+            if (previousRow >= 0) {
+                const QSignalBlocker blocker(sectionList_);
+                sectionList_->setCurrentRow(previousRow);
+            }
+            return;
+        }
         QString error;
         const auto sections = store_.loadSections(*projectId_, &error);
         if (!error.isEmpty()) {
             editorStatus_->setText(error);
             return;
         }
-        const QString key = sectionList_->currentItem()->data(Qt::UserRole).toString();
+        loadingProposalSection_ = true;
         sectionEditor_->setPlainText(sections.value(key));
+        loadingProposalSection_ = false;
+        currentProposalSectionKey_ = key;
+        proposalSectionDirty_ = false;
     }
 
-    void saveSelectedSection() {
+    bool saveSelectedSection() {
         if (!projectId_ || !sectionList_->currentItem())
-            return;
+            return false;
         const QString key = sectionList_->currentItem()->data(Qt::UserRole).toString();
-        QString error;
-        if (!store_.saveSection(*projectId_, key, sectionEditor_->toPlainText(), &error)) {
-            editorStatus_->setText(error);
-            return;
-        }
-        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
-        editorStatus_->setText(persian ? QStringLiteral("ذخیره شد") : QStringLiteral("Saved"));
+        return saveProposalSection(key, sectionEditor_->toPlainText());
     }
 
 
@@ -691,6 +755,12 @@ private:
     }
 
     bool openProjectById(qint64 projectId) {
+        if (!saveActiveProposalSection() || !saveActiveResearchSection())
+            return false;
+        currentProposalSectionKey_.clear();
+        currentResearchSectionKey_.clear();
+        proposalSectionDirty_ = false;
+        researchSectionDirty_ = false;
         QString error;
         const auto project = store_.loadProject(projectId, &error);
         if (!project) {
@@ -720,6 +790,12 @@ private:
     }
 
     void startNewProject() {
+        if (!saveActiveProposalSection() || !saveActiveResearchSection())
+            return;
+        currentProposalSectionKey_.clear();
+        currentResearchSectionKey_.clear();
+        proposalSectionDirty_ = false;
+        researchSectionDirty_ = false;
         projectId_.reset();
         language_->setEnabled(true);
         aiMode_->setEnabled(true);
@@ -755,7 +831,7 @@ private:
     }
 
     void populateResearchSectionList() {
-        if (!researchSectionList_) return;
+        if (!researchSectionList_ || !saveActiveResearchSection()) return;
         QString currentKey;
         if (researchSectionList_->currentItem())
             currentKey = researchSectionList_->currentItem()->data(Qt::UserRole).toString();
@@ -771,25 +847,59 @@ private:
             researchSectionList_->setCurrentRow(0);
     }
 
+    bool saveResearchSection(const QString &key, const QString &content) {
+        if (!projectId_ || key.isEmpty())
+            return true;
+        QString error;
+        if (!store_.saveResearchSection(*projectId_, key, content, &error)) {
+            researchStatus_->setText(error);
+            return false;
+        }
+        currentResearchSectionKey_ = key;
+        researchSectionDirty_ = false;
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        researchStatus_->setText(persian ? QStringLiteral("بخش پژوهش ذخیره شد.") : QStringLiteral("Research section saved."));
+        return true;
+    }
+
+    bool saveActiveResearchSection() {
+        if (!researchSectionDirty_)
+            return true;
+        return saveResearchSection(currentResearchSectionKey_, researchEditor_->toPlainText());
+    }
+
     void loadSelectedResearchSection() {
         if (!projectId_ || !researchSectionList_->currentItem()) return;
+        const QString key = researchSectionList_->currentItem()->data(Qt::UserRole).toString();
+        if (researchSectionDirty_ && currentResearchSectionKey_ != key &&
+            !saveActiveResearchSection()) {
+            int previousRow = -1;
+            for (int row = 0; row < researchSectionList_->count(); ++row) {
+                if (researchSectionList_->item(row)->data(Qt::UserRole).toString() == currentResearchSectionKey_) {
+                    previousRow = row;
+                    break;
+                }
+            }
+            if (previousRow >= 0) {
+                const QSignalBlocker blocker(researchSectionList_);
+                researchSectionList_->setCurrentRow(previousRow);
+            }
+            return;
+        }
         QString error;
         const auto sections = store_.loadResearchSections(*projectId_, &error);
         if (!error.isEmpty()) { researchStatus_->setText(error); return; }
-        const QString key = researchSectionList_->currentItem()->data(Qt::UserRole).toString();
+        loadingResearchSection_ = true;
         researchEditor_->setPlainText(sections.value(key));
+        loadingResearchSection_ = false;
+        currentResearchSectionKey_ = key;
+        researchSectionDirty_ = false;
     }
 
-    void saveSelectedResearchSection() {
-        if (!projectId_ || !researchSectionList_->currentItem()) return;
+    bool saveSelectedResearchSection() {
+        if (!projectId_ || !researchSectionList_->currentItem()) return false;
         const QString key = researchSectionList_->currentItem()->data(Qt::UserRole).toString();
-        QString error;
-        if (!store_.saveResearchSection(*projectId_, key, researchEditor_->toPlainText(), &error)) {
-            researchStatus_->setText(error);
-            return;
-        }
-        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
-        researchStatus_->setText(persian ? QStringLiteral("بخش پژوهش ذخیره شد.") : QStringLiteral("Research section saved."));
+        return saveResearchSection(key, researchEditor_->toPlainText());
     }
 
     void refreshResearchSources() {
@@ -876,6 +986,10 @@ private:
     }
 
     QMap<QString, QString> currentSections(QString *error = nullptr) {
+        if (!saveActiveProposalSection()) {
+            if (error) *error = editorStatus_->text();
+            return {};
+        }
         if (!projectId_) {
             if (error) *error = QStringLiteral("No active project.");
             return {};
@@ -1035,6 +1149,12 @@ private:
     QPushButton *newProject_{};
     QList<QLabel *> headings_;
     std::optional<qint64> projectId_;
+    QString currentProposalSectionKey_;
+    QString currentResearchSectionKey_;
+    bool proposalSectionDirty_{false};
+    bool researchSectionDirty_{false};
+    bool loadingProposalSection_{false};
+    bool loadingResearchSection_{false};
 };
 
 int main(int argc, char *argv[]) {
