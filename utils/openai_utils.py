@@ -61,6 +61,7 @@ def get_openai_client(model_name: str = None) -> OpenAI:
             client = OpenAI(
                 api_key=api_key,
                 base_url="https://openrouter.ai/api/v1",
+                max_retries=0,
             )
         else:
             api_key = os.environ.get("OPENAI_API_KEY")
