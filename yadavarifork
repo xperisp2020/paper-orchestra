@@ -1363,5 +1363,5 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اجرای اولیه 45217290821 به علت escape دوگانه در fixture TeX شکست خورد؛ fixture به backslash واقعی اصلاح شد. اجرای نهایی 45217349916 با conclusion=success تکمیل شد.
 - نتیجه: اکنون LaTeX واقعی هم روی Ubuntu/TeX Live در runtime CI و هم روی Windows/MiKTeX در workflow مستقل تأیید شده است؛ این دیگر صرفاً stub یا تست syntax نیست.
 - Windows MiKTeX CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45217349916
-- workflow MiKTeX: commit ایجاد ce ba92e6ef6d0b48194f0dcf5a9fedbd76f3b716؛ اصلاح fixture d759b09b3c2f1fe93da460a9169245af0498a310.
+- workflow MiKTeX: commit ایجاد ceba92e6ef6d0b48194f0dcf5a9fedbd76f3b716؛ اصلاح fixture d759b09b3c2f1fe93da460a9169245af0498a310.
 - محدودیت‌های باقی‌مانده همچنان اجرای واقعی Gemini/OpenAI/OpenRouter با کلید مجاز، اجرای end-to-end روی پروژه آزمایشی، تست دستی GUI روی دستگاه کاربر و سازگاری واقعی Word 2010 هستند.
