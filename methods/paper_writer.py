@@ -47,7 +47,6 @@ def write_single_paper(
     pdf_file = osp.join(base_dir, "final_paper.pdf")
     ensure_paths_absent((
         osp.join(base_dir, "latex_writeup"),
-        pdf_file,
         osp.join(base_dir, "content_refinement_workdir"),
         osp.join(base_dir, "outline.json"),
         osp.join(base_dir, "literature_agent_output"),
@@ -79,6 +78,30 @@ def write_single_paper(
         ),
         "pipeline": "without_plotting_v2",
     })
+    if osp.lexists(pdf_file):
+        existing_attempt, existing_store, resumed = create_or_resume_attempt(
+            base_dir, checkpoint_fingerprint, resume=resume, create_if_missing=False
+        )
+        staged_pdf = (
+            osp.join(existing_attempt, "content_refinement_workdir", "final_refined_paper.pdf")
+            if resumed else ""
+        )
+        published_pdf_valid = False
+        if (
+            resume and resumed and existing_store.is_stage_valid("refinement")
+            and not osp.islink(pdf_file) and osp.isfile(pdf_file)
+            and staged_pdf and not osp.islink(staged_pdf) and osp.isfile(staged_pdf)
+        ):
+            with open(pdf_file, "rb") as stream:
+                has_pdf_signature = stream.read(5) == b"%PDF-"
+            published_pdf_valid = (
+                has_pdf_signature and fingerprint_path(pdf_file) == fingerprint_path(staged_pdf)
+            )
+        if published_pdf_valid:
+            return True
+        raise FileExistsError(
+            "A final_paper.pdf already exists but is not verified against a completed checkpoint."
+        )
     max_n_tries = 3
     cur_try = 0
     succeed = False
