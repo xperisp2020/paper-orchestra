@@ -132,6 +132,7 @@ class ResearchRuntimeSetupTests(unittest.TestCase):
             "writerModelField",
             "reflectionModelField",
             "OPENAI_API_KEY",
+            "OPENROUTER_API_KEY",
             "GEMINI_API_KEY",
             "VERTEX_AI_PROJECT",
             "VERTEX_AI_LOCATION",
@@ -593,11 +594,12 @@ class SecretRedactionTests(unittest.TestCase):
         secrets = {
             "GEMINI_API_KEY": "gemini-secret-value",
             "OPENAI_API_KEY": "openai-secret-value",
+            "OPENROUTER_API_KEY": "openrouter-secret-value",
             "SEMANTIC_SCHOLAR_API_KEY": "scholar-secret-value",
         }
         with patch.dict(os.environ, secrets, clear=False):
             diagnostic = (
-                "gemini-secret-value openai-secret-value scholar-secret-value "
+                "gemini-secret-value openai-secret-value openrouter-secret-value scholar-secret-value "
                 "Authorization: Bearer bearer-secret-value "
                 "X-API-KEY: header-secret-value api_key=query-secret-value"
             )
