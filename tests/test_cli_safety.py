@@ -128,6 +128,8 @@ class ResearchRuntimeSetupTests(unittest.TestCase):
     def test_desktop_research_runner_exposes_gemini_and_openai_routing(self):
         repo_root = Path(__file__).resolve().parents[1]
         source = (repo_root / "app_cpp" / "src" / "main.cpp").read_text(encoding="utf-8")
+        runner = (repo_root / "app_cpp" / "src" / "research_engine_runner.cpp").read_text(encoding="utf-8")
+        self.assertIn("OPENROUTER_API_KEY", runner)
         for expected in (
             "writerModelField",
             "reflectionModelField",
