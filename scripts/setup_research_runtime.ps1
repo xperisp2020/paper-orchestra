@@ -54,8 +54,14 @@ if ($LASTEXITCODE -ne 0) {
     throw "Research dependency installation failed with exit code $LASTEXITCODE."
 }
 
+Write-Host "Checking installed dependency consistency..."
+& $venvPython -m pip check
+if ($LASTEXITCODE -ne 0) {
+    throw "Research dependency consistency check failed with exit code $LASTEXITCODE."
+}
+
 Write-Host "Checking core Python imports..."
-& $venvPython -c "import google.genai, openai, fitz, pymupdf4llm, numpy, matplotlib, pypdf"
+& $venvPython -c "import google.genai, openai, fitz, pymupdf4llm, numpy, matplotlib, pypdf, cv2, pydantic, requests, dotenv, json_repair, rich, thefuzz, joblib"
 if ($LASTEXITCODE -ne 0) {
     throw "Core research Python imports failed."
 }
