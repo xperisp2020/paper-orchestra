@@ -32,6 +32,11 @@ from utils.openai_utils import (
 from utils.pdf_utils import load_paper
 
 
+def is_openai_model(model_name: str) -> bool:
+    normalized = (model_name or "").strip().lower()
+    return normalized.startswith(("gpt-", "o1", "o3", "o4"))
+
+
 def identity_parse(response: str):
     return response
 
@@ -40,11 +45,7 @@ def get_llm_parser(model_name: str, return_json: bool = True) -> Callable:
     if not return_json:
         return identity_parse
 
-    if (
-        "gpt" in model_name.lower()
-        or "o1" in model_name.lower()
-        or "o3" in model_name.lower()
-    ):
+    if is_openai_model(model_name):
         return parse_openai_json_results
     else:
         return parse_gemini_json_results
