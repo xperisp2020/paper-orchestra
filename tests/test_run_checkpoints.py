@@ -1,7 +1,10 @@
+import importlib.util
 import io
 import json
 import os
+import sys
 import tempfile
+import types
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from unittest.mock import patch
@@ -15,6 +18,140 @@ from utils.run_checkpoints import (
     fingerprint_path,
     create_or_resume_attempt,
 )
+
+
+class WriterResumeIntegrationTests(unittest.TestCase):
+    def test_both_writers_resume_from_last_valid_stage_without_recalling_agents(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        for relative in ("methods/paper_writer.py", "methods/paper_writer_with_plotting.py"):
+            with self.subTest(writer=relative), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                base_dir = root / "output"
+                materials = base_dir / "raw_materials"
+                template = root / "template"
+                materials.mkdir(parents=True)
+                template.mkdir()
+                (materials / "idea_sparse.md").write_text("idea", encoding="utf-8")
+                (materials / "experimental_log.md").write_text("experiments", encoding="utf-8")
+                (template / "template.tex").write_text("template", encoding="utf-8")
+                (template / "guidelines.md").write_text("guidelines", encoding="utf-8")
+
+                calls = {
+                    "outline": 0, "literature": 0, "section": 0,
+                    "plotting": 0, "refinement": 0, "refinement_failures": 3,
+                }
+
+                class FakeOutlineAgent:
+                    def __init__(self, **kwargs):
+                        pass
+
+                    def run(self, output_filepath, **kwargs):
+                        calls["outline"] += 1
+                        Path(output_filepath).write_text('{"plotting_plan": []}', encoding="utf-8")
+
+                class FakeLiteratureAgent:
+                    def __init__(self, output_dir, **kwargs):
+                        self.output_dir = Path(output_dir)
+
+                    def run(self, **kwargs):
+                        calls["literature"] += 1
+                        self.output_dir.mkdir(parents=True, exist_ok=True)
+                        for name, content in {
+                            "outline_v1.json": '{"plotting_plan": []}',
+                            "updated_template.tex": "updated template",
+                            "references.bib": "% references",
+                            "citation_map.json": "{}",
+                        }.items():
+                            (self.output_dir / name).write_text(content, encoding="utf-8")
+
+                class FakeSectionWritingAgent:
+                    def __init__(self, **kwargs):
+                        pass
+
+                    def run(self, output_path):
+                        calls["section"] += 1
+                        Path(output_path).write_text("draft", encoding="utf-8")
+
+                class FakeContentRefinementAgent:
+                    def __init__(self, work_dir, **kwargs):
+                        self.work_dir = Path(work_dir)
+
+                    def run(self, **kwargs):
+                        calls["refinement"] += 1
+                        if calls["refinement_failures"]:
+                            calls["refinement_failures"] -= 1
+                            raise RuntimeError("simulated interruption after draft checkpoint")
+                        output = self.work_dir / "final_refined_paper.pdf"
+                        output.write_bytes(b"%PDF-mocked")
+                        return str(output)
+
+                class FakePlottingAgent:
+                    def __init__(self, **kwargs):
+                        pass
+
+                    def run(self, output_filepath, **kwargs):
+                        calls["plotting"] += 1
+                        Path(output_filepath).write_text("[]", encoding="utf-8")
+                        return []
+
+                agents_package = types.ModuleType("methods.agents")
+                agents_package.__path__ = []
+                common_utils = types.ModuleType("utils.common_utils")
+                common_utils.create_log_folder = lambda **kwargs: str(root / "unused")
+                tqdm_module = types.ModuleType("tqdm")
+                tqdm_module.tqdm = lambda iterable, **kwargs: iterable
+                modules = {
+                    "methods.agents": agents_package,
+                    "methods.agents.outline_agent": types.ModuleType("methods.agents.outline_agent"),
+                    "methods.agents.literature_review_agent": types.ModuleType("methods.agents.literature_review_agent"),
+                    "methods.agents.section_writing_agent": types.ModuleType("methods.agents.section_writing_agent"),
+                    "methods.agents.content_refinement_agent": types.ModuleType("methods.agents.content_refinement_agent"),
+                    "utils.common_utils": common_utils,
+                    "tqdm": tqdm_module,
+                }
+                modules["methods.agents.outline_agent"].OutlineAgent = FakeOutlineAgent
+                modules["methods.agents.literature_review_agent"].HybridLiteratureAgent = FakeLiteratureAgent
+                modules["methods.agents.section_writing_agent"].SectionWritingAgent = FakeSectionWritingAgent
+                modules["methods.agents.content_refinement_agent"].ContentRefinementAgent = FakeContentRefinementAgent
+                if relative.endswith("paper_writer_with_plotting.py"):
+                    plotting_module = types.ModuleType("methods.agents.plotting_agent")
+                    plotting_module.PlottingAgent = FakePlottingAgent
+                    modules["methods.agents.plotting_agent"] = plotting_module
+
+                module_name = "_mocked_" + ("plotting" if "with_plotting" in relative else "plain") + "_writer"
+                spec = importlib.util.spec_from_file_location(module_name, repo_root / relative)
+                writer_module = importlib.util.module_from_spec(spec)
+                with patch.dict(sys.modules, modules):
+                    spec.loader.exec_module(writer_module)
+                    first_result = writer_module.write_single_paper(
+                        base_dir=str(base_dir),
+                        latex_template_dir=str(template),
+                        idea_filename="idea_sparse.md",
+                        experimental_log_filename="experimental_log.md",
+                        resume=False,
+                    )
+                    self.assertFalse(first_result)
+                    self.assertEqual(calls["outline"], 3)
+                    self.assertEqual(calls["literature"], 3)
+                    self.assertEqual(calls["section"], 3)
+                    if "with_plotting" in relative:
+                        self.assertEqual(calls["plotting"], 3)
+
+                    resumed_result = writer_module.write_single_paper(
+                        base_dir=str(base_dir),
+                        latex_template_dir=str(template),
+                        idea_filename="idea_sparse.md",
+                        experimental_log_filename="experimental_log.md",
+                        resume=True,
+                    )
+                self.assertTrue(resumed_result)
+                self.assertTrue((base_dir / "final_paper.pdf").is_file())
+                self.assertEqual(calls["outline"], 3)
+                self.assertEqual(calls["literature"], 3)
+                self.assertEqual(calls["section"], 3)
+                self.assertEqual(calls["refinement"], 4)
+                if "with_plotting" in relative:
+                    self.assertEqual(calls["plotting"], 3)
 
 
 class CheckpointFingerprintTests(unittest.TestCase):
