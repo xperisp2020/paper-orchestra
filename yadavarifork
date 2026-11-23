@@ -1171,3 +1171,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - commitهای کد: CLI 7193e38f6fc14829d41ac8a31369eb98c9506a59؛ آزمون 71380ae07b743b0f8d2a2691819bd6bbf35e6712.
 - بررسی وضعیت GitHub Actions برای head جدید در زمان ثبت این یادداشت، هنوز هیچ workflow run یا check-runی نشان نداد (total_count=0). بنابراین این اصلاح هنوز از CI عبور نکرده و موفقیت آزمون اعلام نمی‌شود؛ باید اجرای Python safety روی Ubuntu و Windows برای همین commit تأیید شود.
 - گام بعدی: تأیید CI و سپس طراحی checkpoint/resume مرحله‌ای با ذخیره artifactهای معتبر، fingerprint ورودی‌ها/تنظیمات و قفل اجرا؛ تا قبل از آن، resume همچنان قابلیت پیاده‌سازی‌نشده محسوب می‌شود.
+
+
+### 6.99.1 سخت‌گیری در قرارداد نتیجه موفق writer
+- بازبینی هر دو پیاده‌سازی write_single_paper (با و بدون plotting) نشان داد قرارداد واقعی آن‌ها bool است: فقط True پس از تولید PDF نهایی، و False پس از سه تلاش ناموفق. بنابراین شرط CLI از بررسی صرفاً False به الزام صریح pipeline_result is True تغییر کرد؛ مقدار None نیز دیگر موفقیت کاذب ایجاد نمی‌کند.
+- fixture آزمون موفق integration به‌روزرسانی شد تا True برگرداند؛ آزمون شکست False نیز حفظ شده است.
+- commitهای نهایی این اصلاح: paper_writing_cli.py = 22473cc711c9568912f5e17848910994f5d3ebf9؛ tests/test_cli_safety.py = ac46f55e8a7602963f2cd44bc0307318ca988683.
+- در زمان این ثبت، GitHub Actions برای commit آزمون جدید هنوز workflow/check-run ایجاد نکرده است (total_count=0، state=pending). تا دریافت نتیجه Ubuntu و Windows، تغییر تأییدشده تلقی نمی‌شود.
