@@ -8,6 +8,7 @@ from utils.run_checkpoints import (
     CheckpointStore,
     fingerprint_inputs,
     fingerprint_path,
+    create_or_resume_attempt,
 )
 
 
@@ -162,6 +163,39 @@ class CheckpointStoreTests(unittest.TestCase):
             [p.name for p in self.root.iterdir() if ".tmp-" in p.name],
             [],
         )
+
+    def test_resume_reuses_only_latest_attempt_with_matching_fingerprint(self):
+        base = Path(self.temp.name) / "attempt-base"
+        attempt, store, resumed = create_or_resume_attempt(base, self.fingerprint)
+        self.assertFalse(resumed)
+        self._artifact("inputs.json", "inputs")
+        # Use the store selected by the helper for the attempt it created.
+        local_artifact = Path(attempt) / "inputs.json"
+        local_artifact.write_text("inputs", encoding="utf-8")
+        store.record_stage("inputs", ["inputs.json"])
+        same_attempt, same_store, resumed = create_or_resume_attempt(
+            base, self.fingerprint, resume=True
+        )
+        self.assertTrue(resumed)
+        self.assertEqual(os.path.realpath(attempt), os.path.realpath(same_attempt))
+        self.assertTrue(same_store.is_stage_valid("inputs"))
+        changed_attempt, _, resumed = create_or_resume_attempt(
+            base, fingerprint_inputs({"materials": "new"}), resume=True
+        )
+        self.assertFalse(resumed)
+        self.assertNotEqual(os.path.realpath(attempt), os.path.realpath(changed_attempt))
+
+    def test_resume_skips_corrupt_attempt_without_overwriting_it(self):
+        base = Path(self.temp.name) / "corrupt-base"
+        attempt, _, _ = create_or_resume_attempt(base, self.fingerprint)
+        state_path = Path(attempt) / ".run_checkpoints.json"
+        state_path.write_text("{broken", encoding="utf-8")
+        next_attempt, _, resumed = create_or_resume_attempt(
+            base, self.fingerprint, resume=True
+        )
+        self.assertFalse(resumed)
+        self.assertNotEqual(os.path.realpath(attempt), os.path.realpath(next_attempt))
+        self.assertEqual(state_path.read_text(encoding="utf-8"), "{broken")
 
     def test_changed_input_fingerprint_never_reuses_prior_state(self):
         self._artifact("inputs.json", "inputs")
