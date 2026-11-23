@@ -9,6 +9,7 @@ on:
       - "paper_writing_cli.py"
       - "methods/**"
       - "utils/**"
+      - "tests/runtime_provider_checks.py"
       - ".github/workflows/research-runtime-ci.yml"
   workflow_dispatch:
 
