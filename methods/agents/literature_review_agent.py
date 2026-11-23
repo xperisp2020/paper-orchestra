@@ -26,7 +26,8 @@ from methods.prompts.literature_review_agent import (
     literature_review_agent_writter_prompt,
 )
 from utils.gemini_utils import call_gemini_with_contents, parse_gemini_latex_results
-from utils.scholar_utils import s2_title_search
+from utils.llm_backend_utils import call_llm_with_text_prompt, is_openai_model
+from utils.scholar_utils import s2_title_search, s2_keyword_search
 
 
 class CandidatePaper(BaseModel):
@@ -84,7 +85,10 @@ class HybridLiteratureAgent:
             "conference_guidelines.md": conference_guidelines_path,
         }
         self.context_files = self._load_context_files()
-        self.google_search_tool = types.Tool(google_search=types.GoogleSearch())
+        self.google_search_tool = (
+            None if is_openai_model(self.model_name)
+            else types.Tool(google_search=types.GoogleSearch())
+        )
 
         self.registry_lock = threading.Lock()
         self.print_lock = threading.Lock()
@@ -172,13 +176,13 @@ class HybridLiteratureAgent:
         if not active_tasks:
             return
 
-        self._safe_print(f"   🔎 Phase 1a: Google Candidates Discovery (MaxPool=10)...")
+        self._safe_print(f"   🔎 Phase 1a: Literature Candidate Discovery (MaxPool=10)...")
         all_candidates_with_tasks = []
 
         with ThreadPoolExecutor(max_workers=10) as executor:  # Fast for Google Search!
             future_to_task = {
                 executor.submit(
-                    self._process_search_task_google, task, outline, cutoff_date
+                    self._process_search_task_discovery, task, outline, cutoff_date
                 ): task
                 for task in active_tasks
             }
@@ -424,6 +428,25 @@ class HybridLiteratureAgent:
         return True
 
     def _discover_candidates(self, task, outline, cutoff_date) -> List[CandidatePaper]:
+        if is_openai_model(self.model_name):
+            limit = 1 if task.get("search_type") == "targeted" else 15
+            results = s2_keyword_search(
+                task.get("focus", ""), limit=limit, cutoff_date=cutoff_date
+            )
+            reason = (
+                f"Semantic Scholar keyword search for '{task.get('focus', '')}'. "
+                f"Context: {task.get('context', '')}"
+            )
+            return [
+                CandidatePaper(
+                    title=item["title"],
+                    year=int(item["year"]) if item.get("year") else 0,
+                    reason=reason,
+                )
+                for item in results
+                if item.get("title")
+            ]
+
         intro_plan = outline.get("intro_related_work_plan", {}).get(
             "introduction_strategy", {}
         )
@@ -496,10 +519,11 @@ class HybridLiteratureAgent:
         )
 
         user_prompt = "Generate the LaTeX for Introduction and Related Work sections."
-        response_dict = call_gemini_with_contents(
+        response_dict = call_llm_with_text_prompt(
+            prompt=user_prompt + "\n\n" + json.dumps(context_payload, ensure_ascii=False),
             model_name=self.model_name,
-            contents=[user_prompt, json.dumps(context_payload)],
             generation_configs={"system_instruction": writer_system_prompt},
+            return_json=False,
             result_parsing_func=parse_gemini_latex_results,
         )
         return response_dict["parsed_response"]
