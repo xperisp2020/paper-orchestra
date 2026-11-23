@@ -485,7 +485,8 @@ class RetryIsolationRegressionTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[1]
         for relative in ("methods/paper_writer.py", "methods/paper_writer_with_plotting.py"):
             source = (repo_root / relative).read_text(encoding="utf-8")
-            self.assertIn('create_new_workspace(base_dir, f"attempt_{cur_try + 1}")', source)
+            self.assertIn("create_or_resume_attempt", source)
+            self.assertIn("checkpoint_store.run_lock()", source)
             self.assertNotIn("shutil.rmtree(content_refinement_workdir)", source)
             self.assertIn("content_refinement_workdir = osp.join(attempt_dir", source)
 
