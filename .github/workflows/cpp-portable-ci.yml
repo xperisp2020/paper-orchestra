@@ -106,6 +106,18 @@ jobs:
           Remove-Item build/Release/yadavarifork_smoke.exe -ErrorAction SilentlyContinue
           Remove-Item build/Release/yadavarifork_smoke.pdb -ErrorAction SilentlyContinue
           Copy-Item app_cpp/README.md build/Release/README.txt
+          $engineDirectories = @('methods', 'utils', 'autoraters', 'templates', 'assets', 'scripts')
+          foreach ($directory in $engineDirectories) {
+            if (!(Test-Path -LiteralPath $directory -PathType Container)) {
+              throw "Research engine directory is missing: $directory"
+            }
+            Copy-Item -LiteralPath $directory -Destination 'build/Release' -Recurse -Force
+          }
+          Copy-Item -LiteralPath 'paper_writing_cli.py' -Destination 'build/Release' -Force
+          Copy-Item -LiteralPath 'requirements-research.txt' -Destination 'build/Release' -Force
+          Copy-Item -LiteralPath 'README.md' -Destination 'build/Release/RESEARCH_README.md' -Force
+          Copy-Item -LiteralPath 'LICENSE' -Destination 'build/Release/LICENSE.txt' -Force
+          $env:GITHUB_SHA | Set-Content -LiteralPath 'build/Release/RESEARCH_ENGINE_COMMIT.txt' -Encoding Ascii
           $env:QT_QPA_PLATFORM = 'offscreen'
           & $exe --smoke-test
           if ($LASTEXITCODE -ne 0) { throw "Deployed executable smoke test failed with exit code $LASTEXITCODE" }
@@ -160,9 +172,16 @@ jobs:
           $root = Join-Path $PWD 'portable'
           $exe = Join-Path $root 'yadavarifork.exe'
           if (!(Test-Path $exe)) { throw "Portable executable is missing." }
-          foreach ($required in @('README.txt', 'Qt6Core.dll', 'Qt6Widgets.dll', 'platforms/qwindows.dll', 'sqldrivers/qsqlite.dll')) {
+          foreach ($required in @(
+            'README.txt', 'RESEARCH_README.md', 'LICENSE.txt',
+            'Qt6Core.dll', 'Qt6Widgets.dll', 'platforms/qwindows.dll', 'sqldrivers/qsqlite.dll',
+            'paper_writing_cli.py', 'requirements-research.txt',
+            'scripts/setup_research_runtime.ps1', 'methods/agents/outline_agent.py',
+            'utils/llm_backend_utils.py', 'autoraters/agent_review.py', 'templates'
+          )) {
             if (!(Test-Path (Join-Path $root $required))) { throw "Required portable file is missing: $required" }
           }
+          if (Test-Path (Join-Path $root '.env')) { throw "A .env file must never be packaged." }
           if (Test-Path (Join-Path $root 'yadavarifork_smoke.exe')) { throw "Test-only executable leaked into portable package." }
           $env:QT_QPA_PLATFORM = 'windows'
           $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru
