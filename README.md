@@ -77,6 +77,18 @@ python paper_writing_cli.py \
 *   `--reflection_model_name`: LLM for reflection agents.
 *   `--resume`: Resume the newest matching attempt in an existing `--output_dir`. The CLI verifies the raw materials, template, model settings, agent/prompt source fingerprints, stage dependencies, and artifact hashes before reusing any stage. It refuses changed raw-material copies, corrupt checkpoints, active locks, and unverified existing final PDFs.
 
+### Selecting Gemini or OpenAI models
+
+The desktop research runner accepts model names for the writer/literature stage and the reflection/refinement stage. If the reflection model field is left blank, it uses the writer model.
+
+- Gemini model names (for example, `gemini-3.1-pro-preview`) require `GEMINI_API_KEY`, `GOOGLE_API_KEY`, or a Vertex AI configuration using both `VERTEX_AI_PROJECT` and `VERTEX_AI_LOCATION`.
+- OpenAI model names (for example, `gpt-4o`, `o1`, `o3`, or `o4`) require `OPENAI_API_KEY`.
+- The desktop application reads credentials from its process environment. It does not ask for, save, or write API keys into project files.
+- With OpenAI selected, literature discovery uses Semantic Scholar's keyword-search endpoint; Gemini literature discovery continues to use Google Search grounding. Search coverage and ranking can therefore differ between providers.
+- The current PaperBanana plotting workflow remains Gemini-based. When enabling `--use_plotting` in the CLI, use a Gemini plotting model and Gemini image model; OpenAI routing currently covers the non-plotting writer, literature, review, and refinement stages.
+
+The CLI defaults the reflection model to the selected writer model when `--reflection_model_name` is omitted.
+
 ### Resuming an Interrupted Run
 
 Use the same output directory and input folders as the interrupted run:
