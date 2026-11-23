@@ -1365,3 +1365,20 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Windows MiKTeX CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45217349916
 - workflow MiKTeX: commit ایجاد ceba92e6ef6d0b48194f0dcf5a9fedbd76f3b716؛ اصلاح fixture d759b09b3c2f1fe93da460a9169245af0498a310.
 - محدودیت‌های باقی‌مانده همچنان اجرای واقعی Gemini/OpenAI/OpenRouter با کلید مجاز، اجرای end-to-end روی پروژه آزمایشی، تست دستی GUI روی دستگاه کاربر و سازگاری واقعی Word 2010 هستند.
+
+### 6.99.15 ممیزی یکپارچه Resume و سخت‌سازی fingerprint کد/محیط
+- ممیزی تأیید کرد Checkpoint/Resume به هر دو writer متصل است: `paper_writer.py` و `paper_writer_with_plotting.py`. CLI گزینه `--resume` دارد و UI دسکتاپ checkbox بازیابی اجرای آخر را نشان می‌دهد. plotting و literature موازی‌اند و checkpoint ترکیبی فقط پس از تکمیل و hash verification هر دو ثبت می‌شود.
+- هر attempt پوشه مستقل و state محلی دارد؛ fingerprint ورودی‌ها، snapshotهای immutable، hash artifactها، dependency graph، invalidation مراحل وابسته، lock کل اجرا و atomic JSON writes اعمال می‌شوند. فایل نهایی با no-overwrite منتشر می‌شود و resume در صورت وجود PDF نهایی، hash آن را با checkpoint مقایسه می‌کند.
+- شکاف fingerprint کشف و اصلاح شد: پیش‌تر utilityها و نسخه واقعی dependency/toolchain در fingerprint کامل نبودند. اکنون fingerprint شامل source treeهای methods/utils/autoraters، assets، CLI، requirements، نسخه Python، platform، نسخه/فهرست packageهای نصب‌شده و نسخه و SHA-256 باینری‌های pdflatex و bibtex است. source-tree fingerprint فایل‌های cache را نادیده می‌گیرد و symlinkهای source را رد می‌کند؛ تغییر کد یا runtime باعث ایجاد attempt تازه می‌شود و مراحل قدیمی با محیط متفاوت مخلوط نمی‌شوند.
+- اصلاح provider consistency: reflection_model_name در هر دو writer اکنون در صورت خالی‌بودن از writer_model_name ارث می‌برد؛ بنابراین فراخوانی‌های مستقیم و batch با writer مبتنی بر OpenAI ناخواسته به Gemini وابسته نمی‌شوند. CLI نیز همین پیش‌فرض را دارد.
+- تست‌های `tests/test_run_checkpoints.py` هر دو writer، resume از آخرین stage معتبر، عدم فراخوانی مجدد agentهای تکمیل‌شده، parallel plotting، mismatch ورودی، artifact tampering، state خراب، lock و source/runtime fingerprint را پوشش می‌دهند.
+- Python safety run `45219816234` موفق شد؛ Ubuntu و Windows هر کدام **64 آزمون** را با نتیجه OK اجرا کردند.
+- Research runtime run `45219306447` موفق شد؛ 10 آزمون provider integration، ساخت محیط Python، pip check و آزمون واقعی TeX Live/BibTeX روی Ubuntu سبز شدند.
+- Windows C++ packaging run `45219306336` موفق شد؛ build/smoke، portable و installer و clean-runner verification موفق بودند. بسته شامل سورس کامل موتور پژوهش و bootstrap است و clean runner نبود `.env` را نیز بررسی کرد.
+- Portable artifact ID `14839383190`، اندازه 27,087,282 بایت، SHA-256 `aaf807ebdf4e9a0c614b31485fb5a0a68f201b4d8d718ac359645e24a5ab5d6f`.
+- Installer artifact ID `14839487898`، اندازه 19,915,527 بایت، SHA-256 `fee9efd692717e13b137138c713ab42c71abd74f76328c1d6202c47d814920b5`؛ انقضا 2027-02-21.
+- commitهای مهم: runtime/source-tree fingerprint `e8e1e98759221965e306fe0adec5027d3b0e304d`؛ حل symlink باینری LaTeX `8cbb6c6c8eab4290b7f4577134bde36ce404492a`؛ اتصال fingerprint در writer ساده `bb2c74f5885c1ac8847d74eec1d1cb36464ceba3` و plotting `b880dfb5024684793e1fb223fbfec606a56376e8`؛ default reflection مدل نویسنده در writerها `70d09a85fa82cf06d2a7d2369d0a51689013aadc` و `d0cff049ccf8ccd6ba82b986c39ae3cbca6d53c1`؛ regression tests `aeafda3a16c583669a56e5b8a5238b72c5634c82`.
+- CI Python safety: https://github.com/xperisp2020/paper-orchestra/actions/runs/45219816234
+- CI runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45219306447
+- CI Windows package: https://github.com/xperisp2020/paper-orchestra/actions/runs/45219306336
+- محدودیت: API واقعی هنوز با کلید مجاز اجرا نشده؛ Windows MiKTeX در workflow مستقل تأیید شده، اما آزمون fingerprint واقعی MiKTeX در اجرای بعدی در حال تکمیل است. تست دستی UI و Word 2010 باقی است.
