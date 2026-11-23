@@ -6,10 +6,15 @@ artifacts outside the attempt directory are never silently repaired or reused.
 import hashlib
 import json
 import os
+import platform
+import shutil
+import subprocess
+import sys
 import tempfile
 import threading
 import time
 import uuid
+import importlib.metadata
 from pathlib import PureWindowsPath
 from contextlib import contextmanager
 
@@ -63,6 +68,87 @@ def fingerprint_path(path):
             digest.update(b"\0")
             digest.update(bytes.fromhex(_sha256_file(candidate)))
     return digest.hexdigest()
+
+
+def fingerprint_source_tree(path):
+    """Fingerprint source/resource files while ignoring interpreter caches."""
+    path = os.path.abspath(os.fspath(path))
+    if os.path.islink(path) or not os.path.isdir(path):
+        raise ValueError("Source tree must be an existing, non-symlink directory.")
+
+    included_suffixes = {
+        ".py", ".md", ".txt", ".json", ".yaml", ".yml", ".toml",
+        ".tex", ".bib", ".csv", ".jinja", ".jinja2",
+    }
+    excluded_directories = {
+        "__pycache__", ".git", ".venv", "venv", ".pytest_cache",
+        "build", "dist", "node_modules",
+    }
+    digest = hashlib.sha256()
+    for root, dirs, files in os.walk(path, topdown=True, followlinks=False):
+        for directory in list(dirs):
+            candidate = os.path.join(root, directory)
+            if os.path.islink(candidate):
+                raise ValueError("Source tree contains a symlink directory.")
+            if directory in excluded_directories:
+                dirs.remove(directory)
+        dirs.sort()
+        for name in sorted(files):
+            candidate = os.path.join(root, name)
+            suffix = os.path.splitext(name)[1].lower()
+            if suffix not in included_suffixes:
+                continue
+            if os.path.islink(candidate) or not os.path.isfile(candidate):
+                raise ValueError("Source tree contains a symlink or non-regular source file.")
+            relative = os.path.relpath(candidate, path).replace(os.sep, "/")
+            digest.update(b"F\\0" + relative.encode("utf-8") + b"\\0")
+            digest.update(bytes.fromhex(_sha256_file(candidate)))
+    return digest.hexdigest()
+
+
+def fingerprint_runtime():
+    """Fingerprint Python packages and the external LaTeX executables."""
+    distributions = []
+    for distribution in importlib.metadata.distributions():
+        name = distribution.metadata.get("Name")
+        if name:
+            distributions.append(name.strip().lower().replace("_", "-") + "==" + distribution.version)
+    package_digest = hashlib.sha256(
+        "\\n".join(sorted(distributions)).encode("utf-8")
+    ).hexdigest()
+
+    latex_tools = {}
+    for command in ("pdflatex", "bibtex"):
+        executable = shutil.which(command)
+        if not executable:
+            latex_tools[command] = None
+            continue
+        try:
+            completed = subprocess.run(
+                [executable, "--version"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+            lines = (completed.stdout or "").splitlines()
+            version = lines[0].strip() if lines else "exit:" + str(completed.returncode)
+        except (OSError, subprocess.SubprocessError) as exc:
+            version = "unavailable:" + type(exc).__name__
+        latex_tools[command] = {
+            "version": version,
+            "binary_sha256": fingerprint_path(executable),
+        }
+
+    return {
+        "python_version": platform.python_version(),
+        "python_implementation": platform.python_implementation(),
+        "platform": sys.platform,
+        "installed_distributions_sha256": package_digest,
+        "installed_distribution_count": len(distributions),
+        "latex_tools": latex_tools,
+    }
 
 
 def fingerprint_inputs(inputs):
