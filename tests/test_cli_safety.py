@@ -150,6 +150,39 @@ class CliRunManifestIntegrationTests(unittest.TestCase):
             main()
         return stdout.getvalue()
 
+    def test_missing_raw_materials_emits_structured_failure_before_start(self):
+        for invalid_kind in ("missing", "file"):
+            with self.subTest(invalid_kind=invalid_kind), tempfile.TemporaryDirectory() as temp:
+                raw = os.path.join(temp, "missing")
+                if invalid_kind == "file":
+                    with open(raw, "w", encoding="utf-8") as stream:
+                        stream.write("not a directory")
+                output = os.path.join(temp, "run")
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                argv = [
+                    "paper_writing_cli.py",
+                    "--raw_materials_dir", raw,
+                    "--output_dir", output,
+                    "--latex_template_dir", temp,
+                    "--events_jsonl",
+                ]
+                with patch("sys.argv", argv), \
+                     patch("sys.stdout", stdout), \
+                     patch("sys.stderr", stderr), \
+                     patch("paper_writing_cli.validate_runtime_prerequisites") as preflight:
+                    with self.assertRaises(SystemExit) as raised:
+                        main()
+                self.assertEqual(raised.exception.code, 1)
+                preflight.assert_not_called()
+                events = [json.loads(line) for line in stdout.getvalue().splitlines() if line.startswith("{")]
+                self.assertEqual(len(events), 1)
+                self.assertEqual(events[0]["event"], "pipeline_failed")
+                self.assertEqual(events[0]["stage"], "input_preflight")
+                self.assertIn("not a directory" if invalid_kind == "file" else "does not exist",
+                              stderr.getvalue())
+                self.assertFalse(os.path.exists(output))
+
     def test_successful_cli_run_completes_manifest_and_emits_matching_run_id(self):
         with tempfile.TemporaryDirectory() as temp:
             raw = os.path.join(temp, "raw")
