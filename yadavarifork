@@ -1328,3 +1328,14 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI Windows desktop: https://github.com/xperisp2020/paper-orchestra/actions/runs/45214659791
 - commitهای OpenRouter: backend detection 26d8b937381c8aba7c2efbcd4dbf5d7a48f5b63b؛ client/base URL/rate pacing 0ff516e04775917ffc802344a339b74667279449؛ Python secret redaction 03ceff71b5a8626c8a10988e506840e4c4565c83؛ desktop secret redaction fcc4414bff99c87163073deed03f8a0cd20333e5؛ free-tier UI e6f4ea5f98133fde8d575b1a007584f8987c6cd2؛ fixed model 51fb03e0139de692a40e379df2ea5999c155a0f9؛ runtime tests b16a75a2b3e313153f0f94123960aebc3f75aa1d؛ README 0af84d9ac59adfcd970a7bfb7cc3ea6b502feba9؛ regression tests 465cb34ebb40143736e141d79181ab90de7d8132.
 - منابع رسمی OpenRouter: https://openrouter.ai/collections/free-models/ ؛ https://openrouter.ai/nvidia/nemotron-3.5-super-vl:free ؛ https://openrouter.ai/openrouter/free
+
+### 6.99.12 سخت‌سازی نهایی مصرف سهمیه OpenRouter
+- بازبینی SDK نشان داد OpenAI Python SDK به‌طور پیش‌فرض retry داخلی دارد؛ بنابراین صرفاً متوقف‌کردن retry بیرونی روی HTTP 429 کافی نبود.
+- برای clientهای OpenRouter، max_retries=0 در خود SDK تنظیم شد و wrapper نیز برای تمام خطاها فقط یک درخواست انجام می‌دهد؛ برای جلوگیری از مصرف پنهان سهمیه، retry خودکار انجام نمی‌شود. فاصله 3.05 ثانیه‌ای بین درخواست‌ها همچنان برقرار است.
+- تست runtime اکنون تأیید می‌کند client با base URL صحیح، OPENROUTER_API_KEY و max_retries=0 ساخته می‌شود و خطای 429 تنها یک بار ارسال می‌شود.
+- README با سیاست no-retry به‌روزرسانی شد.
+- Runtime CI نهایی run 45215558089 موفق: pip check سالم، 10 آزمون provider integration OK، job واقعی TeX Live/BibTeX روی Ubuntu نیز success.
+- Python safety run 45215558045 روی Ubuntu و Windows موفق؛ هر کدام 60 آزمون OK.
+- commitهای سخت‌سازی: SDK retries 9da7af568b2f87d6c021d41a456e02c25f54a6e4؛ test assertions d321cfb3934f92f771e43115e0ad9653347ae789؛ single-attempt wrapper 1803f2b969d58245984908fc80a9afa034e9c854؛ README f587791684edb5d02a2624f7f70455555e5367e7.
+- CI runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45215558089
+- CI Python: https://github.com/xperisp2020/paper-orchestra/actions/runs/45215558045
