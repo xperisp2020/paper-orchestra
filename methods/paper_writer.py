@@ -31,7 +31,7 @@ from utils.common_utils import (
     create_log_folder,
 )
 from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, publish_file_no_overwrite
-from utils.run_checkpoints import CheckpointStore, create_or_resume_attempt, fingerprint_inputs, fingerprint_path
+from utils.run_checkpoints import (CheckpointStore, create_or_resume_attempt, fingerprint_inputs, fingerprint_path, fingerprint_source_tree, fingerprint_runtime)
 
 
 def write_single_paper(
@@ -58,8 +58,21 @@ def write_single_paper(
     materials_dir = osp.join(base_dir, "raw_materials")
     old_figure_dir = osp.join(materials_dir, "figures")
 
+    repo_root = osp.dirname(osp.dirname(__file__))
     checkpoint_fingerprint = fingerprint_inputs({
         "raw_materials": fingerprint_path(materials_dir),
+        "source_trees": {
+            "methods": fingerprint_source_tree(osp.join(repo_root, "methods")),
+            "utils": fingerprint_source_tree(osp.join(repo_root, "utils")),
+            "autoraters": fingerprint_source_tree(osp.join(repo_root, "autoraters")),
+            "assets": (
+                fingerprint_path(osp.join(repo_root, "assets"))
+                if osp.isdir(osp.join(repo_root, "assets")) else None
+            ),
+        },
+        "cli_source": fingerprint_path(osp.join(repo_root, "paper_writing_cli.py")),
+        "requirements": fingerprint_path(osp.join(repo_root, "requirements-research.txt")),
+        "runtime": fingerprint_runtime(),
         "latex_template": fingerprint_path(latex_template_dir),
         "idea_filename": idea_filename,
         "experimental_log_filename": experimental_log_filename,
