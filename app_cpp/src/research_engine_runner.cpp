@@ -44,6 +44,7 @@ bool ResearchEngineRunner::start(const QString &program, const QStringList &argu
     const QStringList secretNames{
         QStringLiteral("GEMINI_API_KEY"), QStringLiteral("GOOGLE_API_KEY"),
         QStringLiteral("GOOGLE_GENAI_API_KEY"), QStringLiteral("OPENAI_API_KEY"),
+        QStringLiteral("OPENROUTER_API_KEY"),
         QStringLiteral("ANTHROPIC_API_KEY"), QStringLiteral("COHERE_API_KEY"),
         QStringLiteral("MISTRAL_API_KEY"), QStringLiteral("SEMANTIC_SCHOLAR_API_KEY")
     };
