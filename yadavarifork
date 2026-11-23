@@ -1382,3 +1382,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45219306447
 - CI Windows package: https://github.com/xperisp2020/paper-orchestra/actions/runs/45219306336
 - محدودیت: API واقعی هنوز با کلید مجاز اجرا نشده؛ Windows MiKTeX در workflow مستقل تأیید شده، اما آزمون fingerprint واقعی MiKTeX در اجرای بعدی در حال تکمیل است. تست دستی UI و Word 2010 باقی است.
+
+### 6.99.16 تکمیل اعتبارسنجی fingerprint واقعی MiKTeX و اصلاح تشخیص نسخه
+- workflow ویندوز MiKTeX run `45220000371` با conclusion=success تکمیل شد. نصب MiKTeX 25.12، اجرای واقعی سه pass از pdflatex و یک pass BibTeX، تولید PDF یک‌صفحه‌ای و تأیید `paper.bbl` انجام شد.
+- مرحله مستقل `fingerprint_runtime()` روی همان runner وجود هر دو executable را تأیید کرد و SHA-256 واقعی را ثبت کرد: pdflatex `de48c5ef651d2ded45e8d82188af22aaeebf0055d679b090609aff1881d97d30` و bibtex `58133dab3e2cee89b465862bd4dae2ca62e2809a7903b40f14d92ac389968b4e`.
+- ممیزی log یک ایراد ظریف را آشکار کرد: MiKTeX پیش از خط نسخه، هشدار privilege چاپ می‌کند؛ پیاده‌سازی قبلی همان هشدار را به‌عنوان version ذخیره می‌کرد. parser اصلاح شد تا ابتدا خط واقعی pdfTeX/BibTeX دارای Version را استخراج کند و فقط در نبود آن به fallback برود.
+- آزمون regression با خروجی واقعی‌مانند MiKTeX (هشدار + خط نسخه) اضافه شد. تغییرات در commitهای `8caa12acaa653e2b4438b9d60be8ab37ede0273d` و `91406c02f6eac382da19dd5ce21d96409e48c6de` ثبت شدند.
+- CI MiKTeX: https://github.com/xperisp2020/paper-orchestra/actions/runs/45220000371
+- CIهای پایه روی کد قبل از اصلاح parser موفق بودند: Python safety `45219816234` (64 آزمون روی Ubuntu و 64 روی Windows)، Research runtime `45219306447`، Windows packaging `45219306336`. اصلاح parser و regression test نیازمند اجرای مجدد CI روی HEAD جدید هستند.
+- Portable artifact `14839383190` و Installer artifact `14839487898` از run `45219306336` موجود و تا 2027-02-21 معتبرند؛ این artifactها قبل از اصلاح parser ساخته شده‌اند و هنوز بسته‌بندی نهاییِ commitهای جدید محسوب نمی‌شوند.
+- وضعیت باقی‌مانده: اجرای مجدد Python safety، Research runtime، Windows packaging و MiKTeX روی HEAD جدید؛ سپس بررسی خروجی‌ها و به‌روزرسانی hash artifactهای نهایی. اجرای واقعی provider با کلید مجاز، تست GUI روی دستگاه کاربر و Word 2010 همچنان انجام نشده‌اند.
