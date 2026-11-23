@@ -200,6 +200,53 @@ class CheckpointFingerprintTests(unittest.TestCase):
             source.write_text("changed", encoding="utf-8")
             self.assertNotEqual(first_file, fingerprint_path(source))
 
+    def test_source_tree_fingerprint_ignores_python_caches_and_tracks_source(self):
+        with tempfile.TemporaryDirectory() as root:
+            source = Path(root) / "module.py"
+            source.write_text("VALUE = 1\\n", encoding="utf-8")
+            cache = Path(root) / "__pycache__"
+            cache.mkdir()
+            cached = cache / "module.pyc"
+            cached.write_bytes(b"compiled-one")
+            first = fingerprint_source_tree(root)
+            cached.write_bytes(b"compiled-two")
+            self.assertEqual(first, fingerprint_source_tree(root))
+            source.write_text("VALUE = 2\\n", encoding="utf-8")
+            self.assertNotEqual(first, fingerprint_source_tree(root))
+
+    def test_source_tree_fingerprint_rejects_symlink_sources(self):
+        with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as outside:
+            source = Path(outside) / "linked.py"
+            source.write_text("VALUE = 1\\n", encoding="utf-8")
+            link = Path(root) / "linked.py"
+            try:
+                link.symlink_to(source)
+            except (OSError, NotImplementedError):
+                self.skipTest("Symlinks are unavailable on this platform.")
+            with self.assertRaises(ValueError):
+                fingerprint_source_tree(root)
+
+    def test_runtime_fingerprint_captures_packages_and_latex_tools(self):
+        class FakeDistribution:
+            metadata = {"Name": "Example_Package"}
+            version = "1.2.3"
+
+        completed = [
+            __import__("subprocess").CompletedProcess([], 0, stdout="pdfTeX 2025\\n"),
+            __import__("subprocess").CompletedProcess([], 0, stdout="BibTeX 0.99d\\n"),
+        ]
+        with (
+            patch("utils.run_checkpoints.importlib.metadata.distributions", return_value=[FakeDistribution()]),
+            patch("utils.run_checkpoints.shutil.which", side_effect=lambda name: "/fake/" + name),
+            patch("utils.run_checkpoints.subprocess.run", side_effect=completed),
+            patch("utils.run_checkpoints.fingerprint_path", side_effect=lambda path: "a" * 64 if "pdflatex" in path else "b" * 64),
+        ):
+            runtime = fingerprint_runtime()
+        self.assertEqual(runtime["installed_distribution_count"], 1)
+        self.assertEqual(runtime["latex_tools"]["pdflatex"]["version"], "pdfTeX 2025")
+        self.assertEqual(runtime["latex_tools"]["bibtex"]["version"], "BibTeX 0.99d")
+        self.assertEqual(runtime["latex_tools"]["pdflatex"]["binary_sha256"], "a" * 64)
+
     def test_fingerprint_inputs_is_order_independent_for_mapping_keys(self):
         self.assertEqual(
             fingerprint_inputs({"model": "x", "cutoff": 4}),
@@ -391,6 +438,9 @@ class CheckpointStoreTests(unittest.TestCase):
             self.assertIn("reflection_model_name: str = None", source)
             self.assertIn("if reflection_model_name is None:", source)
             self.assertIn("reflection_model_name = writer_model_name", source)
+            self.assertIn("fingerprint_source_tree", source)
+            self.assertIn("fingerprint_runtime", source)
+            self.assertIn('"source_trees"', source)
         cli = (repo_root / "paper_writing_cli.py").read_text(encoding="utf-8")
         self.assertIn('"--resume"', cli)
         self.assertIn("resume=args.resume", cli)
