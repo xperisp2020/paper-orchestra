@@ -1267,3 +1267,15 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI Windows: https://github.com/xperisp2020/paper-orchestra/actions/runs/45208610538
 - commitهای شاخص: writer عادی `554b1727298835f620a570d15ba6c2ae1ab17c8a`؛ snapshotها و DAG plotting `93144a0d9342423f771a85879c377be1d9022e06`؛ fingerprint agentها `1f479363af8563c856aa0c883c0e27a7469bba99`؛ UI resume `476dd010425f9cb97108b6b2b73074a038bf7277`؛ idempotent published PDF `8c30c99d9c666c70eb84c9016e1604655d3b924d`؛ آزمون نهایی یکپارچه `9855b1f4dbdc369e6b5dca19179fc67407db40a5`.
 - گام بعدی: تثبیت runtime پژوهش در محیط clean Windows، بررسی dependency bootstrap و preflight ابزارهای LaTeX، سپس اجرای end-to-end با provider مجاز و ثبت کامل نتایج/هزینه/محدودیت‌ها؛ بدون ادعای موفقیت API یا مقاله کامل پیش از اجرای واقعی.
+
+
+### 6.99.9 آزمون واقعی نصب وابستگی‌های پژوهش در Windows clean runner
+- Workflow جدید `.github/workflows/research-runtime-ci.yml` اضافه شد تا bootstrap واقعی runtime پژوهش را جدا از Python safety tests بررسی کند.
+- روی Windows Server 2022 و Python 3.12، اسکریپت `scripts/setup_research_runtime.ps1` یک virtualenv مستقل ساخت و همه پکیج‌های `requirements-research.txt` را با pip نصب کرد.
+- importهای اصلی `google.genai`, `openai`, `fitz`, `pymupdf4llm`, `numpy`, `matplotlib`, `pypdf` موفق شدند؛ `validate_runtime_prerequisites()` نیز هیچ وابستگی گمشده‌ای گزارش نکرد و `paper_writing_cli.py --help` در همان venv موفق شد.
+- برای آزمون تشخیص ابزارهای LaTeX، دو executable stub به PATH اضافه شد؛ این تست **نصب یا اجرای واقعی pdflatex/bibtex را تأیید نمی‌کند** و فقط مسیر bootstrap، نصب Python و preflight را بررسی می‌کند.
+- دو اجرای workflow به دلیل اصلاح PATH در دو commit اجرا شدند؛ هر دو موفق: `45209686991` و اجرای نهایی `45209758282`.
+- CI نهایی Python safety: `45208918125`، 57 آزمون روی Ubuntu و Windows، هر دو موفق.
+- CI نهایی Windows desktop: `45208610538`، build/smoke، portable package، Inno Setup و clean-runner install/uninstall/data-preservation همگی موفق.
+- این مرحله نصب وابستگی‌های Python را روی runner پاک تأیید می‌کند؛ هنوز provider API واقعی، LaTeX distribution واقعی و compile مقاله end-to-end اجرا نشده‌اند. این موارد گیت بعدی‌اند و تا انجام واقعی موفق اعلام نمی‌شوند.
+- Workflow runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45209758282
