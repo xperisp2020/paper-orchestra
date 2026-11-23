@@ -102,6 +102,7 @@ def write_single_paper(
 
     while (not succeed) and (cur_try < max_n_tries):
         checkpoint_run_lock = None
+        checkpoint_lock_acquired = False
         try:
             assert osp.exists(
                 materials_dir
@@ -116,6 +117,7 @@ def write_single_paper(
             )
             checkpoint_run_lock = checkpoint_store.run_lock()
             checkpoint_run_lock.__enter__()
+            checkpoint_lock_acquired = True
             time_log = {"Start_Time_Absolute": time.time()}
             latex_writeup_dir = osp.join(attempt_dir, "latex_writeup")
             content_refinement_workdir = osp.join(attempt_dir, "content_refinement_workdir")
@@ -363,7 +365,7 @@ def write_single_paper(
             if cur_try < max_n_tries:
                 print("Try again now...")
         finally:
-            if checkpoint_run_lock is not None:
+            if checkpoint_lock_acquired and checkpoint_run_lock is not None:
                 checkpoint_run_lock.__exit__(None, None, None)
 
     print(f"Writeup failed after {max_n_tries}! Stop here.")
