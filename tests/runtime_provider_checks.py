@@ -114,6 +114,32 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
             self.assertEqual(call.call_args.kwargs["model_name"], "gpt-4o")
             self.assertFalse(call.call_args.kwargs["return_json"])
 
+    def test_content_refinement_visual_review_uses_selected_provider(self):
+        from methods.agents import content_refinement_agent as module
+
+        with tempfile.TemporaryDirectory() as temp:
+            experiment = Path(temp) / "experiment.md"
+            citations = Path(temp) / "citations.json"
+            guidelines = Path(temp) / "guidelines.md"
+            experiment.write_text("data", encoding="utf-8")
+            citations.write_text("{}", encoding="utf-8")
+            guidelines.write_text("format rules", encoding="utf-8")
+            agent = module.ContentRefinementAgent(
+                experimental_log_path=str(experiment),
+                citation_map_path=str(citations),
+                guidelines_path=str(guidelines),
+                model_name="gpt-4o",
+                work_dir=str(Path(temp) / "work"),
+            )
+            expected = {"figure_and_tables": {}, "other_issues": []}
+            with patch.object(module, "pdf_to_grid_images", return_value=["page.jpg"]), \\
+                 patch.object(module, "call_llm_with_images",
+                              return_value={"parsed_response": expected}) as call:
+                result = agent._get_formatting_review("paper.pdf", "v0")
+            self.assertEqual(result, expected)
+            self.assertEqual(call.call_args.kwargs["model_name"], "gpt-4o")
+            self.assertEqual(call.call_args.kwargs["images"], ["page.jpg"])
+
     def test_peer_review_routes_through_unified_backend(self):
         from autoraters import agent_review
 
