@@ -162,6 +162,16 @@ class WriterResumeIntegrationTests(unittest.TestCase):
                 self.assertEqual(calls["literature"], 3)
                 self.assertEqual(calls["section"], 3)
                 self.assertEqual(calls["refinement"], 4)
+                (base_dir / "final_paper.pdf").write_bytes(b"%PDF-tampered")
+                with self.assertRaises(FileExistsError):
+                    writer_module.write_single_paper(
+                        base_dir=str(base_dir),
+                        latex_template_dir=str(template),
+                        idea_filename="idea_sparse.md",
+                        experimental_log_filename="experimental_log.md",
+                        resume=True,
+                    )
+                self.assertEqual(calls["refinement"], 4)
                 if "with_plotting" in relative:
                     self.assertEqual(calls["plotting"], 3)
 
