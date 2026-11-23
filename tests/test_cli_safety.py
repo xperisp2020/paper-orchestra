@@ -198,6 +198,27 @@ class CliRunManifestIntegrationTests(unittest.TestCase):
                               stderr.getvalue())
                 self.assertFalse(os.path.exists(output))
 
+    def test_plotting_rejects_openai_models_until_paperbanana_is_routed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            raw = os.path.join(temp, "raw")
+            template = os.path.join(temp, "template")
+            os.makedirs(raw)
+            os.makedirs(template)
+            argv = [
+                "paper_writing_cli.py",
+                "--raw_materials_dir", raw,
+                "--latex_template_dir", template,
+                "--writer_model_name", "gpt-4o",
+                "--use_plotting", "true",
+                "--plotting_model_name", "gpt-4o",
+            ]
+            stderr = io.StringIO()
+            with patch("sys.argv", argv), patch("sys.stderr", stderr):
+                with self.assertRaises(SystemExit) as raised:
+                    main()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertIn("requires Gemini text and image models", stderr.getvalue())
+
     def test_reflection_model_defaults_to_selected_writer_model(self):
         with tempfile.TemporaryDirectory() as temp:
             raw = os.path.join(temp, "raw")
