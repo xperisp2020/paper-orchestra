@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QCoreApplication>
 #include <QDir>
 #include <QDebug>
@@ -1392,6 +1393,16 @@ private:
                    materialsField, true, QString(), QString());
         addPathRow(persian ? QStringLiteral("قالب LaTeX") : QStringLiteral("LaTeX template folder"),
                    templateField, true, QString(), templateDefault);
+        auto *resumeCheck = new QCheckBox(persian
+            ? QStringLiteral("ادامه آخرین اجرای ناموفق با اعتبارسنجی checkpointها")
+            : QStringLiteral("Resume the previous run after checkpoint validation"), &dialog);
+        const QString savedResearchOutput = store_.loadProjectMetadata(
+            *projectId_, QStringLiteral("research_engine_last_output"));
+        resumeCheck->setEnabled(QFileInfo(savedResearchOutput).isDir());
+        resumeCheck->setToolTip(persian
+            ? QStringLiteral("فقط مراحل دارای ورودی یکسان و خروجی‌های سالم بازیابی می‌شوند.")
+            : QStringLiteral("Only stages with matching inputs and intact artifacts are reused."));
+        form->addRow(resumeCheck);
         auto *notice = new QLabel(persian
             ? QStringLiteral("Python و وابستگی‌های موتور همراه برنامه بسته‌بندی نشده‌اند. برای ساخت محیط جداگانه، scripts/setup_research_runtime.ps1 را اجرا و سپس Scripts\\python.exe ساخته‌شده را انتخاب کنید. ابزارهای pdflatex و bibtex نیز لازم‌اند. کلید Gemini فقط از محیط سیستم خوانده می‌شود و ذخیره نمی‌شود.")
             : QStringLiteral("Python and engine dependencies are not bundled. Run scripts/setup_research_runtime.ps1 to create an isolated environment, then select its Scripts\\python.exe. pdflatex and bibtex are also required. Gemini credentials are read only from the process environment and are never stored."));
@@ -1454,24 +1465,45 @@ private:
                             QStringLiteral("Cannot create research run directory."));
             return;
         }
-        const QString output = QDir(dataRoot).filePath(
-            QStringLiteral("project_%1_%2").arg(*projectId_)
-                .arg(QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz"))));
-        if (QFileInfo::exists(output)) {
+        const bool resumeRequested = resumeCheck->isChecked();
+        const QString output = resumeRequested
+            ? savedResearchOutput
+            : QDir(dataRoot).filePath(
+                QStringLiteral("project_%1_%2").arg(*projectId_)
+                    .arg(QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz"))));
+        if (resumeRequested && !QFileInfo(output).isDir()) {
+            fail(persian ? QStringLiteral("پوشه اجرای قبلی برای ادامه در دسترس نیست.") :
+                            QStringLiteral("The previous run directory is not available for resume."));
+            return;
+        }
+        if (!resumeRequested && QFileInfo::exists(output)) {
             fail(persian ? QStringLiteral("مسیر خروجی از قبل وجود دارد؛ اجرای جدید متوقف شد.") :
                             QStringLiteral("Output path already exists; refusing to overwrite it."));
             return;
         }
-        const QStringList arguments{
+        QStringList arguments{
             script,
             QStringLiteral("--raw_materials_dir"), materials,
             QStringLiteral("--output_dir"), output,
             QStringLiteral("--latex_template_dir"), templateDir,
             QStringLiteral("--events_jsonl")
         };
+        if (resumeRequested)
+            arguments.append(QStringLiteral("--resume"));
         currentResearchRunOutput_ = output;
         currentResearchRunProjectId_ = projectId_;
         researchRunCancellationRequested_ = false;
+        QString metadataError;
+        if (!store_.saveProjectMetadata(*projectId_,
+                QStringLiteral("research_engine_last_output"), output, &metadataError)) {
+            currentResearchRunOutput_.clear();
+            currentResearchRunProjectId_.reset();
+            fail(metadataError.isEmpty()
+                ? (persian ? QStringLiteral("ثبت مسیر اجرای پژوهش ناموفق بود.")
+                           : QStringLiteral("Could not save the research run path."))
+                : metadataError);
+            return;
+        }
         if (!QDir().mkpath(output) ||
             !writeResearchRunManifest(QStringLiteral("starting"), QStringLiteral("process_start"))) {
             currentResearchRunOutput_.clear();
