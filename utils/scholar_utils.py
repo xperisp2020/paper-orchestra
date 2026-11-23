@@ -50,7 +50,7 @@ def s2_keyword_search(
         params={
             "query": query.strip(),
             "limit": max(1, min(int(limit), 100)),
-            "fields": "title,authors,venue,year,abstract,citationCount,journal,publicationDate",
+            "fields": "title,authors,venue,year,abstract,citationCount,journal,publicationDate,externalIds",
         },
         timeout=15,
     )
@@ -123,7 +123,7 @@ def s2_title_search(
             params={
                 "query": title_query,
                 "limit": 3,
-                "fields": "title,authors,venue,year,abstract,citationCount,journal,publicationDate",
+                "fields": "title,authors,venue,year,abstract,citationCount,journal,publicationDate,externalIds",
             },
             timeout=5,
         )
