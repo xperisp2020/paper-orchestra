@@ -47,6 +47,8 @@ jobs:
       - name: Create isolated research runtime and verify dependencies
         shell: pwsh
         run: |
+          $tools = Join-Path $env:RUNNER_TEMP 'latex-command-stubs'
+          $env:PATH = "$tools;$env:PATH"
           $python = (Get-Command python -ErrorAction Stop).Source
           $runtime = Join-Path $env:RUNNER_TEMP 'paper-orchestra-research-runtime'
           & .\scripts\setup_research_runtime.ps1 -PythonExecutable $python -RuntimeDirectory $runtime
