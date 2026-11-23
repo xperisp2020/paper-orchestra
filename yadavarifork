@@ -1232,3 +1232,15 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45202990753
 - محدوده تأیید: helper و آزمون‌های ایمنی آن روی دو سیستم‌عامل سبز است؛ هنوز در هیچ‌یک از دو writer، CLI یا UI ادغام نشده و Resume واقعی/بازیابی agentها فعال نیست. اجرای provider API، LaTeX واقعی و تولید مقاله نیز در این CI پوشش داده نشده است.
 - گام بعدی: ادغام کنترل‌شدهٔ checkpoint در هر دو writer، با fingerprint کامل ورودی‌ها و تنظیمات، ثبت مرزهای Outline/Literature/Plotting/SectionWriting/Refinement و commit مشترک Literature+Plotting فقط پس از موفقیت هر دو شاخه؛ سپس آزمون توقف/ادامه، تغییر ورودی، خرابی artifact و جداسازی attemptها.
+
+
+### 6.99.7 قفل سراسری اجرا و انتخاب امن attempt برای Resume
+- `CheckpointStore.run_lock()` اضافه شد تا قفل attempt در کل یک اجرای چندمرحله‌ای نگه داشته شود؛ فراخوانی‌های store از همان thread به‌صورت reentrant از همان قفل استفاده می‌کنند و instance/process دیگر نمی‌تواند هم‌زمان checkpoint را تغییر دهد.
+- fingerprint درخت پوشه اکنون پوشه‌های خالی را نیز در hash وارد می‌کند؛ تغییر ساختار پوشه هم قابل تشخیص است.
+- تابع `create_or_resume_attempt` اضافه شد: فقط با درخواست صریح resume، جدیدترین attempt عددی با fingerprint یکسان و state قابل‌خواندن انتخاب می‌شود. attempt خراب/نامعتبر دست‌نخورده حفظ و کنار گذاشته می‌شود؛ قفل زنده باعث توقف می‌شود، نه ساخت attempt موازی.
+- آزمون جدید انتخاب attempt همسان، ایجاد attempt جدید برای fingerprint متفاوت، حفظ state خراب، قفل کامل run و fingerprint پوشه خالی را پوشش می‌دهد.
+- CI نخست attempt-selection به دلیل استفاده از نام stage آزمایشی ناسازگار با dependency graph پیش‌فرض شکست خورد (run `45203622215`). تست به graph سفارشی خودش متصل شد؛ CI نهایی run `45203755011` روی Ubuntu و Windows با conclusion=success تکمیل شد؛ 52 آزمون اجرا شدند.
+- commitهای این زیرمرحله: run-lock/fingerprint `9b0fc18c5d8c1c1360f35c1fd3f38cdd05a6acc2`؛ آزمون lock `3777bbbf17b1703340b3108d002390ffa48800cb`؛ انتخاب attempt `83679f4dadc018b572afe6796c68417c7838e9fe`؛ آزمون attempt `22bfee7ea9ef8ec6d699f2dbb110b37bdbe1d1ca`؛ اصلاح graph تست `955e764e4a6be59d5c51d3996f30319646803b5f`.
+- CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45203755011
+- محدوده تأیید همچنان helper و safety tests است. هنوز `write_single_paper` در هر دو مسیر plotting/non-plotting از helper استفاده نمی‌کند؛ CLI `--resume` و UI نیز هنوز فعال نشده‌اند. نباید Resume را قابلیت آماده معرفی کرد.
+- گام بعدی: ادغام مرحله‌ای helper با هر دو writer و آزمون بازیابی واقعی با agentهای mock شده؛ فقط پس از سبز شدن این گیت‌ها گزینه CLI و سپس UI فعال شود.
