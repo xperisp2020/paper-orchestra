@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import inspect
 from utils.security_utils import redact_secrets
 import os.path as osp
 import shutil
@@ -30,7 +31,7 @@ from utils.common_utils import (
     create_log_folder,
 )
 from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, publish_file_no_overwrite
-from utils.run_checkpoints import create_or_resume_attempt, fingerprint_inputs, fingerprint_path
+from utils.run_checkpoints import CheckpointStore, create_or_resume_attempt, fingerprint_inputs, fingerprint_path
 
 
 def write_single_paper(
@@ -63,7 +64,20 @@ def write_single_paper(
         "writer_model": writer_model_name,
         "reflection_model": reflection_model_name,
         "research_cutoff": research_cutoff,
-        "pipeline": "without_plotting_v1",
+        "agent_sources": {
+            "outline": fingerprint_path(inspect.getsourcefile(OutlineAgent)),
+            "literature": fingerprint_path(inspect.getsourcefile(HybridLiteratureAgent)),
+            "section_writing": fingerprint_path(inspect.getsourcefile(SectionWritingAgent)),
+            "refinement": fingerprint_path(inspect.getsourcefile(ContentRefinementAgent)),
+        },
+        "checkpoint_engine": fingerprint_path(inspect.getsourcefile(CheckpointStore)),
+        "writer_source": fingerprint_path(__file__),
+        "prompt_sources": (
+            fingerprint_path(osp.join(osp.dirname(osp.dirname(__file__)), "methods", "prompts"))
+            if osp.isdir(osp.join(osp.dirname(osp.dirname(__file__)), "methods", "prompts"))
+            else None
+        ),
+        "pipeline": "without_plotting_v2",
     })
     max_n_tries = 3
     cur_try = 0
