@@ -231,6 +231,14 @@ def main():
     if args.reflection_model_name is None:
         args.reflection_model_name = args.writer_model_name
 
+    if args.use_plotting and (
+        not args.plotting_model_name.strip().lower().startswith("gemini-")
+        or not args.image_model_name.strip().lower().startswith("gemini-")
+    ):
+        parser.error(
+            "The current PaperBanana plotting workflow requires Gemini text and image models."
+        )
+
     if args.resume and (not args.output_dir or not os.path.isdir(args.output_dir)):
         message = "Resume requires an existing --output_dir from a previous run."
         print("Error: " + message, file=sys.stderr, flush=True)
