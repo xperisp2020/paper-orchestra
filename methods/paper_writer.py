@@ -58,6 +58,7 @@ def write_single_paper(
     succeed = False
 
     while (not succeed) and (cur_try < max_n_tries):
+        checkpoint_run_lock = None
         try:
             assert osp.exists(
                 materials_dir
@@ -195,6 +196,9 @@ def write_single_paper(
             cur_try += 1
             if cur_try < max_n_tries:
                 print("Try again now...")
+        finally:
+            if checkpoint_run_lock is not None:
+                checkpoint_run_lock.__exit__(None, None, None)
 
     print(f"Writeup failed after {max_n_tries}! Stop here.")
     return False
