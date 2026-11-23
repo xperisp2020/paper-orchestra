@@ -306,7 +306,7 @@ class HybridLiteratureAgent:
 
         return outline
 
-    def _process_search_task_google(self, task, outline, cutoff_date) -> list:
+    def _process_search_task_discovery(self, task, outline, cutoff_date) -> list:
         if task.get("search_type") == "targeted":
             self._safe_print(
                 f"   🎯 Targeted Search [{task['section']}]: '{task['focus']}'"
