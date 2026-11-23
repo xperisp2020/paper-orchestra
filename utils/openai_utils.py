@@ -22,6 +22,7 @@ import sys
 import threading
 import cv2  # type: ignore
 import base64
+import mimetypes
 
 from openai import OpenAI  # type: ignore
 from dotenv import load_dotenv  # type: ignore
@@ -198,11 +199,15 @@ def get_openai_image_part_from_path(image_path: str):
     with open(image_path, "rb") as image_file:
         base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
+    mime_type, _ = mimetypes.guess_type(image_path)
+    if not mime_type or not mime_type.startswith("image/"):
+        mime_type = "image/jpeg"
+
     image_content = [
         {
             "type": "image_url",
             "image_url": {
-                "url": f"data:image/jpeg;base64,{base64_image}",
+                "url": f"data:{mime_type};base64,{base64_image}",
             },
         }
     ]
