@@ -205,7 +205,7 @@ class CheckpointFingerprintTests(unittest.TestCase):
     def test_source_tree_fingerprint_ignores_python_caches_and_tracks_source(self):
         with tempfile.TemporaryDirectory() as root:
             source = Path(root) / "module.py"
-            source.write_text("VALUE = 1\\n", encoding="utf-8")
+            source.write_text("VALUE = 1\n", encoding="utf-8")
             cache = Path(root) / "__pycache__"
             cache.mkdir()
             cached = cache / "module.pyc"
@@ -213,13 +213,13 @@ class CheckpointFingerprintTests(unittest.TestCase):
             first = fingerprint_source_tree(root)
             cached.write_bytes(b"compiled-two")
             self.assertEqual(first, fingerprint_source_tree(root))
-            source.write_text("VALUE = 2\\n", encoding="utf-8")
+            source.write_text("VALUE = 2\n", encoding="utf-8")
             self.assertNotEqual(first, fingerprint_source_tree(root))
 
     def test_source_tree_fingerprint_rejects_symlink_sources(self):
         with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as outside:
             source = Path(outside) / "linked.py"
-            source.write_text("VALUE = 1\\n", encoding="utf-8")
+            source.write_text("VALUE = 1\n", encoding="utf-8")
             link = Path(root) / "linked.py"
             try:
                 link.symlink_to(source)
@@ -234,8 +234,8 @@ class CheckpointFingerprintTests(unittest.TestCase):
             version = "1.2.3"
 
         completed = [
-            __import__("subprocess").CompletedProcess([], 0, stdout="pdfTeX 2025\\n"),
-            __import__("subprocess").CompletedProcess([], 0, stdout="BibTeX 0.99d\\n"),
+            __import__("subprocess").CompletedProcess([], 0, stdout="pdfTeX 2025\n"),
+            __import__("subprocess").CompletedProcess([], 0, stdout="BibTeX 0.99d\n"),
         ]
         with (
             patch("utils.run_checkpoints.importlib.metadata.distributions", return_value=[FakeDistribution()]),
