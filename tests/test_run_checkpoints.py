@@ -350,6 +350,8 @@ class CheckpointStoreTests(unittest.TestCase):
             self.assertIn("outline_initial.json", source)
             self.assertIn("resumed_attempt and not prepare_inputs_valid", source)
             self.assertIn("isinstance(exc, RuntimeError)", source)
+            self.assertIn("checkpoint_lock_acquired = True", source)
+            self.assertIn("if checkpoint_lock_acquired and checkpoint_run_lock is not None:", source)
             self.assertIn('"agent_sources"', source)
             self.assertIn('"checkpoint_engine"', source)
             self.assertIn('"prompt_sources"', source)
