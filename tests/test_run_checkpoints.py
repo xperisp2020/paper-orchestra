@@ -1,7 +1,12 @@
+import io
 import json
 import os
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from unittest.mock import patch
+
+import paper_writing_cli
 from pathlib import Path
 
 from utils.run_checkpoints import (
@@ -213,6 +218,7 @@ class CheckpointStoreTests(unittest.TestCase):
         cli = (repo_root / "paper_writing_cli.py").read_text(encoding="utf-8")
         self.assertIn('"--resume"', cli)
         self.assertIn("resume=args.resume", cli)
+        self.assertIn("Resume requires an existing --output_dir", cli)
         self.assertIn("fingerprint_path(args.raw_materials_dir)", cli)
         self.assertIn("fingerprint_path(target_raw_materials)", cli)
         desktop = (repo_root / "app_cpp" / "src" / "main.cpp").read_text(encoding="utf-8")
@@ -251,6 +257,27 @@ class CheckpointStoreTests(unittest.TestCase):
         self.assertTrue(store.is_stage_valid("prepare_inputs"))
         self.assertTrue(store.is_stage_valid("outline"))
         self.assertTrue(store.is_stage_valid("literature"))
+
+    def test_cli_rejects_resume_without_existing_output_directory(self):
+        with tempfile.TemporaryDirectory() as raw_materials:
+            missing_output = os.path.join(raw_materials, "not-created")
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            arguments = [
+                "paper_writing_cli.py",
+                "--raw_materials_dir", raw_materials,
+                "--output_dir", missing_output,
+                "--latex_template_dir", raw_materials,
+                "--resume",
+                "--events_jsonl",
+            ]
+            with patch("sys.argv", arguments):
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    with self.assertRaises(SystemExit) as raised:
+                        paper_writing_cli.main()
+            self.assertEqual(raised.exception.code, 1)
+            self.assertIn("resume_preflight", stdout.getvalue())
+            self.assertIn("existing --output_dir", stderr.getvalue())
 
     def test_changed_input_fingerprint_never_reuses_prior_state(self):
         self._artifact("inputs.json", "inputs")
