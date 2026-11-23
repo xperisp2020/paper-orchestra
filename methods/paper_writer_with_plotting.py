@@ -136,7 +136,7 @@ def write_single_paper(
             ), f"No experimental log file detected at '{experimental_log_file_path}'!"
 
             prepare_inputs_valid = checkpoint_store.is_stage_valid("prepare_inputs")
-            if not prepare_inputs_valid and checkpoint_store.has_matching_state():
+            if resumed_attempt and not prepare_inputs_valid:
                 raise RuntimeError("Checkpoint input snapshot is invalid; preserving this attempt and starting a fresh one.")
             if not prepare_inputs_valid:
                 os.makedirs(checkpoint_inputs_dir, exist_ok=True)
