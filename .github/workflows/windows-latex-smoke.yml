@@ -69,12 +69,12 @@ jobs:
           New-Item -ItemType Directory -Force -Path $work | Out-Null
           Push-Location $work
           @'
-          \\documentclass{article}
-          \\begin{document}
-          A Windows MiKTeX bibliography smoke test \\cite{doe2020}.
-          \\bibliographystyle{plain}
-          \\bibliography{references}
-          \\end{document}
+          \documentclass{article}
+          \begin{document}
+          A Windows MiKTeX bibliography smoke test \cite{doe2020}.
+          \bibliographystyle{plain}
+          \bibliography{references}
+          \end{document}
           '@ | Set-Content -LiteralPath 'paper.tex' -Encoding Ascii
           @'
           @article{doe2020,
