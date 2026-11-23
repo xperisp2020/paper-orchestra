@@ -138,7 +138,7 @@ def fingerprint_runtime():
                 (
                     line for line in lines
                     if re.search(
-                        r"\\b(?:pdfTeX|XeTeX|LuaTeX|BibTeX)\\b.*\\bVersion\\b",
+                        r"\b(?:pdfTeX|XeTeX|LuaTeX|BibTeX)\b.*\bVersion\b",
                         line,
                         re.IGNORECASE,
                     )
@@ -149,7 +149,7 @@ def fingerprint_runtime():
                 version_line = next(
                     (
                         line for line in lines
-                        if re.search(r"\\b(?:pdfTeX|XeTeX|LuaTeX|BibTeX)\\b", line, re.IGNORECASE)
+                        if re.search(r"\b(?:pdfTeX|XeTeX|LuaTeX|BibTeX)\b", line, re.IGNORECASE)
                         and not re.search(r"security risk|warning|major issue", line, re.IGNORECASE)
                     ),
                     None,
