@@ -5,7 +5,7 @@ import sys
 import io
 from types import SimpleNamespace
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -20,8 +20,10 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
 
         module._openai_clients.clear()
         fake_client = object()
-        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "openrouter-test-key"}, clear=False), \\
-             patch.object(module, "OpenAI", return_value=fake_client) as factory:
+        with (
+            patch.dict("os.environ", {"OPENROUTER_API_KEY": "openrouter-test-key"}, clear=False),
+            patch.object(module, "OpenAI", return_value=fake_client) as factory,
+        ):
             client = get_openai_client("nvidia/nemotron-3.5-super-vl:free")
         self.assertIs(client, fake_client)
         self.assertEqual(factory.call_args.kwargs["api_key"], "openrouter-test-key")
@@ -34,13 +36,15 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
         class RateLimitError(Exception):
             status_code = 429
 
-        create = unittest.mock.Mock(side_effect=RateLimitError("rate limited"))
+        create = Mock(side_effect=RateLimitError("rate limited"))
         client = SimpleNamespace(
             chat=SimpleNamespace(completions=SimpleNamespace(create=create))
         )
-        with patch.object(module, "get_openai_client", return_value=client), \\
-             patch.object(module, "_wait_for_openrouter_rate_slot"), \\
-             patch("sys.stdout", io.StringIO()):
+        with (
+            patch.object(module, "get_openai_client", return_value=client),
+            patch.object(module, "_wait_for_openrouter_rate_slot"),
+            patch("sys.stdout", io.StringIO()),
+        ):
             with self.assertRaises(RateLimitError):
                 module.call_openai_models_with_content(
                     content=[{"type": "text", "text": "test"}],
