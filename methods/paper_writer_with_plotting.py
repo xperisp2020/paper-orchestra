@@ -325,7 +325,9 @@ def write_single_paper(
             succeed = True
             return True
 
-        except Exception:
+        except Exception as exc:
+            if checkpoint_run_lock is None and "Checkpoint is locked" in str(exc):
+                raise
             print(f"[Try {cur_try+1}/{max_n_tries}] EXCEPTION in perform_writeup:")
             print(redact_secrets(traceback.format_exc()))
             cur_try += 1
