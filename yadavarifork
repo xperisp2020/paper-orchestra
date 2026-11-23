@@ -1401,3 +1401,19 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Research runtime run `45220710705` روی commit parser اولیه (پیش از اصلاح escape) هر دو job Windows bootstrap و Ubuntu TeX Live را با موفقیت گذراند؛ این run را جایگزین اعتبارسنجی HEAD فعلی نمی‌دانیم.
 - اجرای مجدد MiKTeX روی HEAD فعلی: run `45220710357`. بار اول دریافت installer به timeout شبکه خورد (run همان commit در attempt اول)؛ job مجدداً اجرا شد و اکنون در مرحله نصب MiKTeX است. Windows packaging run `45220710674` نیز در مرحله build است. تا تکمیل این دو مورد، artifact جدیدی را نهایی اعلام نمی‌کنیم.
 - خطای regex، timeout دانلود و وضعیت rerunها در این بخش ثبت شد؛ پس از تکمیل باید نتیجه واقعی هر job و شناسه/hash artifactها اضافه شود.
+
+
+### 6.99.18 نتیجه نهایی CI روی parser اصلاح‌شده و بسته Windows
+- روی commit کد `51d930d0d719b68ab4afae7e3c6281be91e89b17`، Python safety run `45220710648` با موفقیت کامل شد: Ubuntu و Windows هر دو success و 64 آزمون در هرکدام.
+- Research runtime run `45220710705` با موفقیت کامل شد: Windows bootstrap و Ubuntu TeX Live/BibTeX هر دو success.
+- Windows MiKTeX run `45220710357` پس از retry موفق شد (attempt 2): نصب رسمی MiKTeX 25.12، PDF واقعی دارای bibliography و اجرای fingerprint باینری‌های pdflatex/BibTeX همگی success. attempt اول صرفاً timeout اتصال هنگام دانلود installer بود؛ retry همان workflow سبز شد.
+- Windows portable CI run `45220710674` با conclusion=success: configure، build، smoke، بسته‌بندی portable، ساخت installer و clean-runner verification هر دو artifact موفق شدند.
+- Portable artifact ID `14840800904`، اندازه 27,087,547 بایت، انقضا 2027-02-21.
+- Installer artifact ID `14839384164`، اندازه 19,915,647 بایت، انقضا 2027-02-21.
+- لینک‌های CI:
+  - Python safety: https://github.com/xperisp2020/paper-orchestra/actions/runs/45220710648
+  - Research runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45220710705
+  - MiKTeX: https://github.com/xperisp2020/paper-orchestra/actions/runs/45220710357
+  - Windows packaging + clean runner: https://github.com/xperisp2020/paper-orchestra/actions/runs/45220710674
+- نتیجه: parser نسخه TeX اصلاح و regression آن روی Ubuntu/Windows سبز شد؛ Windows portable و installer روی clean runner تأیید شدند. این تأیید CI است و جایگزین اجرای دستی روی دستگاه کاربر یا Word 2010 نیست.
+- موارد باز: اجرای واقعی Gemini/OpenAI/OpenRouter با کلید مجاز و end-to-end روی پروژه آزمایشی؛ تست دستی GUI روی دستگاه کاربر؛ سازگاری واقعی DOCX در Word 2010. هیچ API key در CI یا مخزن استفاده نشده است.
