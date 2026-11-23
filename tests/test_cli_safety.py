@@ -133,6 +133,8 @@ class ResearchRuntimeSetupTests(unittest.TestCase):
             "reflectionModelField",
             "OPENAI_API_KEY",
             "OPENROUTER_API_KEY",
+            "freeTierConsent",
+            "nvidia/nemotron-3.5-super-vl:free",
             "GEMINI_API_KEY",
             "VERTEX_AI_PROJECT",
             "VERTEX_AI_LOCATION",
