@@ -41,6 +41,19 @@ class DiscoveryResult(BaseModel):
     candidates: List[CandidatePaper]
 
 
+def normalize_doi(value: Optional[str]) -> Optional[str]:
+    """Normalize a DOI supplied by scholarly metadata; reject malformed values."""
+    if not isinstance(value, str):
+        return None
+    doi = value.strip()
+    doi = re.sub(r"^(?:https?://)?(?:dx\.)?doi\.org/", "", doi, flags=re.IGNORECASE)
+    doi = re.sub(r"^doi\s*:\s*", "", doi, flags=re.IGNORECASE).strip()
+    doi = doi.rstrip(".,;")
+    if not re.fullmatch(r"10\.\d{4,9}/[-._;()/:A-Z0-9]+", doi, flags=re.IGNORECASE):
+        return None
+    return doi
+
+
 class PaperData(BaseModel):
     citation_key: str
     title: str
@@ -51,6 +64,7 @@ class PaperData(BaseModel):
     citation_count: int
     found_in_section: str
     reason: str
+    doi: Optional[str] = None
     journal: Optional[str] = None
     volume: Optional[str] = None
     pages: Optional[str] = None
@@ -373,6 +387,7 @@ class HybridLiteratureAgent:
                     volume=j_info.get("volume"),
                     pages=j_info.get("pages"),
                     publication_date=s2_data.get("publicationDate"),
+                    doi=normalize_doi((s2_data.get("externalIds") or {}).get("DOI")),
                 )
 
                 final_norm_title = self._normalize_title(full_obj.title)
@@ -587,6 +602,8 @@ class HybridLiteratureAgent:
                 entry += f",\n  volume={{{p.volume}}}"
             if p.pages:
                 entry += f",\n  pages={{{p.pages}}}"
+            if p.doi:
+                entry += f",\n  doi={{{p.doi}}}"
             entry += "\n}"
             entries.append(entry)
         return "\n\n".join(entries)
@@ -600,6 +617,7 @@ class HybridLiteratureAgent:
                 "venue": p.venue,
                 "year": p.year,
                 "abstract": p.abstract.strip(),
+                "doi": p.doi,
             }
             for p in papers
             if p.abstract
