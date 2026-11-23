@@ -1195,3 +1195,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - آزمون integration برای هر دو حالت مسیر ناموجود و مسیر موجودِ فایل عادی اضافه شد؛ رویداد شکست، exit code، عدم اجرای runtime preflight و عدم ایجاد output را کنترل می‌کند.
 - commit کد: `eafdc1976423f8748a6040d3c7995b3016c7d834`; commit آزمون: `5acd4c42298d8f8cc494e46905739d33b9884e2d`.
 - هنوز CI و اجرای محلی این تغییرات تأیید نشده‌اند. پس از ثبت این یادداشت، وضعیت workflow/checks برای head نهایی بررسی می‌شود؛ موفقیت فقط پس از مشاهده jobهای واقعی Ubuntu و Windows اعلام خواهد شد.
+
+
+### 6.99.4 تأیید CI برای مدیریت خطاهای writer و ورودی
+- Python safety workflow برای commit کد preflight یعنی `eafdc1976423f8748a6040d3c7995b3016c7d834` با run شماره `45201400083` با conclusion=success تمام شد؛ هر دو job `ubuntu-latest` و `windows-2022` و مرحله Run standard-library safety tests موفق شدند.
+- workflow مجدد برای commit آزمون نهایی `5acd4c42298d8f8cc494e46905739d33b9884e2d` با run شماره `45201440481` نیز در هر دو سیستم‌عامل success شد.
+- چون آزمون نهایی روی head پس از اصلاح مسیر ورودی اجرا شده، suite شامل regressionهای نتیجه writer برابر False/None و preflight مسیر ناموجود/فایل عادی را نیز اجرا کرده است. گیت Python safety برای این تغییرات سبز است.
+- لینک CI کد: https://github.com/xperisp2020/paper-orchestra/actions/runs/45201400083
+- لینک CI آزمون: https://github.com/xperisp2020/paper-orchestra/actions/runs/45201440481
+- این تأیید صرفاً safety/unit/integration suite استاندارد Python را پوشش می‌دهد؛ اجرای pipeline واقعی با provider API، نصب dependencyها و LaTeX یا تولید مقاله کامل را تأیید نمی‌کند.
+- گام بعدی: ممیزی دقیق مرزهای مرحله‌ای writer و artifactها برای طراحی checkpoint/resume امن، بدون بازاستفاده از خروجی ناقص یا ترکیب اجرای دو پروژه.
