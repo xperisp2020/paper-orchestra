@@ -1398,7 +1398,9 @@ private:
             : QStringLiteral("Resume the previous run after checkpoint validation"), &dialog);
         const QString savedResearchOutput = store_.loadProjectMetadata(
             *projectId_, QStringLiteral("research_engine_last_output"));
-        resumeCheck->setEnabled(QFileInfo(savedResearchOutput).isDir());
+        resumeCheck->setEnabled(
+            QFileInfo(savedResearchOutput).isDir() &&
+            !QFileInfo(QDir(savedResearchOutput).filePath(QStringLiteral("final_paper.pdf"))).isFile());
         resumeCheck->setToolTip(persian
             ? QStringLiteral("فقط مراحل دارای ورودی یکسان و خروجی‌های سالم بازیابی می‌شوند.")
             : QStringLiteral("Only stages with matching inputs and intact artifacts are reused."));
