@@ -89,7 +89,7 @@ python paper_writing_cli.py \
   --resume
 ```
 
-Resume is opt-in and requires an existing output directory. A stage is reused only when its upstream dependencies and saved artifacts still validate; otherwise the pipeline starts a fresh isolated attempt rather than mixing partial outputs. If a final PDF was already published, the CLI accepts it as complete only when it matches the PDF recorded by a valid refinement checkpoint.
+Resume is opt-in and requires an existing output directory. Keep the same pipeline mode and model/cutoff options as the original run, including `--use_plotting` when applicable. A stage is reused only when its upstream dependencies and saved artifacts still validate; otherwise the pipeline starts a fresh isolated attempt rather than mixing partial outputs. If a final PDF was already published, the CLI accepts it as complete only when it matches the PDF recorded by a valid refinement checkpoint.
 
 ### Interactive Demo
 
