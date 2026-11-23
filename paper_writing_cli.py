@@ -328,7 +328,7 @@ def main():
         update_run_manifest(base_dir, "failed", "paper_generation", error=exc)
         emit_event(args.events_jsonl, "pipeline_failed", stage="paper_generation", error=str(exc))
         raise
-    if pipeline_result is False:
+    if pipeline_result is not True:
         raise RuntimeError(
             "Paper generation pipeline reported failure after exhausting its retries."
         )
