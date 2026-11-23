@@ -75,6 +75,21 @@ python paper_writing_cli.py \
 *   `--use_plotting`: Enable the plotting agent workflow to generate figures from code (Default: `False`).
 *   `--writer_model_name`: LLM for writer and literature agents.
 *   `--reflection_model_name`: LLM for reflection agents.
+*   `--resume`: Resume the newest matching attempt in an existing `--output_dir`. The CLI verifies the raw materials, template, model settings, agent/prompt source fingerprints, stage dependencies, and artifact hashes before reusing any stage. It refuses changed raw-material copies, corrupt checkpoints, active locks, and unverified existing final PDFs.
+
+### Resuming an Interrupted Run
+
+Use the same output directory and input folders as the interrupted run:
+
+```bash
+python paper_writing_cli.py \
+  --raw_materials_dir /path_to_your_raw_materials/ \
+  --latex_template_dir /path_to_your_latex_template/ \
+  --output_dir /path_to_the_existing_output_folder/ \
+  --resume
+```
+
+Resume is opt-in and requires an existing output directory. A stage is reused only when its upstream dependencies and saved artifacts still validate; otherwise the pipeline starts a fresh isolated attempt rather than mixing partial outputs. If a final PDF was already published, the CLI accepts it as complete only when it matches the PDF recorded by a valid refinement checkpoint.
 
 ### Interactive Demo
 
