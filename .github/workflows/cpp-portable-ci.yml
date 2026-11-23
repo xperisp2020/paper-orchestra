@@ -5,6 +5,14 @@ on:
     paths:
       - 'app_cpp/**'
       - 'packaging/windows/**'
+      - 'methods/**'
+      - 'utils/**'
+      - 'autoraters/**'
+      - 'templates/**'
+      - 'assets/**'
+      - 'paper_writing_cli.py'
+      - 'README.md'
+      - 'LICENSE'
       - 'scripts/setup_research_runtime.ps1'
       - 'requirements-research.txt'
       - '.github/workflows/cpp-portable-ci.yml'
@@ -13,6 +21,14 @@ on:
     paths:
       - 'app_cpp/**'
       - 'packaging/windows/**'
+      - 'methods/**'
+      - 'utils/**'
+      - 'autoraters/**'
+      - 'templates/**'
+      - 'assets/**'
+      - 'paper_writing_cli.py'
+      - 'README.md'
+      - 'LICENSE'
       - 'scripts/setup_research_runtime.ps1'
       - 'requirements-research.txt'
       - '.github/workflows/cpp-portable-ci.yml'
@@ -181,7 +197,12 @@ jobs:
           )) {
             if (!(Test-Path (Join-Path $root $required))) { throw "Required portable file is missing: $required" }
           }
-          if (Test-Path (Join-Path $root '.env')) { throw "A .env file must never be packaged." }
+          if (Get-ChildItem -LiteralPath $root -Filter '.env' -Recurse -File -ErrorAction SilentlyContinue) {
+            throw "A .env file must never be packaged."
+          }
+          if (!(Test-Path (Join-Path $root 'RESEARCH_ENGINE_COMMIT.txt'))) {
+            throw "Research engine source revision marker is missing."
+          }
           if (Test-Path (Join-Path $root 'yadavarifork_smoke.exe')) { throw "Test-only executable leaked into portable package." }
           $env:QT_QPA_PLATFORM = 'windows'
           $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru
