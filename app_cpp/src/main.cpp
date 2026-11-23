@@ -1490,7 +1490,7 @@ private:
             QStringLiteral("--latex_template_dir"), templateDir,
             QStringLiteral("--events_jsonl")
         };
-        // The Python engine reuses only matching, hash-verified stages while holding an attempt-wide lock.
+        // The Python engine also verifies a published PDF against the completed refinement checkpoint.
         if (resumeRequested)
             arguments.append(QStringLiteral("--resume"));
         currentResearchRunOutput_ = output;
