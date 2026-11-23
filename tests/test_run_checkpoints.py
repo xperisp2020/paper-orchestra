@@ -197,6 +197,16 @@ class CheckpointStoreTests(unittest.TestCase):
         self.assertNotEqual(os.path.realpath(attempt), os.path.realpath(next_attempt))
         self.assertEqual(state_path.read_text(encoding="utf-8"), "{broken")
 
+    def test_writer_and_cli_integrate_explicit_resume(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        for relative in ("methods/paper_writer.py", "paper_writing_cli.py"):
+            source = (repo_root / relative).read_text(encoding="utf-8")
+            self.assertIn("create_or_resume_attempt", source) if relative.endswith("paper_writer.py") else self.assertIn('"--resume"', source)
+            self.assertIn("resume: bool = False", source) if relative.endswith("paper_writer.py") else self.assertIn("resume=args.resume", source)
+        cli = (repo_root / "paper_writing_cli.py").read_text(encoding="utf-8")
+        self.assertIn("fingerprint_path(args.raw_materials_dir)", cli)
+        self.assertIn("fingerprint_path(target_raw_materials)", cli)
+
     def test_changed_input_fingerprint_never_reuses_prior_state(self):
         self._artifact("inputs.json", "inputs")
         self.store.record_stage("inputs", ["inputs.json"])
