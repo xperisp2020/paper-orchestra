@@ -125,6 +125,21 @@ class ResearchRuntimeSetupTests(unittest.TestCase):
         self.assertNotIn("GEMINI_API_KEY", script)
         self.assertNotIn("OPENAI_API_KEY", script)
 
+    def test_desktop_research_runner_exposes_gemini_and_openai_routing(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        source = (repo_root / "app_cpp" / "src" / "main.cpp").read_text(encoding="utf-8")
+        for expected in (
+            "writerModelField",
+            "reflectionModelField",
+            "OPENAI_API_KEY",
+            "GEMINI_API_KEY",
+            "VERTEX_AI_PROJECT",
+            "VERTEX_AI_LOCATION",
+            "--writer_model_name",
+            "--reflection_model_name",
+        ):
+            self.assertIn(expected, source)
+
 
 class CliRunManifestIntegrationTests(unittest.TestCase):
     def _fake_methods(self, writer):
