@@ -63,6 +63,9 @@ jobs:
           & $venvPython -c "import methods.paper_writer, methods.paper_writer_with_plotting"
           if ($LASTEXITCODE -ne 0) { throw "Research agent modules failed to import." }
 
+          & $venvPython .\tests\runtime_provider_checks.py
+          if ($LASTEXITCODE -ne 0) { throw "Provider routing integration checks failed." }
+
           & $venvPython -c "from paper_writing_cli import validate_runtime_prerequisites; missing = validate_runtime_prerequisites(); print(missing); raise SystemExit(1 if missing else 0)"
           if ($LASTEXITCODE -ne 0) { throw "CLI runtime preflight disagrees with the bootstrap environment." }
 
