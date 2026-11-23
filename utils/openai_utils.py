@@ -157,9 +157,10 @@ def call_openai_models_with_content(
     raw_response = None
     parsed_response = None
     is_openrouter = _is_openrouter_model(model_name)
+    effective_max_retries = 1 if is_openrouter else max_retries
     openai_client = get_openai_client(model_name)
 
-    for attempt in range(max_retries):
+    for attempt in range(effective_max_retries):
         try:
             if is_openrouter:
                 _wait_for_openrouter_rate_slot()
@@ -190,7 +191,7 @@ def call_openai_models_with_content(
 
         except Exception as e:
             print(
-                f"Warning: OpenAI-compatible API call (model={model_name}) failed on attempt {attempt + 1} of {max_retries}. Error: {redact_secrets(e)}",
+                f"Warning: OpenAI-compatible API call (model={model_name}) failed on attempt {attempt + 1} of {effective_max_retries}. Error: {redact_secrets(e)}",
             )
 
             # Failed OpenRouter free-tier attempts count toward the provider quota;
@@ -199,8 +200,8 @@ def call_openai_models_with_content(
                 print("OpenRouter rate limit reached; stopping retries.")
                 raise
 
-            if attempt + 1 == max_retries:
-                print(f"Error: All {max_retries} retry attempts failed.")
+            if attempt + 1 == effective_max_retries:
+                print(f"Error: All {effective_max_retries} attempt(s) failed.")
                 raise e
 
             delay = base_interval_sec * (2 ** (attempt - 1)) if attempt > 0 else 0
