@@ -1279,3 +1279,29 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI نهایی Windows desktop: `45208610538`، build/smoke، portable package، Inno Setup و clean-runner install/uninstall/data-preservation همگی موفق.
 - این مرحله نصب وابستگی‌های Python را روی runner پاک تأیید می‌کند؛ هنوز provider API واقعی، LaTeX distribution واقعی و compile مقاله end-to-end اجرا نشده‌اند. این موارد گیت بعدی‌اند و تا انجام واقعی موفق اعلام نمی‌شوند.
 - Workflow runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45209758282
+
+
+### 6.99.10 مسیریابی واقعی مدل Gemini/OpenAI در موتور پژوهش و رابط دسکتاپ
+- **مسیریابی مرکزی مدل‌ها:** تابع is_openai_model خانواده‌های gpt-*, o1، o3 و o4 را تشخیص می‌دهد؛ تمام dispatcherهای متن، تصویر و PDF از همین تشخیص استفاده می‌کنند. برای مدل‌های reasoning خانواده o4 نیز role مناسب OpenAI تنظیم شد.
+- **OutlineAgent:** تولید outline از فراخوانی مستقیم Gemini به call_llm_with_text_prompt منتقل شد.
+- **LiteratureAgent:** سنتز Introduction/Related Work از backend یکپارچه استفاده می‌کند. برای مدل‌های OpenAI، discovery از جست‌وجوی کلیدواژه Semantic Scholar استفاده می‌کند و cutoff تاریخ انتشار را اعمال می‌کند؛ مسیر Gemini همچنان Google Search grounding دارد. این دو مسیر از نظر پوشش و رتبه‌بندی یکسان نیستند.
+- **SectionWritingAgent:** از قبل backend یکپارچه داشت و اکنون با Outline، Literature و Refinement در یک مسیر مدل قابل تنظیم قرار گرفته است.
+- **Review/Refinement:** فراخوانی‌های peer review و meta-review به backend مشترک منتقل شدند؛ ContentRefinementAgent برای PDF، تصاویر بازبینی قالب و اصلاح متنی از dispatcher مشترک استفاده می‌کند. بنابراین در مسیر بدون plotting، انتخاب OpenAI برای writer و reflection دیگر به فراخوانی پنهان Gemini نیاز ندارد.
+- **تصاویر OpenAI:** MIME نوع تصویر از پسوند واقعی فایل تشخیص داده می‌شود؛ تصاویر PNG حاصل از snapshot صفحات PDF دیگر با data URI اشتباه JPEG ارسال نمی‌شوند.
+- **CLI:** اگر reflection model مشخص نشود، همان writer model به‌صورت پیش‌فرض استفاده می‌شود. اگر plotting فعال باشد، CLI پیش از اجرا مدل غیر-Gemini را رد می‌کند؛ مسیر فعلی PaperBanana هنوز Gemini-based است.
+- **رابط دسکتاپ:** فیلدهای Writer/Literature و Reflection/Refinement اضافه شدند. فیلد Reflection خالی باشد، مدل Writer را به ارث می‌برد. اعتبارنامه‌های OpenAI با OPENAI_API_KEY، Gemini با کلید Gemini/Google یا پیکربندی Vertex AI از محیط پردازش خوانده می‌شوند؛ هیچ کلیدی در پروژه یا metadata ذخیره نمی‌شود.
+- **مستندات:** README تفاوت مسیرهای Gemini و OpenAI، متغیرهای محیطی و محدودیت فعلی plotting را توضیح می‌دهد.
+- **آزمون‌های provider روی Windows clean runtime:** 8 آزمون integration با mock اجرا شدند؛ شامل تشخیص خانواده مدل، discovery و synthesis برای OpenAI بدون فراخوانی Gemini، مسیر Outline، peer review، visual review، cutoff Semantic Scholar و MIME تصویر PNG. اجرای نهایی runtime run 45213246962 با conclusion=success تکمیل شد. در همان محیط pip check پیام No broken requirements found داد؛ import هر دو writer، validate_runtime_prerequisites() و paper_writing_cli.py --help نیز موفق شدند.
+- **Python safety نهایی:** run 45213281024 روی Ubuntu و Windows هر دو موفق؛ هر کدام **60 آزمون** را بدون شکست اجرا کردند. این مجموعه شامل تست default شدن reflection model به writer model، کنترل provider در UI و جلوگیری از انتخاب مدل OpenAI برای plotting فعلاً Gemini-only است.
+- **Windows desktop CI:** run 45212628314 با conclusion=success؛ configure/build/smoke، بسته‌بندی portable، compile نصاب Inno Setup و clean-runner verification همگی موفق شدند. اجرای portable، نصب silent، اجرای برنامه نصب‌شده، uninstall silent و حفظ sentinel data تأیید شدند.
+- **Artifactهای حاصل از build دسکتاپ با فیلدهای provider:**
+  - Portable: ID 14838240305، اندازه 25,133,177 بایت، SHA-256 ca80c730dfaa9be2daaf708c201dd056853d6917acdfc6fcec28b3675a273a70.
+  - Installer: ID 14837421212، اندازه 18,001,207 بایت، SHA-256 8456e0ba47734ae2dfe3977088f5e4dcfadc88d8f712ec4f51e0300a01edae39.
+  - انقضای artifactها: 2027-02-21.
+- **چرخه خطا و اصلاح:** اولین اجرای runtime integration به دلیل اضافه‌نشدن ریشه مخزن به sys.path شکست خورد (45211150729)؛ مسیر تست اصلاح و اجرای بعدی سبز شد. دو اجرای Python CI نیز به علت backslash اضافی در context managerهای تست شکست خوردند (45211834563, 45212393693)؛ با تبدیل به context manager پرانتزی اصلاح شدند. اجرای نهایی Python و runtime سبز است.
+- **محدوده تأیید و محدودیت‌ها:** همه تست‌های provider routing با mock انجام شده‌اند؛ هیچ فراخوانی واقعی Gemini/OpenAI یا هزینه API انجام نشده است. جست‌وجوی Semantic Scholar در تست‌ها mock شده و اتصال زنده آن نیز در این مرحله ارزیابی نشده است. runtime CI از stub برای pdflatex و bibtex استفاده می‌کند؛ نصب/اجرای توزیع LaTeX واقعی و compile مقاله واقعی هنوز تأیید نشده‌اند. تست دستی GUI روی دستگاه کاربر انجام نشده است. PaperBanana plotting هنوز Gemini-only است و اپ دسکتاپ فعلاً plotting را فعال نمی‌کند.
+- **گام بعدی:** تست end-to-end با provider واقعی فقط پس از فراهم بودن اعتبارنامه مجاز و سقف هزینه مشخص؛ سپس نصب و اجرای LaTeX واقعی و بررسی دستی GUI/Word-compatible output. تا آن زمان، موفقیت API واقعی یا تولید مقاله کامل ادعا نمی‌شود.
+- CI Python: https://github.com/xperisp2020/paper-orchestra/actions/runs/45213281024
+- CI runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45213246962
+- CI Windows desktop: https://github.com/xperisp2020/paper-orchestra/actions/runs/45212628314
+- commitهای شاخص: Outline 33ac82403b6529b1c06293dba6bb295b1024d54c؛ Semantic Scholar search 9f6f3d646e524de3d34b4c03e5357d1ef79ecf2c؛ provider dispatch b6981a604c756db23a992e57b608a6ffa4303596؛ Literature 170b4e563e0ec261225b5a887de391e8409e900b؛ review 25db7ef6b202cb1264c0a9fd62b52b5d0f65fb?؛ refinement 49b8a1b64201b64d486cd6e47fd5715cae66b369؛ desktop provider UI b4831937a00b7935399fe4ce1e975c69e68a0770؛ image MIME dd2c44759c77e85d69d49a087190a70827d4748c؛ plotting guard 4b33d0e405202d936ceb7a627d564e8166b5ccfa.
