@@ -213,6 +213,11 @@ def main():
         help="Maximum rounds of self-correction in the plotting agent.",
     )
     parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume the newest attempt whose input fingerprint and artifacts validate.",
+    )
+    parser.add_argument(
         "--events_jsonl",
         action="store_true",
         help="Emit machine-readable JSON Lines lifecycle events for desktop clients.",
@@ -254,7 +259,14 @@ def main():
     target_raw_materials = os.path.join(base_dir, "raw_materials")
     try:
         if os.path.abspath(target_raw_materials) != os.path.abspath(args.raw_materials_dir):
-            prepare_raw_materials(args.raw_materials_dir, target_raw_materials)
+            if args.resume and os.path.isdir(target_raw_materials):
+                from utils.run_checkpoints import fingerprint_path
+                if fingerprint_path(args.raw_materials_dir) != fingerprint_path(target_raw_materials):
+                    raise ValueError(
+                        "Raw materials differ from the existing run copy; refusing to resume with changed inputs."
+                    )
+            else:
+                prepare_raw_materials(args.raw_materials_dir, target_raw_materials)
     except Exception as exc:
         update_run_manifest(base_dir, "failed", "preparing_inputs", error=exc)
         emit_event(args.events_jsonl, "pipeline_failed", stage="preparing_inputs", error=str(exc))
@@ -311,6 +323,7 @@ def main():
                 image_model_name=args.image_model_name,
                 research_cutoff=args.research_cutoff,
                 plotting_max_critic_rounds=args.plotting_max_critic_rounds,
+                resume=args.resume,
             )
         else:
             from methods.paper_writer import write_single_paper
@@ -327,6 +340,7 @@ def main():
                 writer_model_name=args.writer_model_name,
                 reflection_model_name=args.reflection_model_name,
                 research_cutoff=args.research_cutoff,
+                resume=args.resume,
             )
         if pipeline_result is not True:
             raise RuntimeError(
