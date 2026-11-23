@@ -296,7 +296,7 @@ def main():
             from methods.paper_writer_with_plotting import write_single_paper
 
             print(f"🚀 Starting Paper Generation (WITH PLOTTING) in {base_dir}")
-            write_single_paper(
+            pipeline_result = write_single_paper(
                 base_dir=base_dir,
                 latex_template_dir=args.latex_template_dir,
                 idea_filename=args.idea_filename,
@@ -315,7 +315,7 @@ def main():
             print(
                 f"🚀 Starting Paper Generation (WITHOUT PLOTTING), with figures stored in {provided_figures_dir}"
             )
-            write_single_paper(
+            pipeline_result = write_single_paper(
                 base_dir=base_dir,
                 latex_template_dir=args.latex_template_dir,
                 idea_filename=args.idea_filename,
@@ -328,6 +328,11 @@ def main():
         update_run_manifest(base_dir, "failed", "paper_generation", error=exc)
         emit_event(args.events_jsonl, "pipeline_failed", stage="paper_generation", error=str(exc))
         raise
+    if pipeline_result is False:
+        raise RuntimeError(
+            "Paper generation pipeline reported failure after exhausting its retries."
+        )
+
     update_run_manifest(base_dir, "completed", "completed")
     emit_event(
         args.events_jsonl,
