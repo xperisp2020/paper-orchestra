@@ -132,9 +132,11 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
                 work_dir=str(Path(temp) / "work"),
             )
             expected = {"figure_and_tables": {}, "other_issues": []}
-            with patch.object(module, "pdf_to_grid_images", return_value=["page.jpg"]), \\
-                 patch.object(module, "call_llm_with_images",
-                              return_value={"parsed_response": expected}) as call:
+            with (
+                patch.object(module, "pdf_to_grid_images", return_value=["page.jpg"]),
+                patch.object(module, "call_llm_with_images",
+                             return_value={"parsed_response": expected}) as call,
+            ):
                 result = agent._get_formatting_review("paper.pdf", "v0")
             self.assertEqual(result, expected)
             self.assertEqual(call.call_args.kwargs["model_name"], "gpt-4o")
