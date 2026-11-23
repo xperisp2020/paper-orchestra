@@ -907,12 +907,12 @@ private:
                 : QStringLiteral("Local tools and deterministic rules; no language-model generation."));
         } else if (mode == QStringLiteral("free_tier")) {
             aiDescription_->setText(persian
-                ? QStringLiteral("اتصال اختیاری به سرویس‌های دارای طرح رایگان؛ وابسته به سهمیه و دسترسی.")
-                : QStringLiteral("Optional free-tier provider access, subject to availability and quotas."));
+                ? QStringLiteral("مسیر OpenRouter با مدل‌های رایگان؛ کلید OPENROUTER_API_KEY لازم است. سهمیه فعلی رایگان ۲۰ درخواست در دقیقه و ۵۰ درخواست در روز است و ارائه‌دهنده ثالث ممکن است داده‌ها را ثبت یا برای بهبود مدل استفاده کند.")
+                : QStringLiteral("OpenRouter free-model routing; OPENROUTER_API_KEY is required. Current free limits are 20 requests/minute and 50 requests/day. Third-party providers may log or use submitted content to improve models."));
         } else {
             aiDescription_->setText(persian
-                ? QStringLiteral("اتصال اختیاری به ارائه‌دهندگان پولی؛ کلیدها باید پیش از استفاده امن‌سازی شوند.")
-                : QStringLiteral("Optional paid-provider access; secure credential storage is required before use."));
+                ? QStringLiteral("اتصال اختیاری به Gemini و OpenAI؛ اعتبارنامه‌ها فقط از محیط سیستم خوانده می‌شوند و در برنامه ذخیره نمی‌شوند.")
+                : QStringLiteral("Optional Gemini and OpenAI access; credentials are read only from the process environment and are never stored by the application."));
         }
     }
 
