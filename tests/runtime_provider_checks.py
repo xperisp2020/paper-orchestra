@@ -101,7 +101,8 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
         from utils import llm_backend_utils as module
 
         expected = {"raw_response": "ok", "parsed_response": "ok"}
-        with tempfile.NamedTemporaryFile(suffix=".pdf") as pdf, (
+        with (
+            tempfile.NamedTemporaryFile(suffix=".pdf") as pdf,
             patch.object(module, "load_paper", return_value="extracted paper text") as load,
             patch.object(module, "call_openai_models_with_text_prompt", return_value=expected) as openai_call,
             patch.object(module, "call_gemini_with_contents") as gemini_call,
