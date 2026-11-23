@@ -1355,3 +1355,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI Windows packaging: https://github.com/xperisp2020/paper-orchestra/actions/runs/45216175808
 - CI Python safety: https://github.com/xperisp2020/paper-orchestra/actions/runs/45216207624
 - commitهای بسته‌بندی: کپی سورس `a4e8c4808daf08f828f6d9914ec25768f325cc2b`؛ path filters `e148618e353358e8919c60f5e4b9d9eddec79360`؛ README همراه برنامه `5a2c133c8a22320e91401b01c38349417eaedd4a`؛ پیام رابط درباره سورس/Runtime `95af2c541c77ff4e73075c472a0d8e7c1beb3bfd`؛ regression test `e9deb217064d1a801ad9568af6f6f7f30a1f06df`.
+
+### 6.99.14 تأیید LaTeX واقعی روی Windows با MiKTeX
+- workflow مستقل windows-latex-smoke اضافه شد. نصب‌کننده رسمی MiKTeX 25.12 از سایت MiKTeX دریافت و SHA-256 آن با مقدار رسمی 14b42dd9f4b4a7813a8bfd69c8f99316c2888cc4ee26f631f397e163d85d6c62 تطبیق داده شد.
+- MiKTeX به‌صورت unattended و private روی Windows Server 2022 runner نصب شد؛ pdflatex، BibTeX و initexmf شناسایی شدند و AutoInstall فعال شد.
+- اجرای واقعی Windows موفق شد: سه pass از pdflatex، یک pass از BibTeX، ساخت PDF یک‌صفحه‌ای، تأیید امضای PDF و وجود citation key در paper.bbl.
+- اجرای اولیه 45217290821 به علت escape دوگانه در fixture TeX شکست خورد؛ fixture به backslash واقعی اصلاح شد. اجرای نهایی 45217349916 با conclusion=success تکمیل شد.
+- نتیجه: اکنون LaTeX واقعی هم روی Ubuntu/TeX Live در runtime CI و هم روی Windows/MiKTeX در workflow مستقل تأیید شده است؛ این دیگر صرفاً stub یا تست syntax نیست.
+- Windows MiKTeX CI: https://github.com/xperisp2020/paper-orchestra/actions/runs/45217349916
+- workflow MiKTeX: commit ایجاد ce ba92e6ef6d0b48194f0dcf5a9fedbd76f3b716؛ اصلاح fixture d759b09b3c2f1fe93da460a9169245af0498a310.
+- محدودیت‌های باقی‌مانده همچنان اجرای واقعی Gemini/OpenAI/OpenRouter با کلید مجاز، اجرای end-to-end روی پروژه آزمایشی، تست دستی GUI روی دستگاه کاربر و سازگاری واقعی Word 2010 هستند.
