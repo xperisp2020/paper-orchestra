@@ -1178,3 +1178,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - fixture آزمون موفق integration به‌روزرسانی شد تا True برگرداند؛ آزمون شکست False نیز حفظ شده است.
 - commitهای نهایی این اصلاح: paper_writing_cli.py = 22473cc711c9568912f5e17848910994f5d3ebf9؛ tests/test_cli_safety.py = ac46f55e8a7602963f2cd44bc0307318ca988683.
 - در زمان این ثبت، GitHub Actions برای commit آزمون جدید هنوز workflow/check-run ایجاد نکرده است (total_count=0، state=pending). تا دریافت نتیجه Ubuntu و Windows، تغییر تأییدشده تلقی نمی‌شود.
+
+
+### 6.99.2 بستن مسیر شکست برای نتیجه نامعتبر writer
+- بازبینی اجرایی نشان داد اعتبارسنجی `pipeline_result is not True` بیرون از بلوک `try/except` قرار داشت؛ در نتیجه False/None استثنا ایجاد می‌کرد اما manifest در حالت running باقی می‌ماند و رویداد `pipeline_failed` صادر نمی‌شد. این با ادعای یادداشت 6.99.1 و انتظار آزمون ناسازگار بود.
+- شرط الزام نتیجه دقیقاً True به داخل همان بلوک مدیریت خطای تولید منتقل شد؛ اکنون False و None هر دو از مسیر مشترک شکست عبور می‌کنند، manifest با stage=`paper_generation` به failed می‌رود و رویداد شکست ثبت می‌شود. رویداد completed فقط پس از نتیجه True منتشر می‌شود.
+- آزمون integration به‌روزرسانی شد تا هر دو نتیجه False و None را جداگانه بررسی کند؛ هر دو باید RuntimeError بدهند، manifest failed بسازند و هرگز pipeline_completed تولید نکنند.
+- commit کد: `b15fd24056cb717030d3e3f9697e9d7c06343e7d`; commit آزمون: `6ebb66e89d849ba86252abfddfb0f65fb68b572d`.
+- آزمون محلی/اجرای مستقیم در این محیط انجام نشده است؛ باید Python safety CI روی Ubuntu و Windows برای head جدید بررسی شود. تا تأیید هر دو job، اصلاح را CI-verified اعلام نمی‌کنیم.
+- پس از CI، مرحله بعد بررسی preflight مسیر ورودی ناموجود و سپس طراحی checkpoint/resume خواهد بود؛ قابلیت resume هنوز پیاده‌سازی‌شده نیست.
