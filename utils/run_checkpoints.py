@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import tempfile
+import threading
 import time
 import uuid
 from pathlib import PureWindowsPath
@@ -51,6 +52,8 @@ def fingerprint_path(path):
             candidate = os.path.join(root, name)
             if os.path.islink(candidate) or not os.path.isdir(candidate):
                 raise ValueError("Fingerprint tree contains a symlink or non-directory.")
+            relative_dir = os.path.relpath(candidate, path).replace(os.sep, "/")
+            digest.update(b"D\\0" + relative_dir.encode("utf-8") + b"\\0")
         for name in files:
             candidate = os.path.join(root, name)
             if os.path.islink(candidate) or not os.path.isfile(candidate):
@@ -115,6 +118,10 @@ class CheckpointStore:
 
     @contextmanager
     def _lock(self):
+        current_thread = threading.get_ident()
+        if getattr(self, "_lock_owner", None) == current_thread:
+            yield
+            return
         descriptor = None
         try:
             descriptor = os.open(
@@ -125,6 +132,7 @@ class CheckpointStore:
                 "Checkpoint is locked; inspect the existing lock before recovery."
             ) from exc
         identity = os.fstat(descriptor)
+        self._lock_owner = current_thread
         try:
             payload = json.dumps(
                 {"pid": os.getpid(), "created": time.time(), "token": uuid.uuid4().hex}
@@ -133,6 +141,7 @@ class CheckpointStore:
             os.fsync(descriptor)
             yield
         finally:
+            self._lock_owner = None
             if descriptor is not None:
                 os.close(descriptor)
             try:
@@ -141,6 +150,10 @@ class CheckpointStore:
                     os.unlink(self.lock_path)
             except FileNotFoundError:
                 pass
+
+    def run_lock(self):
+        """Hold the attempt lock across a complete multi-stage pipeline run."""
+        return self._lock()
 
     def _artifact_path(self, relative_path):
         if not isinstance(relative_path, str) or not relative_path:
