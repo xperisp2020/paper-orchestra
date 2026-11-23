@@ -1162,3 +1162,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI Python: https://github.com/xperisp2020/paper-orchestra/actions/runs/45055376031
 - CI Windows: https://github.com/xperisp2020/paper-orchestra/actions/runs/45055282517
 - این نتایج syntax، static safety و بسته‌های ویندوزی را تأیید می‌کنند؛ bootstrap نصب واقعی Python dependencies و LaTeX در runner عمداً اجرا نشده و اجرای واقعی pipeline با API معتبر هنوز نیازمند محیط عملیاتی و credential مجاز است.
+
+
+### 6.99 جلوگیری از اعلام موفقیت کاذب در پایان pipeline
+- ممیزی methods/paper_writer.py نشان داد تابع write_single_paper پس از سه تلاش ناموفق مقدار False برمی‌گرداند؛ اما paper_writing_cli.py مقدار بازگشتی را نادیده می‌گرفت و در هر حال manifest را completed و رویداد pipeline_completed ثبت می‌کرد. این خطا می‌توانست اجرای ناموفق را در تاریخچه موفق نشان دهد.
+- CLI اکنون مقدار بازگشتی هر دو مسیر plotting و non-plotting را دریافت می‌کند. اگر نتیجه صریحاً False باشد، خطای کنترل‌شده ایجاد می‌شود تا مسیر موجود failure handler اجرا شود، manifest در مرحله paper_generation با وضعیت failed بماند و رویداد pipeline_failed منتشر شود. خروجی None برای سازگاری با writerهای قدیمی و test doubles همچنان موفقیت قبلی را حفظ می‌کند.
+- آزمون integration جدید test_writer_false_result_is_not_marked_completed اضافه شد؛ این آزمون باید ثابت کند نتیجه False هرگز به manifest completed یا event pipeline_completed تبدیل نمی‌شود.
+- commitهای کد: CLI 7193e38f6fc14829d41ac8a31369eb98c9506a59؛ آزمون 71380ae07b743b0f8d2a2691819bd6bbf35e6712.
+- بررسی وضعیت GitHub Actions برای head جدید در زمان ثبت این یادداشت، هنوز هیچ workflow run یا check-runی نشان نداد (total_count=0). بنابراین این اصلاح هنوز از CI عبور نکرده و موفقیت آزمون اعلام نمی‌شود؛ باید اجرای Python safety روی Ubuntu و Windows برای همین commit تأیید شود.
+- گام بعدی: تأیید CI و سپس طراحی checkpoint/resume مرحله‌ای با ذخیره artifactهای معتبر، fingerprint ورودی‌ها/تنظیمات و قفل اجرا؛ تا قبل از آن، resume همچنان قابلیت پیاده‌سازی‌نشده محسوب می‌شود.
