@@ -169,6 +169,33 @@ class CliRunManifestIntegrationTests(unittest.TestCase):
             self.assertEqual(events[1]["run_id"], manifest["run_id"])
             self.assertTrue(os.path.isfile(os.path.join(output, "raw_materials", "idea_sparse.md")))
 
+    def test_writer_false_result_is_not_marked_completed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            raw = os.path.join(temp, "raw")
+            output = os.path.join(temp, "run")
+            os.makedirs(raw)
+            stdout = io.StringIO()
+            argv = [
+                "paper_writing_cli.py",
+                "--raw_materials_dir", raw,
+                "--output_dir", output,
+                "--latex_template_dir", temp,
+                "--events_jsonl",
+            ]
+            with patch("sys.argv", argv), \
+                 patch("paper_writing_cli.validate_runtime_prerequisites", return_value=[]), \
+                 patch("sys.stdout", stdout), \
+                 patch.dict(sys.modules, self._fake_methods(lambda **kwargs: False)):
+                with self.assertRaisesRegex(RuntimeError, "reported failure"):
+                    main()
+            with open(os.path.join(output, "run_manifest.json"), encoding="utf-8") as stream:
+                manifest = json.load(stream)
+            events = [json.loads(line) for line in stdout.getvalue().splitlines() if line.startswith("{")]
+            self.assertEqual(manifest["status"], "failed")
+            self.assertEqual(manifest["stage"], "paper_generation")
+            self.assertTrue(any(event["event"] == "pipeline_failed" for event in events))
+            self.assertFalse(any(event["event"] == "pipeline_completed" for event in events))
+
     def test_failed_cli_run_persists_redacted_error_in_manifest_and_event(self):
         with tempfile.TemporaryDirectory() as temp:
             raw = os.path.join(temp, "raw")
