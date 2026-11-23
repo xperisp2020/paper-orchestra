@@ -9,9 +9,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from utils.llm_backend_utils import is_openai_model
 from utils.scholar_utils import s2_keyword_search
+from utils.openai_utils import get_openai_image_part_from_path
 
 
 class ProviderRoutingIntegrationTests(unittest.TestCase):
+    def test_openai_image_payload_preserves_png_mime_type(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image_path = Path(temp) / "page.png"
+            image_path.write_bytes(b"\\x89PNG\\r\\n\\x1a\\n")
+            parts = get_openai_image_part_from_path(str(image_path))
+        self.assertEqual(parts[0]["image_url"]["url"].split(";", 1)[0], "data:image/png")
+
     def test_openai_model_family_detection(self):
         for name in ("gpt-4o", "o1-preview", "o3-mini", "o4-mini"):
             self.assertTrue(is_openai_model(name), name)
