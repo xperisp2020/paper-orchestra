@@ -215,6 +215,10 @@ class CheckpointStoreTests(unittest.TestCase):
         self.assertIn("resume=args.resume", cli)
         self.assertIn("fingerprint_path(args.raw_materials_dir)", cli)
         self.assertIn("fingerprint_path(target_raw_materials)", cli)
+        desktop = (repo_root / "app_cpp" / "src" / "main.cpp").read_text(encoding="utf-8")
+        self.assertIn('QStringLiteral("--resume")', desktop)
+        self.assertIn('QStringLiteral("research_engine_last_output")', desktop)
+        self.assertIn('QStringLiteral("final_paper.pdf")', desktop)
 
     def test_immutable_stage_snapshots_survive_downstream_mutations(self):
         dependencies = {
