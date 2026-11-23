@@ -7,6 +7,7 @@ on:
       - ".github/workflows/windows-latex-smoke.yml"
       - "scripts/setup_research_runtime.ps1"
       - "utils/pdf_utils.py"
+      - "utils/run_checkpoints.py"
   workflow_dispatch:
 
 permissions:
@@ -19,6 +20,11 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Download and verify official MiKTeX installer
         shell: pwsh
@@ -100,3 +106,8 @@ jobs:
           if (!(Select-String -LiteralPath 'paper.bbl' -Pattern 'doe2020' -Quiet)) { throw "BibTeX output is missing the expected citation." }
           Write-Host "Windows MiKTeX pdflatex/BibTeX smoke test passed."
           Pop-Location
+
+      - name: Verify real MiKTeX binaries in checkpoint runtime fingerprint
+        shell: pwsh
+        run: |
+          python -c "from utils.run_checkpoints import fingerprint_runtime; fp = fingerprint_runtime(); assert fp['latex_tools']['pdflatex'] is not None; assert fp['latex_tools']['bibtex'] is not None; print(fp['latex_tools'])"
