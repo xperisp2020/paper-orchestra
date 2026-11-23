@@ -1,0 +1,66 @@
+name: Research runtime bootstrap
+
+on:
+  push:
+    branches: [work/yadavarifork]
+    paths:
+      - "requirements-research.txt"
+      - "scripts/setup_research_runtime.ps1"
+      - "paper_writing_cli.py"
+      - "methods/**"
+      - "utils/**"
+      - ".github/workflows/research-runtime-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap-windows:
+    runs-on: windows-2022
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-research.txt
+
+      - name: Provide deterministic LaTeX command stubs for bootstrap detection
+        shell: pwsh
+        run: |
+          $tools = Join-Path $env:RUNNER_TEMP 'latex-command-stubs'
+          New-Item -ItemType Directory -Force -Path $tools | Out-Null
+          @'
+          @echo off
+          exit /b 0
+          '@ | Set-Content -LiteralPath (Join-Path $tools 'pdflatex.cmd') -Encoding Ascii
+          @'
+          @echo off
+          exit /b 0
+          '@ | Set-Content -LiteralPath (Join-Path $tools 'bibtex.cmd') -Encoding Ascii
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $tools
+
+      - name: Create isolated research runtime and verify dependencies
+        shell: pwsh
+        run: |
+          $python = (Get-Command python -ErrorAction Stop).Source
+          $runtime = Join-Path $env:RUNNER_TEMP 'paper-orchestra-research-runtime'
+          & .\scripts\setup_research_runtime.ps1 -PythonExecutable $python -RuntimeDirectory $runtime
+          if ($LASTEXITCODE -ne 0) { throw "Research runtime bootstrap failed: $LASTEXITCODE" }
+
+          $venvPython = Join-Path $runtime 'Scripts\python.exe'
+          if (!(Test-Path -LiteralPath $venvPython -PathType Leaf)) {
+            throw "Research venv Python was not created."
+          }
+          & $venvPython -c "import google.genai, openai, fitz, pymupdf4llm, numpy, matplotlib, pypdf"
+          if ($LASTEXITCODE -ne 0) { throw "Research runtime imports failed." }
+
+          & $venvPython -c "from paper_writing_cli import validate_runtime_prerequisites; missing = validate_runtime_prerequisites(); print(missing); raise SystemExit(1 if missing else 0)"
+          if ($LASTEXITCODE -ne 0) { throw "CLI runtime preflight disagrees with the bootstrap environment." }
+
+          & $venvPython .\paper_writing_cli.py --help
+          if ($LASTEXITCODE -ne 0) { throw "Research CLI help failed in the isolated runtime." }
