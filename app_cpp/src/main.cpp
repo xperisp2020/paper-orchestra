@@ -1490,7 +1490,7 @@ private:
             QStringLiteral("--latex_template_dir"), templateDir,
             QStringLiteral("--events_jsonl")
         };
-        // The Python engine reuses only stages whose input and artifact fingerprints validate.
+        // The Python engine reuses only matching, hash-verified stages while holding an attempt-wide lock.
         if (resumeRequested)
             arguments.append(QStringLiteral("--resume"));
         currentResearchRunOutput_ = output;
