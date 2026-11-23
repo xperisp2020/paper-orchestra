@@ -28,6 +28,7 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
         self.assertIs(client, fake_client)
         self.assertEqual(factory.call_args.kwargs["api_key"], "openrouter-test-key")
         self.assertEqual(factory.call_args.kwargs["base_url"], "https://openrouter.ai/api/v1")
+        self.assertEqual(factory.call_args.kwargs["max_retries"], 0)
         module._openai_clients.clear()
 
     def test_openrouter_rate_limit_is_not_retried(self):
