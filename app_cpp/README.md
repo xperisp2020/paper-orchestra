@@ -13,7 +13,7 @@ The primary desktop application is implemented in C++20 with Qt 6 Widgets. Windo
 - Existing project output files and folders are not overwritten
 - Portable Windows packaging with Qt runtime deployment and a second smoke test against the deployed executable
 
-**No-API mode is a deterministic local workspace, not a generative model.** The free-tier and paid choices initially select workflow categories. The current CLI bridge is intentionally enabled only for the paid category because the existing CLI defaults to Gemini Pro Preview; free-tier provider routing is not implemented. The bridge requires a separately installed Python environment, the repository dependencies, a valid Gemini environment key, user-selected source/template directories, and a working LaTeX installation providing pdflatex and bibtex. The CLI preflight checks the declared Python distributions and both LaTeX executables before starting the agent pipeline. Each run now maintains an atomic `run_manifest.json` with a stable run ID, project ID, timestamps, lifecycle status, and current stage; the Qt workspace exposes a per-project run-history dialog that opens each run folder. Manifest diagnostics redact credential-like values and do not store API keys. Python and dependencies are not bundled in the Windows portable package. The bridge does not make the research workflow a finished or resumable AI system. The research workflow is not represented as completed AI research.
+**No-API mode is a deterministic local workspace, not a generative model.** The free-tier mode uses OpenRouter free model IDs only; its default is the multimodal NVIDIA Nemotron 3.5 Super VL free endpoint. It requires OPENROUTER_API_KEY and an explicit privacy acknowledgement. Current OpenRouter free limits are 20 requests per minute and 50 per day; providers may log or use submitted content, so do not send confidential data. Paid mode accepts Gemini, OpenAI, or OpenRouter model IDs and checks the matching environment credentials before launching the engine. The writer/literature model and reflection/refinement model are configurable; a blank reflection model inherits the writer model. Python engine source, templates, assets, requirements, CLI, and the runtime bootstrap script are included in the Windows portable ZIP and installer. The Python interpreter, Python packages, and LaTeX distribution are not bundled. The user creates an isolated Python environment with the packaged bootstrap script and selects its interpreter in the app. The CLI preflight checks installed distributions and both LaTeX executables before starting the agent pipeline. The non-plotting writer, literature, review, and refinement stages route through Gemini or OpenAI-compatible providers; OpenAI/OpenRouter literature discovery uses Semantic Scholar keyword search. PaperBanana plotting remains Gemini-only. Each run maintains an atomic run_manifest.json with a stable run ID, project ID, timestamps, lifecycle status, and current stage; the Qt workspace exposes a per-project run-history dialog. Diagnostics redact provider keys, and API keys are not stored by the application. No real provider API run is implied by a successful CI build.
 
 ## Proposal export
 The export engine groups proposal sections into the 16-page sequence derived from the Shiraz Islamic Azad University proposal form. It is a structured editable draft, not an official university-issued form; signatures, approvals, and committee decisions must be completed by the authorized people. Long user-entered content can expand a page group onto additional physical pages.
@@ -45,10 +45,22 @@ The CI pipeline produces both the portable ZIP and a per-user Inno Setup install
 
 ## Preparing the Windows research runtime
 
-The portable Qt application does not bundle Python packages or a LaTeX distribution. To prepare an isolated Python environment, install Python 3.12 or newer and run the bootstrap script from the repository root:
+The portable ZIP and installer include the Python research source, CLI, templates, assets, requirements file, and runtime bootstrap script. They do not bundle a Python interpreter, Python packages, or a LaTeX distribution.
+
+1. Install Python 3.12 or newer.
+2. Open PowerShell in the application directory (the default per-user installer path is under %LOCALAPPDATA%\Programs\Yadavarifork).
+3. Create the isolated runtime outside the install directory so it survives application updates and uninstall:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\setup_research_runtime.ps1 -PythonExecutable "C:\Path\To\python.exe" -RuntimeDirectory "$env:LOCALAPPDATA\Yadavarifork\research-runtime"
+$python = (Get-Command python).Source
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_research_runtime.ps1 -PythonExecutable $python -RuntimeDirectory "$env:LOCALAPPDATA\Yadavarifork\research-runtime"
 ```
 
-The script creates a new virtual environment, installs `requirements-research.txt` (the CLI dependency set without the legacy Streamlit frontend), verifies core imports, and checks that `pdflatex` and `bibtex` are available on `PATH`. It refuses to overwrite an existing runtime directory. If LaTeX tools are missing, it exits with code 3 after reporting the missing executables. It does not configure, read, or store provider API keys; configure `GEMINI_API_KEY` separately in the process environment. In the application, select the created `Scripts\python.exe` as the Python executable.
+The script installs requirements-research.txt, runs pip check, verifies core imports, and checks for pdflatex and bibtex on PATH. It refuses to overwrite an existing runtime directory. If LaTeX tools are missing, it exits with code 3 after reporting the missing executables. Install MiKTeX or TeX Live for Windows and reopen the application.
+
+Configure the selected provider in the process environment before launching the app:
+- Free tier: OPENROUTER_API_KEY. The free-tier wizard defaults to nvidia/nemotron-3.5-super-vl:free and requires acknowledgement of third-party data processing.
+- Gemini: GEMINI_API_KEY or GOOGLE_API_KEY, or Vertex AI project/location plus Application Default Credentials.
+- OpenAI: OPENAI_API_KEY.
+
+In the research dialog, the CLI script and LaTeX template folder default to the bundled source. Select the created venv's Scripts\python.exe. Leave the reflection model blank to reuse the writer model. The current PaperBanana plotting workflow remains Gemini-only and is not enabled by the desktop research dialog.
