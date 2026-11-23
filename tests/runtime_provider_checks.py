@@ -67,6 +67,53 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
         for name in ("gemini-3.1-pro-preview", "claude-sonnet", ""):
             self.assertFalse(is_openai_model(name), name)
 
+    def test_openrouter_text_prompt_uses_openai_compatible_backend(self):
+        from utils import llm_backend_utils as module
+
+        expected = {"raw_response": "ok", "parsed_response": "ok"}
+        with (
+            patch.object(module, "call_openai_models_with_text_prompt", return_value=expected) as openai_call,
+            patch.object(module, "call_gemini_with_text_prompt") as gemini_call,
+        ):
+            result = module.call_llm_with_text_prompt(
+                "test prompt", "nvidia/nemotron-3.5-super-vl:free", return_json=False
+            )
+        self.assertEqual(result, expected)
+        self.assertEqual(openai_call.call_args.kwargs["model_name"], "nvidia/nemotron-3.5-super-vl:free")
+        gemini_call.assert_not_called()
+
+    def test_openrouter_image_prompt_uses_openai_compatible_backend(self):
+        from utils import llm_backend_utils as module
+
+        expected = {"raw_response": "ok", "parsed_response": "ok"}
+        with (
+            patch.object(module, "call_openai_models_with_content", return_value=expected) as openai_call,
+            patch.object(module, "call_gemini_with_images") as gemini_call,
+        ):
+            result = module.call_llm_with_images(
+                "review this image", [], "nvidia/nemotron-3.5-super-vl:free", return_json=False
+            )
+        self.assertEqual(result, expected)
+        self.assertEqual(openai_call.call_args.kwargs["model_name"], "nvidia/nemotron-3.5-super-vl:free")
+        gemini_call.assert_not_called()
+
+    def test_openrouter_pdf_review_uses_text_extraction_and_openai_backend(self):
+        from utils import llm_backend_utils as module
+
+        expected = {"raw_response": "ok", "parsed_response": "ok"}
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as pdf, (
+            patch.object(module, "load_paper", return_value="extracted paper text") as load,
+            patch.object(module, "call_openai_models_with_text_prompt", return_value=expected) as openai_call,
+            patch.object(module, "call_gemini_with_contents") as gemini_call,
+        ):
+            result = module.call_llm_with_pdf(
+                pdf.name, "review task", "nvidia/nemotron-3.5-super-vl:free", return_json=False
+            )
+        self.assertEqual(result, expected)
+        load.assert_called_once_with(pdf.name, min_size=100)
+        self.assertIn("extracted paper text", openai_call.call_args.kwargs["prompt"])
+        gemini_call.assert_not_called()
+
     def test_semantic_scholar_keyword_search_filters_cutoff(self):
         class Response:
             status_code = 200
