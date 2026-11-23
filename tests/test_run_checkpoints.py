@@ -234,8 +234,8 @@ class CheckpointFingerprintTests(unittest.TestCase):
             version = "1.2.3"
 
         completed = [
-            __import__("subprocess").CompletedProcess([], 0, stdout="pdfTeX 2025\n"),
-            __import__("subprocess").CompletedProcess([], 0, stdout="BibTeX 0.99d\n"),
+            __import__("subprocess").CompletedProcess([], 0, stdout="pdflatex: security risk: running with elevated privileges\nThis is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12)\n"),
+            __import__("subprocess").CompletedProcess([], 0, stdout="bibtex: security risk: running with elevated privileges\nThis is BibTeX, Version 0.99e (MiKTeX 25.12)\n"),
         ]
         with (
             patch("utils.run_checkpoints.importlib.metadata.distributions", return_value=[FakeDistribution()]),
@@ -245,8 +245,14 @@ class CheckpointFingerprintTests(unittest.TestCase):
         ):
             runtime = fingerprint_runtime()
         self.assertEqual(runtime["installed_distribution_count"], 1)
-        self.assertEqual(runtime["latex_tools"]["pdflatex"]["version"], "pdfTeX 2025")
-        self.assertEqual(runtime["latex_tools"]["bibtex"]["version"], "BibTeX 0.99d")
+        self.assertEqual(
+            runtime["latex_tools"]["pdflatex"]["version"],
+            "This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12)",
+        )
+        self.assertEqual(
+            runtime["latex_tools"]["bibtex"]["version"],
+            "This is BibTeX, Version 0.99e (MiKTeX 25.12)",
+        )
         self.assertEqual(runtime["latex_tools"]["pdflatex"]["binary_sha256"], "a" * 64)
 
     def test_fingerprint_inputs_is_order_independent_for_mapping_keys(self):
