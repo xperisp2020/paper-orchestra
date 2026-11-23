@@ -1,0 +1,102 @@
+name: Windows MiKTeX smoke test
+
+on:
+  push:
+    branches: [work/yadavarifork]
+    paths:
+      - ".github/workflows/windows-latex-smoke.yml"
+      - "scripts/setup_research_runtime.ps1"
+      - "utils/pdf_utils.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  miktex-smoke:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Download and verify official MiKTeX installer
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'basic-miktex-25.12-x64.exe'
+          Invoke-WebRequest -Uri 'https://miktex.org/download/ctan/systems/win32/miktex/setup/windows-x64/basic-miktex-25.12-x64.exe' -OutFile $installer
+          $expected = '14b42dd9f4b4a7813a8bfd69c8f99316c2888cc4ee26f631f397e163d85d6c62'
+          $actual = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "MiKTeX installer SHA-256 mismatch: $actual" }
+          Write-Host "Official MiKTeX installer SHA-256 verified."
+
+      - name: Install MiKTeX unattended
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'basic-miktex-25.12-x64.exe'
+          $process = Start-Process -FilePath $installer -ArgumentList @('--unattended', '--private', '--package-set=basic') -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "MiKTeX installer failed with exit code $($process.ExitCode)." }
+
+          $roots = @(
+            (Join-Path $env:LOCALAPPDATA 'Programs/MiKTeX'),
+            (Join-Path $env:ProgramFiles 'MiKTeX')
+          )
+          $pdflatex = $null
+          foreach ($root in $roots) {
+            if (Test-Path $root) {
+              $pdflatex = Get-ChildItem -LiteralPath $root -Filter 'pdflatex.exe' -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($pdflatex) { break }
+            }
+          }
+          if (!$pdflatex) { throw "pdflatex.exe was not found after MiKTeX installation." }
+          $bin = $pdflatex.Directory.FullName
+          foreach ($tool in @('bibtex.exe', 'initexmf.exe')) {
+            if (!(Test-Path (Join-Path $bin $tool))) { throw "$tool is missing from MiKTeX bin directory." }
+          }
+          $env:PATH = "$bin;$env:PATH"
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $bin
+          & (Join-Path $bin 'initexmf.exe') '--set-config-value' '[MPM]AutoInstall=1'
+          if ($LASTEXITCODE -ne 0) { throw "Could not enable MiKTeX automatic package installation." }
+          & (Join-Path $bin 'pdflatex.exe') '--version'
+          if ($LASTEXITCODE -ne 0) { throw "pdflatex version check failed." }
+          & (Join-Path $bin 'bibtex.exe') '--version'
+          if ($LASTEXITCODE -ne 0) { throw "bibtex version check failed." }
+
+      - name: Compile a real bibliography-backed PDF on Windows
+        shell: pwsh
+        run: |
+          $work = Join-Path $env:RUNNER_TEMP 'miktex-paper-smoke'
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+          Push-Location $work
+          @'
+          \\documentclass{article}
+          \\begin{document}
+          A Windows MiKTeX bibliography smoke test \\cite{doe2020}.
+          \\bibliographystyle{plain}
+          \\bibliography{references}
+          \\end{document}
+          '@ | Set-Content -LiteralPath 'paper.tex' -Encoding Ascii
+          @'
+          @article{doe2020,
+            author = {Jane Doe},
+            title = {A Minimal Windows MiKTeX Test},
+            journal = {Test Journal},
+            year = {2020}
+          }
+          '@ | Set-Content -LiteralPath 'references.bib' -Encoding Ascii
+
+          & pdflatex.exe '--enable-installer' '-interaction=nonstopmode' 'paper.tex'
+          if ($LASTEXITCODE -ne 0) { throw "First pdflatex pass failed." }
+          & bibtex.exe 'paper'
+          if ($LASTEXITCODE -ne 0) { throw "BibTeX pass failed." }
+          & pdflatex.exe '--enable-installer' '-interaction=nonstopmode' 'paper.tex'
+          if ($LASTEXITCODE -ne 0) { throw "Second pdflatex pass failed." }
+          & pdflatex.exe '--enable-installer' '-interaction=nonstopmode' 'paper.tex'
+          if ($LASTEXITCODE -ne 0) { throw "Third pdflatex pass failed." }
+
+          if (!(Test-Path 'paper.pdf')) { throw "MiKTeX did not create paper.pdf." }
+          $bytes = [System.IO.File]::ReadAllBytes((Join-Path $work 'paper.pdf'))
+          if ([System.Text.Encoding]::ASCII.GetString($bytes, 0, 4) -ne '%PDF') { throw "MiKTeX output is not a valid PDF signature." }
+          if (!(Select-String -LiteralPath 'paper.bbl' -Pattern 'doe2020' -Quiet)) { throw "BibTeX output is missing the expected citation." }
+          Write-Host "Windows MiKTeX pdflatex/BibTeX smoke test passed."
+          Pop-Location
