@@ -206,10 +206,12 @@ class CliRunManifestIntegrationTests(unittest.TestCase):
                 "--latex_template_dir", template,
                 "--writer_model_name", "gpt-4o",
             ]
-            with patch("sys.argv", argv), \\
-                 patch("paper_writing_cli.validate_runtime_prerequisites", return_value=[]), \\
-                 patch("sys.stdout", stdout), \\
-                 patch.dict(sys.modules, self._fake_methods(writer)):
+            with (
+                patch("sys.argv", argv),
+                patch("paper_writing_cli.validate_runtime_prerequisites", return_value=[]),
+                patch("sys.stdout", stdout),
+                patch.dict(sys.modules, self._fake_methods(writer)),
+            ):
                 main()
 
             self.assertEqual(captured["writer_model_name"], "gpt-4o")
