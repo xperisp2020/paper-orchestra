@@ -1443,3 +1443,16 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
   - Windows packaging + clean runner: https://github.com/xperisp2020/paper-orchestra/actions/runs/45221524713
 - نتیجه: انتخاب OpenRouter در مسیر متن، تصویر و ارزیابی PDF اکنون به backend سازگار هدایت می‌شود و regressionهای آن در Windows runtime اجرا شدند. بسته‌های Windows شامل کد اصلاح‌شده‌اند و clean-runner تأیید شده‌اند.
 - محدودیت: هیچ درخواست واقعی به OpenRouter ارسال نشد؛ آزمون‌های provider mock هستند. برای آزمون end-to-end واقعی، `OPENROUTER_API_KEY` باید فقط به‌صورت environment variable محلی کاربر تنظیم شود. PaperBanana plotting همچنان Gemini-only است و CLI این محدودیت را قبل از اجرا رد می‌کند.
+
+
+### 6.99.21 افزودن DOI به فراداده و خروجی استنادی
+- ممیزی literature agent نشان داد پاسخ‌های Semantic Scholar فقط title/authors/venue/year/abstract/citationCount/journal/publicationDate را درخواست می‌کردند؛ شناسه DOI اصلاً دریافت و در BibTeX یا citation_map ذخیره نمی‌شد.
+- دو درخواست Semantic Scholar اکنون `externalIds` را هم دریافت می‌کنند. DOI با helper مستقل و بدون وابستگی اضافی normalize می‌شود؛ شکل‌های DOI URL و `doi:` پذیرفته، مقادیر malformed رد می‌شوند.
+- فیلد اختیاری DOI به PaperData اضافه شد؛ DOI معتبر به BibTeX و citation_map منتقل می‌شود. DOI نامعتبر/غایب در خروجی به‌صورت DOI ثبت نمی‌شود.
+- commitهای کد: `d30d97b92f041833e66cadcbb15028a1488e33d5`، `96838d02c5b9d0fb61b669a83144fe646dbc6d0d`، `4020c5d37456f784dada720372f54f9206f4d9a0`، `6f1a20bdf808a97336d4b7dc9b0deccaee8c163b`.
+- ابتدا تست جدید به‌اشتباه ماژول سنگین literature agent را در safety CI استاندارد وارد کرد؛ چون آن job عمداً فقط standard library دارد، import به‌علت نبود Pydantic شکست خورد (runs `45222742848`, `45222855227`, `45222874713`). این خطا به معنی شکست runtime پژوهش نبود؛ تست به helper مستقل منتقل و تست خروجی pipeline به بررسی منبع سبک تبدیل شد.
+- نسخه نهایی تست استاندارد: run `45222903310`، Ubuntu و Windows هر دو success.
+- Research runtime run `45222874691` روی commit کد `6f1a20bdf808a97336d4b7dc9b0deccaee8c163b`: Windows bootstrap و Ubuntu اجرای واقعی LaTeX/BibTeX هر دو success.
+- Windows packaging run `45222874725` روی همان commit کد در آخرین ثبت هنوز در حال اجرا بود؛ نتیجه نهایی را تا پایان clean-runner check قطعی نمی‌دانیم.
+- نکته دقت: این تغییر DOI را از Semantic Scholar می‌گیرد و از نظر قالب/ساختار syntactic validation می‌کند؛ lookup مستقل Crossref برای تأیید ثبت/resolve شدن DOI هنوز اضافه نشده است. بنابراین «اعتبارسنجی DOI نزد ناشر» ادعا نمی‌شود.
+- هیچ کلید API یا داده محرمانه‌ای به مخزن اضافه نشده است.
