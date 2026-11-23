@@ -57,7 +57,7 @@ jobs:
           pdflatex -interaction=nonstopmode paper.tex
           test -s paper.pdf
           test "$(head -c 4 paper.pdf)" = "%PDF"
-          grep -q "Jane Doe" paper.bbl
+          grep -q "doe2020" paper.bbl
 
   bootstrap-windows:
     runs-on: windows-2022
