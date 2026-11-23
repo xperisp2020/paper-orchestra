@@ -1205,3 +1205,18 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - لینک CI آزمون: https://github.com/xperisp2020/paper-orchestra/actions/runs/45201440481
 - این تأیید صرفاً safety/unit/integration suite استاندارد Python را پوشش می‌دهد؛ اجرای pipeline واقعی با provider API، نصب dependencyها و LaTeX یا تولید مقاله کامل را تأیید نمی‌کند.
 - گام بعدی: ممیزی دقیق مرزهای مرحله‌ای writer و artifactها برای طراحی checkpoint/resume امن، بدون بازاستفاده از خروجی ناقص یا ترکیب اجرای دو پروژه.
+
+
+### 6.99.5 ممیزی مرزهای checkpoint/resume پیش از پیاده‌سازی
+- هر دو writer (با plotting و بدون plotting) هنوز در ابتدای هر تلاش، workspace تازه `attempt_N` می‌سازند و خروجی‌های سطح پایه را با `ensure_paths_absent` محافظت می‌کنند؛ هیچ مسیر resume واقعی یا بازیابی مرحله‌ای در آن‌ها وجود ندارد.
+- مرزهای قابل checkpoint شناسایی شدند:
+  1. آماده‌سازی template و ورودی‌ها؛
+  2. OutlineAgent با خروجی `outline.json`؛
+  3. LiteratureAgent با `outline_v1.json`, `updated_template.tex`, `references.bib`, `citation_map.json`؛
+  4. PlottingAgent موازی (فقط حالت plotting) با `plotting_results.json` و تصاویر تولیدشده؛
+  5. SectionWritingAgent با `raw_draft_paper.tex`؛
+  6. ContentRefinementAgent با PDF نهایی و گزارش‌های reviewer.
+- نکته ایمنی: در حالت plotting، مرحله literature و plotting موازی‌اند؛ checkpoint مرحله ترکیبی فقط وقتی معتبر است که هر دو future موفق شده باشند و تمام artifactهای هر دو شاخه hash-verified باشند. هیچ شاخه ناقص نباید به‌عنوان مرحله کامل ثبت شود.
+- تصمیم معماری: checkpoint باید fingerprint ورودی‌های واقعی (محتوای raw materials، template/guidelines)، تنظیمات مدل/cutoff/mode و نسخه schema داشته باشد؛ artifactها باید مسیر نسبی محدود به همان attempt و SHA-256 داشته باشند. mismatch fingerprint، فایل مفقود/تغییریافته، symlink، یا state ناقص باید آن checkpoint و مراحل وابسته را invalid کند؛ هیچ خروجی بین پروژه‌ها یا attemptها ادغام نشود.
+- قفل اجرای واحد برای هر run و نوشتن atomic state لازم است تا دو اجرای هم‌زمان checkpoint واحد را دستکاری نکنند. final_paper.pdf فقط پس از تأیید artifact نهایی و انتشار no-overwrite ساخته شود.
+- این گام صرفاً ممیزی کد و تثبیت قرارداد است؛ checkpoint/resume هنوز پیاده‌سازی نشده و تا زمان افزودن مسیر resume به CLI و هر دو writer، نباید در UI به‌عنوان قابلیت موجود نمایش داده شود.
