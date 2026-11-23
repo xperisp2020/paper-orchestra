@@ -204,11 +204,46 @@ class CheckpointStoreTests(unittest.TestCase):
             self.assertIn("create_or_resume_attempt", source)
             self.assertIn("resume: bool = False", source)
             self.assertIn('checkpoint_store.record_stage("draft"', source)
+            self.assertIn("checkpoint_inputs/template.tex", source)
+            self.assertIn("outline_initial.json", source)
+            self.assertIn("resumed_attempt and not prepare_inputs_valid", source)
         cli = (repo_root / "paper_writing_cli.py").read_text(encoding="utf-8")
         self.assertIn('"--resume"', cli)
         self.assertIn("resume=args.resume", cli)
         self.assertIn("fingerprint_path(args.raw_materials_dir)", cli)
         self.assertIn("fingerprint_path(target_raw_materials)", cli)
+
+    def test_immutable_stage_snapshots_survive_downstream_mutations(self):
+        dependencies = {
+            "prepare_inputs": (),
+            "outline": ("prepare_inputs",),
+            "literature": ("outline",),
+            "draft": ("literature",),
+        }
+        store = CheckpointStore(
+            self.root, self.fingerprint, dependencies=dependencies
+        )
+        self._artifact("checkpoint_inputs/template.tex", "original template")
+        self._artifact("checkpoint_inputs/guidelines.md", "guidelines")
+        store.record_stage("prepare_inputs", [
+            "checkpoint_inputs/template.tex", "checkpoint_inputs/guidelines.md"
+        ])
+        self._artifact("outline_initial.json", "initial outline")
+        self._artifact("outline.json", "initial outline")
+        store.record_stage("outline", ["outline_initial.json"])
+        # Later stages legitimately update working copies; immutable snapshots
+        # must keep their upstream stages valid.
+        (self.root / "outline.json").write_text("literature-adjusted outline", encoding="utf-8")
+        self._artifact("literature_agent_output/outline_v1.json", "literature outline")
+        self._artifact("literature_agent_output/updated_template.tex", "updated template")
+        store.record_stage("literature", [
+            "literature_agent_output/outline_v1.json",
+            "literature_agent_output/updated_template.tex",
+            "outline.json",
+        ])
+        self.assertTrue(store.is_stage_valid("prepare_inputs"))
+        self.assertTrue(store.is_stage_valid("outline"))
+        self.assertTrue(store.is_stage_valid("literature"))
 
     def test_changed_input_fingerprint_never_reuses_prior_state(self):
         self._artifact("inputs.json", "inputs")
