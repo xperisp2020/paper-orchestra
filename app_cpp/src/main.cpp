@@ -1393,6 +1393,16 @@ private:
                    materialsField, true, QString(), QString());
         addPathRow(persian ? QStringLiteral("قالب LaTeX") : QStringLiteral("LaTeX template folder"),
                    templateField, true, QString(), templateDefault);
+
+        auto *writerModelField = new QLineEdit(QStringLiteral("gemini-3.1-pro-preview"), &dialog);
+        auto *reflectionModelField = new QLineEdit(&dialog);
+        reflectionModelField->setPlaceholderText(persian
+            ? QStringLiteral("خالی = همان مدل نویسنده")
+            : QStringLiteral("Blank = use writer model"));
+        form->addRow(persian ? QStringLiteral("مدل نویسنده و مرور منابع") :
+                               QStringLiteral("Writer and literature model"), writerModelField);
+        form->addRow(persian ? QStringLiteral("مدل بازبینی و اصلاح") :
+                               QStringLiteral("Reflection and refinement model"), reflectionModelField);
         auto *resumeCheck = new QCheckBox(persian
             ? QStringLiteral("ادامه آخرین اجرای ناموفق با اعتبارسنجی checkpointها")
             : QStringLiteral("Resume the previous run after checkpoint validation"), &dialog);
@@ -1406,8 +1416,8 @@ private:
             : QStringLiteral("Only stages with matching inputs and intact artifacts are reused."));
         form->addRow(resumeCheck);
         auto *notice = new QLabel(persian
-            ? QStringLiteral("Python و وابستگی‌های موتور همراه برنامه بسته‌بندی نشده‌اند. برای ساخت محیط جداگانه، scripts/setup_research_runtime.ps1 را اجرا و سپس Scripts\\python.exe ساخته‌شده را انتخاب کنید. ابزارهای pdflatex و bibtex نیز لازم‌اند. کلید Gemini فقط از محیط سیستم خوانده می‌شود و ذخیره نمی‌شود.")
-            : QStringLiteral("Python and engine dependencies are not bundled. Run scripts/setup_research_runtime.ps1 to create an isolated environment, then select its Scripts\\python.exe. pdflatex and bibtex are also required. Gemini credentials are read only from the process environment and are never stored."));
+            ? QStringLiteral("Python و وابستگی‌های موتور همراه برنامه بسته‌بندی نشده‌اند. برای ساخت محیط جداگانه، scripts/setup_research_runtime.ps1 را اجرا و سپس Scripts\\python.exe ساخته‌شده را انتخاب کنید. ابزارهای pdflatex و bibtex نیز لازم‌اند. کلیدهای Gemini/OpenAI فقط از محیط سیستم خوانده می‌شوند و ذخیره نمی‌شوند.")
+            : QStringLiteral("Python and engine dependencies are not bundled. Run scripts/setup_research_runtime.ps1 to create an isolated environment, then select its Scripts\\python.exe. pdflatex and bibtex are also required. Gemini/OpenAI credentials are read only from the process environment and are never stored."));
         notice->setWordWrap(true);
         form->addRow(notice);
         auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
@@ -1447,16 +1457,55 @@ private:
                 : QStringLiteral("The selected template must contain template.tex and guidelines.md."));
             return;
         }
-        const QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
-        const QStringList keyNames{QStringLiteral("GEMINI_API_KEY"), QStringLiteral("GOOGLE_API_KEY"),
-                                   QStringLiteral("GOOGLE_GENAI_API_KEY")};
-        bool hasProviderKey = false;
-        for (const QString &key : keyNames)
-            hasProviderKey = hasProviderKey || (!environment.value(key).trimmed().isEmpty());
-        if (!hasProviderKey) {
+        const QString writerModel = writerModelField->text().trimmed();
+        const QString reflectionModel = reflectionModelField->text().trimmed().isEmpty()
+            ? writerModel : reflectionModelField->text().trimmed();
+        const auto isOpenAiModel = [](const QString &model) {
+            const QString normalized = model.trimmed().toLower();
+            return normalized.startsWith(QStringLiteral("gpt-")) ||
+                   normalized.startsWith(QStringLiteral("o1")) ||
+                   normalized.startsWith(QStringLiteral("o3")) ||
+                   normalized.startsWith(QStringLiteral("o4"));
+        };
+        const auto isGeminiModel = [](const QString &model) {
+            return model.trimmed().toLower().startsWith(QStringLiteral("gemini-"));
+        };
+        if (writerModel.isEmpty() || reflectionModel.isEmpty() ||
+            (!isOpenAiModel(writerModel) && !isGeminiModel(writerModel)) ||
+            (!isOpenAiModel(reflectionModel) && !isGeminiModel(reflectionModel))) {
             fail(persian
-                ? QStringLiteral("کلید Gemini در محیط سیستم پیدا نشد. GEMINI_API_KEY یا GOOGLE_API_KEY را در محیط سیستم تنظیم و برنامه را دوباره اجرا کنید.")
-                : QStringLiteral("No Gemini key found in the process environment. Set GEMINI_API_KEY or GOOGLE_API_KEY and restart the application."));
+                ? QStringLiteral("مدل نویسنده و بازبینی باید از خانواده Gemini یا OpenAI انتخاب شوند.")
+                : QStringLiteral("Writer and reflection models must be from the Gemini or OpenAI model families."));
+            return;
+        }
+
+        const QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+        const QStringList geminiKeyNames{
+            QStringLiteral("GEMINI_API_KEY"), QStringLiteral("GOOGLE_API_KEY"),
+            QStringLiteral("GOOGLE_GENAI_API_KEY")
+        };
+        bool hasGeminiKey = false;
+        for (const QString &key : geminiKeyNames)
+            hasGeminiKey = hasGeminiKey || !environment.value(key).trimmed().isEmpty();
+        const bool hasVertexConfiguration =
+            !environment.value(QStringLiteral("VERTEX_AI_PROJECT")).trimmed().isEmpty() &&
+            !environment.value(QStringLiteral("VERTEX_AI_LOCATION")).trimmed().isEmpty();
+        const bool hasOpenAiKey =
+            !environment.value(QStringLiteral("OPENAI_API_KEY")).trimmed().isEmpty();
+        const bool needsGemini = !isOpenAiModel(writerModel) || !isOpenAiModel(reflectionModel);
+        const bool needsOpenAi = isOpenAiModel(writerModel) || isOpenAiModel(reflectionModel);
+        if ((needsGemini && !hasGeminiKey && !hasVertexConfiguration) ||
+            (needsOpenAi && !hasOpenAiKey)) {
+            QString missing;
+            if (needsGemini && !hasGeminiKey && !hasVertexConfiguration)
+                missing += QStringLiteral("Gemini/Vertex AI");
+            if (needsOpenAi && !hasOpenAiKey) {
+                if (!missing.isEmpty()) missing += QStringLiteral(" and ");
+                missing += QStringLiteral("OpenAI");
+            }
+            fail(persian
+                ? QStringLiteral("اعتبارنامه %1 در محیط سیستم پیدا نشد. متغیرهای محیطی ارائه‌دهنده را تنظیم و برنامه را دوباره اجرا کنید.").arg(missing)
+                : QStringLiteral("Missing %1 credentials in the process environment. Set the provider environment variables and restart the application.").arg(missing));
             return;
         }
 
@@ -1488,6 +1537,8 @@ private:
             QStringLiteral("--raw_materials_dir"), materials,
             QStringLiteral("--output_dir"), output,
             QStringLiteral("--latex_template_dir"), templateDir,
+            QStringLiteral("--writer_model_name"), writerModel,
+            QStringLiteral("--reflection_model_name"), reflectionModel,
             QStringLiteral("--events_jsonl")
         };
         // The Python engine also verifies a published PDF against the completed refinement checkpoint.
