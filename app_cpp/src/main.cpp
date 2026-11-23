@@ -1331,16 +1331,11 @@ private:
 
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
         const QString selectedAiMode = aiMode_->currentData().toString();
+        const bool freeTierMode = selectedAiMode == QStringLiteral("free_tier");
         if (selectedAiMode == QStringLiteral("no_api")) {
             researchStatus_->setText(persian
                 ? QStringLiteral("حالت بدون API فقط کارگاه محلی است و موتور مولد را اجرا نمی‌کند.")
                 : QStringLiteral("No-API mode is a local workspace and cannot run the generative engine."));
-            return;
-        }
-        if (selectedAiMode == QStringLiteral("free_tier")) {
-            researchStatus_->setText(persian
-                ? QStringLiteral("مسیریابی طرح رایگان هنوز در CLI موجود نیست؛ برای جلوگیری از استفاده ناخواسته از مدل پولی، اجرا مسدود شد.")
-                : QStringLiteral("Free-tier routing is not implemented in the CLI. Execution is blocked to avoid unintentionally using a paid model."));
             return;
         }
         QDialog dialog(this);
@@ -1394,7 +1389,9 @@ private:
         addPathRow(persian ? QStringLiteral("قالب LaTeX") : QStringLiteral("LaTeX template folder"),
                    templateField, true, QString(), templateDefault);
 
-        auto *writerModelField = new QLineEdit(QStringLiteral("gemini-3.1-pro-preview"), &dialog);
+        auto *writerModelField = new QLineEdit(
+            freeTierMode ? QStringLiteral("openrouter/free")
+                         : QStringLiteral("gemini-3.1-pro-preview"), &dialog);
         auto *reflectionModelField = new QLineEdit(&dialog);
         reflectionModelField->setPlaceholderText(persian
             ? QStringLiteral("خالی = همان مدل نویسنده")
@@ -1415,9 +1412,16 @@ private:
             ? QStringLiteral("فقط مراحل دارای ورودی یکسان و خروجی‌های سالم بازیابی می‌شوند.")
             : QStringLiteral("Only stages with matching inputs and intact artifacts are reused."));
         form->addRow(resumeCheck);
+        QCheckBox *freeTierConsent = nullptr;
+        if (freeTierMode) {
+            freeTierConsent = new QCheckBox(persian
+                ? QStringLiteral("می‌پذیرم داده‌ها به ارائه‌دهنده ثالث مدل رایگان ارسال شوند؛ اطلاعات محرمانه ارسال نمی‌کنم.")
+                : QStringLiteral("I understand prompts go to third-party free-model providers; I will not submit confidential data."), &dialog);
+            form->addRow(freeTierConsent);
+        }
         auto *notice = new QLabel(persian
-            ? QStringLiteral("Python و وابستگی‌های موتور همراه برنامه بسته‌بندی نشده‌اند. برای ساخت محیط جداگانه، scripts/setup_research_runtime.ps1 را اجرا و سپس Scripts\\python.exe ساخته‌شده را انتخاب کنید. ابزارهای pdflatex و bibtex نیز لازم‌اند. کلیدهای Gemini/OpenAI فقط از محیط سیستم خوانده می‌شوند و ذخیره نمی‌شوند.")
-            : QStringLiteral("Python and engine dependencies are not bundled. Run scripts/setup_research_runtime.ps1 to create an isolated environment, then select its Scripts\\python.exe. pdflatex and bibtex are also required. Gemini/OpenAI credentials are read only from the process environment and are never stored."));
+            ? QStringLiteral("Python و وابستگی‌های موتور همراه برنامه بسته‌بندی نشده‌اند. برای ساخت محیط جداگانه، scripts/setup_research_runtime.ps1 را اجرا و سپس Scripts\\python.exe ساخته‌شده را انتخاب کنید. ابزارهای pdflatex و bibtex لازم‌اند. کلیدهای Gemini/OpenAI/OpenRouter فقط از محیط سیستم خوانده می‌شوند و ذخیره نمی‌شوند. سرویس‌های رایگان ممکن است داده‌های ارسالی را طبق سیاست ارائه‌دهنده ثبت یا برای بهبود مدل استفاده کنند؛ داده محرمانه ارسال نکنید.")
+            : QStringLiteral("Python and engine dependencies are not bundled. Run scripts/setup_research_runtime.ps1 and select its Scripts\\python.exe. pdflatex and bibtex are required. Gemini/OpenAI/OpenRouter credentials are read only from the process environment and are never stored. Free-tier providers may log or use submitted content to improve services; do not send confidential data."));
         notice->setWordWrap(true);
         form->addRow(notice);
         auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
@@ -1437,6 +1441,12 @@ private:
             researchStatus_->setText(message);
             QMessageBox::warning(this, QStringLiteral("Yadavarifork"), message);
         };
+        if (freeTierMode && (!freeTierConsent || !freeTierConsent->isChecked())) {
+            fail(persian
+                ? QStringLiteral("برای استفاده از سرویس رایگان، ابتدا هشدار حریم خصوصی را تأیید کنید.")
+                : QStringLiteral("Acknowledge the free-tier privacy notice before using a free provider."));
+            return;
+        }
         if (!QFileInfo(python).isFile() || !QFileInfo(script).isFile() ||
             !QFileInfo(materials).isDir() || !QFileInfo(templateDir).isDir()) {
             fail(persian ? QStringLiteral("یکی از مسیرهای انتخاب‌شده معتبر نیست.") :
@@ -1460,22 +1470,38 @@ private:
         const QString writerModel = writerModelField->text().trimmed();
         const QString reflectionModel = reflectionModelField->text().trimmed().isEmpty()
             ? writerModel : reflectionModelField->text().trimmed();
-        const auto isOpenAiModel = [](const QString &model) {
+        const auto isOpenRouterModel = [](const QString &model) {
+            return model.trimmed().contains(QLatin1Char('/'));
+        };
+        const auto isOpenAiModel = [&](const QString &model) {
             const QString normalized = model.trimmed().toLower();
             return normalized.startsWith(QStringLiteral("gpt-")) ||
                    normalized.startsWith(QStringLiteral("o1")) ||
                    normalized.startsWith(QStringLiteral("o3")) ||
-                   normalized.startsWith(QStringLiteral("o4"));
+                   normalized.startsWith(QStringLiteral("o4")) ||
+                   isOpenRouterModel(normalized);
         };
         const auto isGeminiModel = [](const QString &model) {
             return model.trimmed().toLower().startsWith(QStringLiteral("gemini-"));
+        };
+        const auto isFreeOpenRouterModel = [](const QString &model) {
+            const QString normalized = model.trimmed().toLower();
+            return normalized == QStringLiteral("openrouter/free") ||
+                   normalized.endsWith(QStringLiteral(":free"));
         };
         if (writerModel.isEmpty() || reflectionModel.isEmpty() ||
             (!isOpenAiModel(writerModel) && !isGeminiModel(writerModel)) ||
             (!isOpenAiModel(reflectionModel) && !isGeminiModel(reflectionModel))) {
             fail(persian
-                ? QStringLiteral("مدل نویسنده و بازبینی باید از خانواده Gemini یا OpenAI انتخاب شوند.")
-                : QStringLiteral("Writer and reflection models must be from the Gemini or OpenAI model families."));
+                ? QStringLiteral("مدل نویسنده و بازبینی باید از خانواده Gemini، OpenAI یا شناسه OpenRouter باشند.")
+                : QStringLiteral("Writer and reflection models must be Gemini, OpenAI, or OpenRouter model IDs."));
+            return;
+        }
+        if (freeTierMode &&
+            (!isFreeOpenRouterModel(writerModel) || !isFreeOpenRouterModel(reflectionModel))) {
+            fail(persian
+                ? QStringLiteral("در حالت طرح رایگان فقط openrouter/free یا مدل‌های OpenRouter با پسوند :free مجازند.")
+                : QStringLiteral("Free-tier mode accepts only openrouter/free or OpenRouter model IDs ending in :free."));
             return;
         }
 
@@ -1492,16 +1518,27 @@ private:
             !environment.value(QStringLiteral("VERTEX_AI_LOCATION")).trimmed().isEmpty();
         const bool hasOpenAiKey =
             !environment.value(QStringLiteral("OPENAI_API_KEY")).trimmed().isEmpty();
+        const bool hasOpenRouterKey =
+            !environment.value(QStringLiteral("OPENROUTER_API_KEY")).trimmed().isEmpty();
         const bool needsGemini = !isOpenAiModel(writerModel) || !isOpenAiModel(reflectionModel);
-        const bool needsOpenAi = isOpenAiModel(writerModel) || isOpenAiModel(reflectionModel);
+        const bool needsOpenRouter =
+            isOpenRouterModel(writerModel) || isOpenRouterModel(reflectionModel);
+        const bool needsOpenAi =
+            (isOpenAiModel(writerModel) && !isOpenRouterModel(writerModel)) ||
+            (isOpenAiModel(reflectionModel) && !isOpenRouterModel(reflectionModel));
         if ((needsGemini && !hasGeminiKey && !hasVertexConfiguration) ||
-            (needsOpenAi && !hasOpenAiKey)) {
+            (needsOpenAi && !hasOpenAiKey) ||
+            (needsOpenRouter && !hasOpenRouterKey)) {
             QString missing;
             if (needsGemini && !hasGeminiKey && !hasVertexConfiguration)
                 missing += QStringLiteral("Gemini/Vertex AI");
             if (needsOpenAi && !hasOpenAiKey) {
                 if (!missing.isEmpty()) missing += QStringLiteral(" and ");
                 missing += QStringLiteral("OpenAI");
+            }
+            if (needsOpenRouter && !hasOpenRouterKey) {
+                if (!missing.isEmpty()) missing += QStringLiteral(" and ");
+                missing += QStringLiteral("OpenRouter");
             }
             fail(persian
                 ? QStringLiteral("اعتبارنامه %1 در محیط سیستم پیدا نشد. متغیرهای محیطی ارائه‌دهنده را تنظیم و برنامه را دوباره اجرا کنید.").arg(missing)
