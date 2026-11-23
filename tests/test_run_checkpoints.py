@@ -27,7 +27,8 @@ class CheckpointFingerprintTests(unittest.TestCase):
             self.assertEqual(first_tree, fingerprint_path(tree))
             (tree / "a.txt").write_text("changed", encoding="utf-8")
             self.assertNotEqual(first_tree, fingerprint_path(tree))
-            self.assertNotEqual(first_file, fingerprint_path(source) if False else first_file)
+            source.write_text("changed", encoding="utf-8")
+            self.assertNotEqual(first_file, fingerprint_path(source))
 
     def test_fingerprint_inputs_is_order_independent_for_mapping_keys(self):
         self.assertEqual(
