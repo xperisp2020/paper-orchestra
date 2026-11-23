@@ -17,6 +17,48 @@ permissions:
   contents: read
 
 jobs:
+  latex-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install real LaTeX and BibTeX tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends texlive-latex-base
+
+      - name: Compile a real bibliography-backed PDF
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/latex-smoke"
+          mkdir -p "$work"
+          cd "$work"
+          cat > paper.tex <<'EOF'
+          \\documentclass{article}
+          \\begin{document}
+          A minimal bibliography-backed compilation test \\cite{doe2020}.
+          \\bibliographystyle{plain}
+          \\bibliography{references}
+          \\end{document}
+          EOF
+          cat > references.bib <<'EOF'
+          @article{doe2020,
+            author = {Jane Doe},
+            title = {A Minimal Test Reference},
+            journal = {Test Journal},
+            year = {2020}
+          }
+          EOF
+          pdflatex -interaction=nonstopmode paper.tex
+          bibtex paper
+          pdflatex -interaction=nonstopmode paper.tex
+          pdflatex -interaction=nonstopmode paper.tex
+          test -s paper.pdf
+          test "$(head -c 4 paper.pdf)" = "%PDF"
+          grep -q "Jane Doe" paper.bbl
+
   bootstrap-windows:
     runs-on: windows-2022
     steps:
