@@ -28,6 +28,7 @@ from methods.prompts.literature_review_agent import (
 from utils.gemini_utils import call_gemini_with_contents, parse_gemini_latex_results
 from utils.llm_backend_utils import call_llm_with_text_prompt, is_openai_model
 from utils.scholar_utils import s2_title_search, s2_keyword_search
+from utils.doi_utils import normalize_doi
 
 
 class CandidatePaper(BaseModel):
@@ -39,19 +40,6 @@ class CandidatePaper(BaseModel):
 class DiscoveryResult(BaseModel):
     section_name: str
     candidates: List[CandidatePaper]
-
-
-def normalize_doi(value: Optional[str]) -> Optional[str]:
-    """Normalize a DOI supplied by scholarly metadata; reject malformed values."""
-    if not isinstance(value, str):
-        return None
-    doi = value.strip()
-    doi = re.sub(r"^(?:https?://)?(?:dx\.)?doi\.org/", "", doi, flags=re.IGNORECASE)
-    doi = re.sub(r"^doi\s*:\s*", "", doi, flags=re.IGNORECASE).strip()
-    doi = doi.rstrip(".,;")
-    if not re.fullmatch(r"10\.\d{4,9}/[-._;()/:A-Z0-9]+", doi, flags=re.IGNORECASE):
-        return None
-    return doi
 
 
 class PaperData(BaseModel):
