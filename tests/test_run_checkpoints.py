@@ -150,6 +150,18 @@ class WriterResumeIntegrationTests(unittest.TestCase):
                 self.assertEqual(calls["literature"], 3)
                 self.assertEqual(calls["section"], 3)
                 self.assertEqual(calls["refinement"], 4)
+                completed_again = writer_module.write_single_paper(
+                    base_dir=str(base_dir),
+                    latex_template_dir=str(template),
+                    idea_filename="idea_sparse.md",
+                    experimental_log_filename="experimental_log.md",
+                    resume=True,
+                )
+                self.assertTrue(completed_again)
+                self.assertEqual(calls["outline"], 3)
+                self.assertEqual(calls["literature"], 3)
+                self.assertEqual(calls["section"], 3)
+                self.assertEqual(calls["refinement"], 4)
                 if "with_plotting" in relative:
                     self.assertEqual(calls["plotting"], 3)
 
@@ -327,6 +339,16 @@ class CheckpointStoreTests(unittest.TestCase):
         self.assertFalse(resumed)
         self.assertNotEqual(os.path.realpath(attempt), os.path.realpath(changed_attempt))
 
+    def test_read_only_resume_lookup_does_not_create_an_attempt(self):
+        base = Path(self.temp.name) / "empty-resume"
+        attempt, store, resumed = create_or_resume_attempt(
+            base, self.fingerprint, resume=True, create_if_missing=False
+        )
+        self.assertIsNone(attempt)
+        self.assertIsNone(store)
+        self.assertFalse(resumed)
+        self.assertEqual(list(base.iterdir()), [])
+
     def test_resume_skips_corrupt_attempt_without_overwriting_it(self):
         base = Path(self.temp.name) / "corrupt-base"
         attempt, _, _ = create_or_resume_attempt(base, self.fingerprint)
@@ -351,6 +373,7 @@ class CheckpointStoreTests(unittest.TestCase):
             self.assertIn("resumed_attempt and not prepare_inputs_valid", source)
             self.assertIn("isinstance(exc, RuntimeError)", source)
             self.assertIn("checkpoint_lock_acquired = True", source)
+            self.assertIn("create_if_missing=False", source)
             self.assertIn("if checkpoint_lock_acquired and checkpoint_run_lock is not None:", source)
             self.assertIn('"agent_sources"', source)
             self.assertIn('"checkpoint_engine"', source)
