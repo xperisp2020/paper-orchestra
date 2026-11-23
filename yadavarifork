@@ -1339,3 +1339,19 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - commitهای سخت‌سازی: SDK retries 9da7af568b2f87d6c021d41a456e02c25f54a6e4؛ test assertions d321cfb3934f92f771e43115e0ad9653347ae789؛ single-attempt wrapper 1803f2b969d58245984908fc80a9afa034e9c854؛ README f587791684edb5d02a2624f7f70455555e5367e7.
 - CI runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45215558089
 - CI Python: https://github.com/xperisp2020/paper-orchestra/actions/runs/45215558045
+
+### 6.99.13 بسته‌بندی یکپارچه سورس موتور پژوهش در Portable و Installer ویندوز
+- شکاف بسته‌بندی قبلی رفع شد: portable ZIP و نصاب اکنون علاوه بر Qt executable، پوشه‌های methods، utils، autoraters، templates، assets و scripts، فایل paper_writing_cli.py، requirements-research.txt، README پژوهش، LICENSE و نشانگر RESEARCH_ENGINE_COMMIT.txt را نیز حمل می‌کنند.
+- مسیر پیش‌فرض CLI و templates در رابط دسکتاپ اکنون در خود بسته موجود است؛ کاربر دیگر برای یافتن سورس موتور مجبور به clone جداگانه مخزن نیست.
+- Python interpreter، بسته‌های Python و توزیع LaTeX همچنان داخل بسته نیستند. راهنمای README.txt همراه برنامه، ساخت venv خارج از پوشه نصب با scripts/setup_research_runtime.ps1 را توضیح می‌دهد تا runtime پس از به‌روزرسانی/حذف برنامه باقی بماند.
+- workflow ویندوز اکنون با تغییر methods، utils، autoraters، templates، assets، CLI، requirements و README دوباره build می‌شود؛ clean-runner بررسی می‌کند فایل‌های موتور حاضر باشند و هیچ .env داخل بسته نباشد.
+- Windows CI run 45216175808 با conclusion=success: configure/build/smoke، کپی سورس موتور، portable ZIP، compile نصاب Inno Setup و clean-runner verification موفق شدند. clean runner وجود فایل‌های موتور را بررسی کرد، portable را اجرا کرد، نصاب را silent نصب کرد، برنامه نصب‌شده را اجرا کرد، uninstall را انجام داد و sentinel داده کاربر را حفظ‌شده یافت.
+- Portable artifact ID 14839266209، اندازه 27,086,652 بایت، SHA-256 df7035b69bd3606a1c0fbbc56f6c0934921238ff8cc059bcd7d294363b210b94.
+- Installer artifact ID 14839111490، اندازه 19,914,533 بایت، SHA-256 06b7a0618489d19b66e01c9e3a8a2c8905bde65369dd0f4c710ffa1bd294c827.
+- انقضای artifactها: 2027-02-21. هر دو از workflow run 45216175808 قابل دریافت‌اند.
+- Python safety run 45216207624 نیز روی Ubuntu و Windows موفق شد؛ هر کدام 61 آزمون را با نتیجه OK اجرا کردند.
+- محدودیت باقی‌مانده: بسته سورس موتور و bootstrap را حمل می‌کند، اما Python و dependencyها را در خود ندارد و برای راه‌اندازی باید کاربر Python 3.12+ را نصب و bootstrap را اجرا کند. MiKTeX واقعی روی Windows و تست دستی GUI/Word 2010 هنوز انجام نشده‌اند؛ API واقعی نیز به علت نبود کلید مجاز آزمایش نشده است.
+- گام بعدی: نصب و آزمون MiKTeX واقعی روی Windows runner یا دستگاه آزمایشی، سپس اجرای end-to-end محدود با کلید provider که کاربر در محیط سیستم تنظیم کند؛ بعد از آن تست GUI و Word 2010.
+- CI Windows packaging: https://github.com/xperisp2020/paper-orchestra/actions/runs/45216175808
+- CI Python safety: https://github.com/xperisp2020/paper-orchestra/actions/runs/45216207624
+- commitهای بسته‌بندی: کپی سورس `a4e8c4808daf08f828f6d9914ec25768f325cc2b`؛ path filters `e148618e353358e8919c60f5e4b9d9eddec79360`؛ README همراه برنامه `5a2c133c8a22320e91401b01c38349417eaedd4a`؛ پیام رابط درباره سورس/Runtime `95af2c541c77ff4e73075c472a0d8e7c1beb3bfd`؛ regression test `e9deb217064d1a801ad9568af6f6f7f30a1f06df`.
