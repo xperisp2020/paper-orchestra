@@ -128,7 +128,7 @@ def call_openai_models_with_content(
         try:
             messages = []
             if system_prompt:
-                role = "developer" if model_name.startswith(("o1", "o3")) else "system"
+                role = "developer" if model_name.startswith(("o1", "o3", "o4")) else "system"
                 messages.append({"role": role, "content": system_prompt})
 
             messages.append({"role": "user", "content": content})
