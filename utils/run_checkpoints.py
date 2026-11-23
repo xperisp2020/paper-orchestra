@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -132,8 +133,28 @@ def fingerprint_runtime():
                 timeout=15,
                 check=False,
             )
-            lines = (completed.stdout or "").splitlines()
-            version = lines[0].strip() if lines else "exit:" + str(completed.returncode)
+            lines = [line.strip() for line in (completed.stdout or "").splitlines() if line.strip()]
+            version_line = next(
+                (
+                    line for line in lines
+                    if re.search(
+                        r"\\b(?:pdfTeX|XeTeX|LuaTeX|BibTeX)\\b.*\\bVersion\\b",
+                        line,
+                        re.IGNORECASE,
+                    )
+                ),
+                None,
+            )
+            if version_line is None:
+                version_line = next(
+                    (
+                        line for line in lines
+                        if re.search(r"\\b(?:pdfTeX|XeTeX|LuaTeX|BibTeX)\\b", line, re.IGNORECASE)
+                        and not re.search(r"security risk|warning|major issue", line, re.IGNORECASE)
+                    ),
+                    None,
+                )
+            version = version_line or (lines[0] if lines else "exit:" + str(completed.returncode))
         except (OSError, subprocess.SubprocessError) as exc:
             version = "unavailable:" + type(exc).__name__
         resolved_executable = os.path.realpath(executable)
