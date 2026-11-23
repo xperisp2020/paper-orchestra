@@ -1420,7 +1420,7 @@ private:
             form->addRow(freeTierConsent);
         }
         auto *notice = new QLabel(persian
-            ? QStringLiteral("Python و وابستگی‌های موتور همراه برنامه بسته‌بندی نشده‌اند. برای ساخت محیط جداگانه، scripts/setup_research_runtime.ps1 را اجرا و سپس Scripts\\python.exe ساخته‌شده را انتخاب کنید. ابزارهای pdflatex و bibtex لازم‌اند. کلیدهای Gemini/OpenAI/OpenRouter فقط از محیط سیستم خوانده می‌شوند و ذخیره نمی‌شوند. سرویس‌های رایگان ممکن است داده‌های ارسالی را طبق سیاست ارائه‌دهنده ثبت یا برای بهبود مدل استفاده کنند؛ داده محرمانه ارسال نکنید.")
+            ? QStringLiteral("کد موتور پژوهش همراه برنامه است؛ مفسر Python و بسته‌های وابسته همراه برنامه نیستند. برای ساخت محیط جداگانه، scripts/setup_research_runtime.ps1 را اجرا و سپس Scripts\\python.exe ساخته‌شده را انتخاب کنید. ابزارهای pdflatex و bibtex لازم‌اند. کلیدهای Gemini/OpenAI/OpenRouter فقط از محیط سیستم خوانده می‌شوند و ذخیره نمی‌شوند. سرویس‌های رایگان ممکن است داده‌های ارسالی را طبق سیاست ارائه‌دهنده ثبت یا برای بهبود مدل استفاده کنند؛ داده محرمانه ارسال نکنید.")
             : QStringLiteral("Python and engine dependencies are not bundled. Run scripts/setup_research_runtime.ps1 and select its Scripts\\python.exe. pdflatex and bibtex are required. Gemini/OpenAI/OpenRouter credentials are read only from the process environment and are never stored. Free-tier providers may log or use submitted content to improve services; do not send confidential data."));
         notice->setWordWrap(true);
         form->addRow(notice);
