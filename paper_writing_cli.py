@@ -182,8 +182,8 @@ def main():
     )
     parser.add_argument(
         "--reflection_model_name",
-        default="gemini-3.1-pro-preview",
-        help="LLM for reflection agents.",
+        default=None,
+        help="LLM for reflection agents. Defaults to the selected writer model.",
     )
     parser.add_argument(
         "--research_cutoff",
@@ -227,6 +227,9 @@ def main():
 
     if args.research_cutoff is None:
         args.research_cutoff = datetime.now().strftime("%Y-%m")
+
+    if args.reflection_model_name is None:
+        args.reflection_model_name = args.writer_model_name
 
     if args.resume and (not args.output_dir or not os.path.isdir(args.output_dir)):
         message = "Resume requires an existing --output_dir from a previous run."
