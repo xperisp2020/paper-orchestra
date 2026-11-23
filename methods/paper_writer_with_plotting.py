@@ -105,6 +105,8 @@ def write_single_paper(
             latex_writeup_dir = osp.join(attempt_dir, "latex_writeup")
             content_refinement_workdir = osp.join(attempt_dir, "content_refinement_workdir")
             outline_file_path = osp.join(attempt_dir, "outline.json")
+            outline_initial_path = osp.join(attempt_dir, "outline_initial.json")
+            checkpoint_inputs_dir = osp.join(attempt_dir, "checkpoint_inputs")
             literature_agent_output_dir = osp.join(attempt_dir, "literature_agent_output")
 
             if not osp.isdir(latex_writeup_dir):
@@ -133,15 +135,22 @@ def write_single_paper(
                 experimental_log_file_path
             ), f"No experimental log file detected at '{experimental_log_file_path}'!"
 
-            if not checkpoint_store.is_stage_valid("prepare_inputs"):
+            prepare_inputs_valid = checkpoint_store.is_stage_valid("prepare_inputs")
+            if not prepare_inputs_valid and checkpoint_store.has_matching_state():
+                raise RuntimeError("Checkpoint input snapshot is invalid; preserving this attempt and starting a fresh one.")
+            if not prepare_inputs_valid:
+                os.makedirs(checkpoint_inputs_dir, exist_ok=True)
+                shutil.copy2(latex_template_path, osp.join(checkpoint_inputs_dir, "template.tex"))
+                shutil.copy2(guidelines_path, osp.join(checkpoint_inputs_dir, "guidelines.md"))
                 checkpoint_store.record_stage("prepare_inputs", [
-                    "latex_writeup/guidelines.md", "latex_writeup/template.tex"
+                    "checkpoint_inputs/template.tex", "checkpoint_inputs/guidelines.md"
                 ])
 
             ###############################################################################################
             # Step 1: Call outline agent
             _t0 = time.time()
             if not checkpoint_store.is_stage_valid("outline"):
+                shutil.copy2(osp.join(checkpoint_inputs_dir, "template.tex"), latex_template_path)
                 outline_agent = OutlineAgent(
                     model_name=writer_model_name, cutoff_date=research_cutoff
                 )
@@ -152,7 +161,8 @@ def write_single_paper(
                     conference_guidelines_file=guidelines_path,
                     output_filepath=outline_file_path,
                 )
-                checkpoint_store.record_stage("outline", ["outline.json"])
+                shutil.copy2(outline_file_path, outline_initial_path)
+                checkpoint_store.record_stage("outline", ["outline_initial.json"])
             time_log["OutlineAgent"] = time.time() - _t0
 
             ###############################################################################################
@@ -195,6 +205,10 @@ def write_single_paper(
             _t1 = time.time()
             literature_valid = checkpoint_store.is_stage_valid("literature")
             plotting_valid = checkpoint_store.is_stage_valid("plotting")
+            if not literature_valid or not plotting_valid:
+                shutil.copy2(outline_initial_path, outline_file_path)
+                if not literature_valid:
+                    shutil.copy2(osp.join(checkpoint_inputs_dir, "template.tex"), latex_template_path)
             with ThreadPoolExecutor(max_workers=2) as executor:
                 future_lit = (
                     None if literature_valid else executor.submit(run_literature_agent)
@@ -235,12 +249,12 @@ def write_single_paper(
             with open(osp.join(figures_dir, "info.json"), "w") as f:
                 json.dump(figures_info, f, indent=4)
 
-            # Copy literature outputs once the parallel literature/plotting pair is complete.
+            # Restore the literature-adjusted outline even when only plotting resumed.
+            shutil.copy2(
+                osp.join(literature_agent_output_dir, "outline_v1.json"),
+                outline_file_path,
+            )
             if not literature_valid:
-                shutil.copy(
-                    osp.join(literature_agent_output_dir, "outline_v1.json"),
-                    outline_file_path,
-                )
                 shutil.copy(
                     osp.join(literature_agent_output_dir, "updated_template.tex"),
                     osp.join(latex_writeup_dir, "template.tex"),
