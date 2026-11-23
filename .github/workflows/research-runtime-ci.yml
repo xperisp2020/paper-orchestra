@@ -60,6 +60,8 @@ jobs:
           }
           & $venvPython -c "import google.genai, openai, fitz, pymupdf4llm, numpy, matplotlib, pypdf"
           if ($LASTEXITCODE -ne 0) { throw "Research runtime imports failed." }
+          & $venvPython -c "import methods.paper_writer, methods.paper_writer_with_plotting"
+          if ($LASTEXITCODE -ne 0) { throw "Research agent modules failed to import." }
 
           & $venvPython -c "from paper_writing_cli import validate_runtime_prerequisites; missing = validate_runtime_prerequisites(); print(missing); raise SystemExit(1 if missing else 0)"
           if ($LASTEXITCODE -ne 0) { throw "CLI runtime preflight disagrees with the bootstrap environment." }
