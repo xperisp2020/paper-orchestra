@@ -262,6 +262,14 @@ class CheckpointStore:
         for candidate in invalid:
             state["stages"].pop(candidate, None)
 
+    def has_matching_state(self):
+        """Whether this attempt contains checkpoint state for the current inputs."""
+        with self._lock():
+            if not os.path.lexists(self.state_path):
+                return False
+            state = self._load()
+            return bool(state["stages"])
+
     def is_stage_valid(self, stage):
         with self._lock():
             state = self._load()
@@ -292,3 +300,43 @@ class CheckpointStore:
 
     def valid_stages(self):
         return [stage for stage in self.dependencies if self.is_stage_valid(stage)]
+
+
+
+def create_or_resume_attempt(base_dir, input_fingerprint, resume=False, dependencies=None):
+    """Reuse the newest matching attempt only when resume is explicitly requested.
+
+    Invalid/corrupt attempts are preserved for diagnosis and skipped. A live
+    lock is never bypassed; it aborts selection instead of starting a duplicate.
+    """
+    os.makedirs(base_dir, exist_ok=True)
+    if resume:
+        candidates = []
+        with os.scandir(base_dir) as entries:
+            for entry in entries:
+                suffix = entry.name[len("attempt_"):] if entry.name.startswith("attempt_") else ""
+                if suffix.isdigit() and entry.is_dir(follow_symlinks=False):
+                    candidates.append((int(suffix), entry.path))
+        for _, attempt_dir in sorted(candidates, reverse=True):
+            try:
+                store = CheckpointStore(
+                    attempt_dir, input_fingerprint, dependencies=dependencies
+                )
+                if store.has_matching_state():
+                    return attempt_dir, store, True
+            except (ValueError, json.JSONDecodeError):
+                # Never overwrite or repair a corrupt historical attempt.
+                continue
+
+    for number in range(1, 10001):
+        attempt_name = "attempt_" + str(number)
+        try:
+            from utils.safe_workspace import create_new_workspace
+            attempt_dir = create_new_workspace(base_dir, attempt_name)
+        except FileExistsError:
+            continue
+        store = CheckpointStore(
+            attempt_dir, input_fingerprint, dependencies=dependencies
+        )
+        return attempt_dir, store, False
+    raise FileExistsError("Could not allocate a unique attempt workspace.")
