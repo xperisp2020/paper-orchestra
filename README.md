@@ -95,7 +95,7 @@ The desktop wizard's **free-tier provider** mode uses OpenRouter's OpenAI-compat
 
 - Set `OPENROUTER_API_KEY` in the process environment before launching the desktop application. The application never stores the key.
 - The selected free model must be a free variant (the model ID ends in `:free`) or `openrouter/free`; paid OpenAI/Gemini model IDs are rejected in free-tier mode.
-- Current OpenRouter documentation lists free-variant limits of 20 requests per minute and 50 per day. The client spaces requests to stay below the per-minute limit and stops retrying HTTP 429 responses so failed attempts do not consume more of the daily quota. Provider quotas can change.
+- Current OpenRouter documentation lists free-variant limits of 20 requests per minute and 50 per day. The client spaces requests to stay below the per-minute limit and disables SDK-level retries and makes only one attempt per OpenRouter call so transient failures do not burn repeated daily quota. Provider quotas can change.
 - The fixed Nemotron model is the default so a checkpoint's model fingerprint remains stable. The dynamic `openrouter/free` router may choose different underlying models across requests.
 - Free-tier providers may log or use submitted content according to their own policies. The desktop wizard requires an explicit privacy acknowledgement; do not submit confidential, personal, or unpublished sensitive material unless the applicable provider terms permit it.
 - The current free model router supports feature-aware selection, including image understanding and structured outputs, but availability and quality vary by provider.
