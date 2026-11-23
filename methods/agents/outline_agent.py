@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from utils.common_utils import load_md_file
-from utils.gemini_utils import call_gemini_with_contents
 import json
-from google.genai import types  # type: ignore
 
+from utils.common_utils import load_md_file
+from utils.llm_backend_utils import call_llm_with_text_prompt
 from methods.prompts.outline_agent import outline_agent_system_prompt
 
 
@@ -35,26 +34,23 @@ class OutlineAgent:
         conference_guidelines_file: str,
         output_filepath: str = None,
     ):
-        contents = [
-            types.Part.from_text(
-                text=outline_agent_system_prompt.format(cutoff_date=self.cutoff_date)
-            ),
-            types.Part.from_text(text="'idea.md':\n" + load_md_file(idea_file)),
-            types.Part.from_text(
-                text="'experimental_log.md':\n" + load_md_file(experimental_log_file)
-            ),
-            types.Part.from_text(
-                text="'template.tex':\n" + load_md_file(latex_template_file)
-            ),
-            types.Part.from_text(text=load_md_file(conference_guidelines_file)),
-        ]
-        response_dict = call_gemini_with_contents(
-            contents=contents,
+        prompt = "\n\n".join(
+            [
+                outline_agent_system_prompt.format(cutoff_date=self.cutoff_date),
+                "'idea.md':\n" + load_md_file(idea_file),
+                "'experimental_log.md':\n" + load_md_file(experimental_log_file),
+                "'template.tex':\n" + load_md_file(latex_template_file),
+                "'conference_guidelines.md':\n" + load_md_file(conference_guidelines_file),
+            ]
+        )
+        response_dict = call_llm_with_text_prompt(
+            prompt=prompt,
             model_name=self.model_name,
+            return_json=True,
         )
         json_result = response_dict["parsed_response"]
         if output_filepath is not None:
-            with open(output_filepath, "w") as f:
-                json.dump(json_result, f, indent=4)
+            with open(output_filepath, "w", encoding="utf-8") as f:
+                json.dump(json_result, f, indent=4, ensure_ascii=False)
                 print(f"outline.json output written to {output_filepath}")
         return json_result
