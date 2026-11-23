@@ -30,25 +30,57 @@ from dotenv import load_dotenv  # type: ignore
 dot_file = os.path.join(os.path.dirname(__file__), "../.env")
 load_dotenv(dot_file)
 
-_openai_client = None
+_openai_clients = {}
 _openai_client_lock = threading.Lock()
+_openrouter_rate_lock = threading.Lock()
+_openrouter_last_request = 0.0
+_OPENROUTER_MIN_INTERVAL_SECONDS = 3.05
 
 
-def get_openai_client() -> OpenAI:
-    """Returns a shared OpenAI client, creating it on first use.
+def _is_openrouter_model(model_name: str) -> bool:
+    normalized = (model_name or "").strip().lower()
+    return "/" in normalized or normalized.startswith("openrouter/")
 
-    The client is created lazily so that OPENAI_API_KEY is only required when
-    an OpenAI model is actually called (e.g. Gemini-only setups don't need it).
+
+def get_openai_client(model_name: str = None) -> OpenAI:
+    """Return a cached OpenAI or OpenRouter-compatible client.
+
+    OpenRouter uses the OpenAI SDK with its own base URL and API key. The
+    provider is selected from the model ID, so OpenAI and OpenRouter keys can
+    coexist without being mixed.
     """
-    global _openai_client
-    if _openai_client is None:
-        with _openai_client_lock:
-            if _openai_client is None:
-                openai_api_key = os.environ.get("OPENAI_API_KEY")
-                if not openai_api_key:
-                    raise ValueError("OPENAI_API_KEY must be set to use OpenAI models.")
-                _openai_client = OpenAI(api_key=openai_api_key)
-    return _openai_client
+    provider = "openrouter" if _is_openrouter_model(model_name) else "openai"
+    with _openai_client_lock:
+        if provider in _openai_clients:
+            return _openai_clients[provider]
+
+        if provider == "openrouter":
+            api_key = os.environ.get("OPENROUTER_API_KEY")
+            if not api_key:
+                raise ValueError("OPENROUTER_API_KEY must be set to use OpenRouter models.")
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://openrouter.ai/api/v1",
+            )
+        else:
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY must be set to use OpenAI models.")
+            client = OpenAI(api_key=api_key)
+
+        _openai_clients[provider] = client
+        return client
+
+
+def _wait_for_openrouter_rate_slot():
+    """Serialize free-router calls to stay below OpenRouter's 20 RPM cap."""
+    global _openrouter_last_request
+    with _openrouter_rate_lock:
+        now = time.monotonic()
+        wait_seconds = _OPENROUTER_MIN_INTERVAL_SECONDS - (now - _openrouter_last_request)
+        if wait_seconds > 0:
+            time.sleep(wait_seconds)
+        _openrouter_last_request = time.monotonic()
 
 
 def parse_openai_json_results(response: str):
@@ -123,10 +155,13 @@ def call_openai_models_with_content(
 ):
     raw_response = None
     parsed_response = None
-    openai_client = get_openai_client()
+    is_openrouter = _is_openrouter_model(model_name)
+    openai_client = get_openai_client(model_name)
 
     for attempt in range(max_retries):
         try:
+            if is_openrouter:
+                _wait_for_openrouter_rate_slot()
             messages = []
             if system_prompt:
                 role = "developer" if model_name.startswith(("o1", "o3", "o4")) else "system"
@@ -154,8 +189,14 @@ def call_openai_models_with_content(
 
         except Exception as e:
             print(
-                f"Warning: OpenAI API call (model={model_name}) failed on attempt {attempt + 1} of {max_retries}. Error: {redact_secrets(e)}",
+                f"Warning: OpenAI-compatible API call (model={model_name}) failed on attempt {attempt + 1} of {max_retries}. Error: {redact_secrets(e)}",
             )
+
+            # Failed OpenRouter free-tier attempts count toward the provider quota;
+            # do not burn the daily allowance by retrying a rate-limit response.
+            if is_openrouter and getattr(e, "status_code", None) == 429:
+                print("OpenRouter rate limit reached; stopping retries.")
+                raise
 
             if attempt + 1 == max_retries:
                 print(f"Error: All {max_retries} retry attempts failed.")
