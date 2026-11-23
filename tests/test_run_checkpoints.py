@@ -199,11 +199,14 @@ class CheckpointStoreTests(unittest.TestCase):
 
     def test_writer_and_cli_integrate_explicit_resume(self):
         repo_root = Path(__file__).resolve().parents[1]
-        for relative in ("methods/paper_writer.py", "paper_writing_cli.py"):
+        for relative in ("methods/paper_writer.py", "methods/paper_writer_with_plotting.py"):
             source = (repo_root / relative).read_text(encoding="utf-8")
-            self.assertIn("create_or_resume_attempt", source) if relative.endswith("paper_writer.py") else self.assertIn('"--resume"', source)
-            self.assertIn("resume: bool = False", source) if relative.endswith("paper_writer.py") else self.assertIn("resume=args.resume", source)
+            self.assertIn("create_or_resume_attempt", source)
+            self.assertIn("resume: bool = False", source)
+            self.assertIn('checkpoint_store.record_stage("draft"', source)
         cli = (repo_root / "paper_writing_cli.py").read_text(encoding="utf-8")
+        self.assertIn('"--resume"', cli)
+        self.assertIn("resume=args.resume", cli)
         self.assertIn("fingerprint_path(args.raw_materials_dir)", cli)
         self.assertIn("fingerprint_path(target_raw_materials)", cli)
 
