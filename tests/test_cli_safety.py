@@ -157,7 +157,7 @@ class CliRunManifestIntegrationTests(unittest.TestCase):
             os.makedirs(raw)
             with open(os.path.join(raw, "idea_sparse.md"), "w", encoding="utf-8") as stream:
                 stream.write("idea")
-            stdout = self._run_cli(raw, output, lambda **kwargs: None)
+            stdout = self._run_cli(raw, output, lambda **kwargs: True)
             with open(os.path.join(output, "run_manifest.json"), encoding="utf-8") as stream:
                 manifest = json.load(stream)
             events = [json.loads(line) for line in stdout.splitlines() if line.startswith("{")]
