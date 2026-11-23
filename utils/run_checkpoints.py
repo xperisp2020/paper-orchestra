@@ -20,7 +20,7 @@ DEFAULT_DEPENDENCIES = {
     "literature": ("outline",),
     "plotting": ("outline",),
     "draft": ("literature",),
-    "refinement": ("draft", "plotting"),
+    "refinement": ("draft",),
 }
 STATE_FILENAME = ".run_checkpoints.json"
 LOCK_FILENAME = ".run_checkpoints.lock"
