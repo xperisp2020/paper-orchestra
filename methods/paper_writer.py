@@ -86,6 +86,8 @@ def write_single_paper(
             latex_writeup_dir = osp.join(attempt_dir, "latex_writeup")
             content_refinement_workdir = osp.join(attempt_dir, "content_refinement_workdir")
             outline_file_path = osp.join(attempt_dir, "outline.json")
+            outline_initial_path = osp.join(attempt_dir, "outline_initial.json")
+            checkpoint_inputs_dir = osp.join(attempt_dir, "checkpoint_inputs")
             literature_agent_output_dir = osp.join(attempt_dir, "literature_agent_output")
             new_figure_dir = osp.join(latex_writeup_dir, "figures")
             figures_dir = new_figure_dir
@@ -116,14 +118,21 @@ def write_single_paper(
                 experimental_log_file_path
             ), f"No experimental log file detected at '{experimental_log_file_path}'!"
 
-            if not checkpoint_store.is_stage_valid("prepare_inputs"):
+            prepare_inputs_valid = checkpoint_store.is_stage_valid("prepare_inputs")
+            if not prepare_inputs_valid and checkpoint_store.has_matching_state():
+                raise RuntimeError("Checkpoint input snapshot is invalid; preserving this attempt and starting a fresh one.")
+            if not prepare_inputs_valid:
+                os.makedirs(checkpoint_inputs_dir, exist_ok=True)
+                shutil.copy2(latex_template_path, osp.join(checkpoint_inputs_dir, "template.tex"))
+                shutil.copy2(guidelines_path, osp.join(checkpoint_inputs_dir, "guidelines.md"))
                 checkpoint_store.record_stage("prepare_inputs", [
-                    "latex_writeup/guidelines.md", "latex_writeup/template.tex"
+                    "checkpoint_inputs/template.tex", "checkpoint_inputs/guidelines.md"
                 ])
 
             ###############################################################################################
             # Step 1: Call outline agent
             if not checkpoint_store.is_stage_valid("outline"):
+                shutil.copy2(osp.join(checkpoint_inputs_dir, "template.tex"), latex_template_path)
                 outline_agent = OutlineAgent(
                     model_name=writer_model_name, cutoff_date=research_cutoff
                 )
@@ -134,11 +143,14 @@ def write_single_paper(
                     conference_guidelines_file=guidelines_path,
                     output_filepath=outline_file_path,
                 )
-                checkpoint_store.record_stage("outline", ["outline.json"])
+                shutil.copy2(outline_file_path, outline_initial_path)
+                checkpoint_store.record_stage("outline", ["outline_initial.json"])
 
             ###############################################################################################
             # Step 2: Call HybridLiteratureAgent
             if not checkpoint_store.is_stage_valid("literature"):
+                shutil.copy2(osp.join(checkpoint_inputs_dir, "template.tex"), latex_template_path)
+                shutil.copy2(outline_initial_path, outline_file_path)
                 literature_agent = HybridLiteratureAgent(
                     idea_path=idea_file_path,
                     experimental_log_path=experimental_log_file_path,
