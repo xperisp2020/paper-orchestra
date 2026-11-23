@@ -36,12 +36,12 @@ jobs:
           mkdir -p "$work"
           cd "$work"
           cat > paper.tex <<'EOF'
-          \\documentclass{article}
-          \\begin{document}
-          A minimal bibliography-backed compilation test \\cite{doe2020}.
-          \\bibliographystyle{plain}
-          \\bibliography{references}
-          \\end{document}
+          \documentclass{article}
+          \begin{document}
+          A minimal bibliography-backed compilation test \cite{doe2020}.
+          \bibliographystyle{plain}
+          \bibliography{references}
+          \end{document}
           EOF
           cat > references.bib <<'EOF'
           @article{doe2020,
