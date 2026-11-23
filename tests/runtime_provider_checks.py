@@ -2,6 +2,8 @@
 import tempfile
 import unittest
 import sys
+import io
+from types import SimpleNamespace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -9,10 +11,44 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from utils.llm_backend_utils import is_openai_model
 from utils.scholar_utils import s2_keyword_search
-from utils.openai_utils import get_openai_image_part_from_path
+from utils.openai_utils import get_openai_client, get_openai_image_part_from_path
 
 
 class ProviderRoutingIntegrationTests(unittest.TestCase):
+    def test_openrouter_client_uses_separate_key_and_base_url(self):
+        from utils import openai_utils as module
+
+        module._openai_clients.clear()
+        fake_client = object()
+        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "openrouter-test-key"}, clear=False), \\
+             patch.object(module, "OpenAI", return_value=fake_client) as factory:
+            client = get_openai_client("nvidia/nemotron-3.5-super-vl:free")
+        self.assertIs(client, fake_client)
+        self.assertEqual(factory.call_args.kwargs["api_key"], "openrouter-test-key")
+        self.assertEqual(factory.call_args.kwargs["base_url"], "https://openrouter.ai/api/v1")
+        module._openai_clients.clear()
+
+    def test_openrouter_rate_limit_is_not_retried(self):
+        from utils import openai_utils as module
+
+        class RateLimitError(Exception):
+            status_code = 429
+
+        create = unittest.mock.Mock(side_effect=RateLimitError("rate limited"))
+        client = SimpleNamespace(
+            chat=SimpleNamespace(completions=SimpleNamespace(create=create))
+        )
+        with patch.object(module, "get_openai_client", return_value=client), \\
+             patch.object(module, "_wait_for_openrouter_rate_slot"), \\
+             patch("sys.stdout", io.StringIO()):
+            with self.assertRaises(RateLimitError):
+                module.call_openai_models_with_content(
+                    content=[{"type": "text", "text": "test"}],
+                    model_name="openrouter/free",
+                    max_retries=3,
+                )
+        self.assertEqual(create.call_count, 1)
+
     def test_openai_image_payload_preserves_png_mime_type(self):
         with tempfile.TemporaryDirectory() as temp:
             image_path = Path(temp) / "page.png"
@@ -21,7 +57,7 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
         self.assertEqual(parts[0]["image_url"]["url"].split(";", 1)[0], "data:image/png")
 
     def test_openai_model_family_detection(self):
-        for name in ("gpt-4o", "o1-preview", "o3-mini", "o4-mini"):
+        for name in ("gpt-4o", "o1-preview", "o3-mini", "o4-mini", "openrouter/free", "nvidia/nemotron-3.5-super-vl:free"):
             self.assertTrue(is_openai_model(name), name)
         for name in ("gemini-3.1-pro-preview", "claude-sonnet", ""):
             self.assertFalse(is_openai_model(name), name)
