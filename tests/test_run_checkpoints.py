@@ -27,6 +27,11 @@ class CheckpointFingerprintTests(unittest.TestCase):
             self.assertEqual(first_tree, fingerprint_path(tree))
             (tree / "a.txt").write_text("changed", encoding="utf-8")
             self.assertNotEqual(first_tree, fingerprint_path(tree))
+            empty_tree = root / "empty-tree"
+            empty_tree.mkdir()
+            before_empty_child = fingerprint_path(empty_tree)
+            (empty_tree / "empty-child").mkdir()
+            self.assertNotEqual(before_empty_child, fingerprint_path(empty_tree))
             source.write_text("changed", encoding="utf-8")
             self.assertNotEqual(first_file, fingerprint_path(source))
 
@@ -135,6 +140,19 @@ class CheckpointStoreTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.store.is_stage_valid("inputs")
         self.assertEqual(lock.read_text(encoding="utf-8"), "owner")
+
+    def test_run_lock_covers_nested_checkpoint_writes_and_excludes_other_store(self):
+        other = CheckpointStore(
+            self.root, self.fingerprint, dependencies=self.dependencies
+        )
+        with self.store.run_lock():
+            self._artifact("inputs.json", "inputs")
+            self.store.record_stage("inputs", ["inputs.json"])
+            with self.assertRaises(RuntimeError):
+                other.is_stage_valid("inputs")
+            self.assertTrue((self.root / ".run_checkpoints.lock").is_file())
+        self.assertFalse((self.root / ".run_checkpoints.lock").exists())
+        self.assertTrue(self.store.is_stage_valid("inputs"))
 
     def test_state_write_is_atomic_and_has_no_temporary_files(self):
         self._artifact("inputs.json", "inputs")
