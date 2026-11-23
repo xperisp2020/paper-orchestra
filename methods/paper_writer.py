@@ -40,10 +40,13 @@ def write_single_paper(
     idea_filename="idea_dense.md",
     experimental_log_filename="experimental_log.md",
     writer_model_name: str = "gemini-3.1-pro-preview",
-    reflection_model_name: str = "gemini-3.1-pro-preview",
+    reflection_model_name: str = None,
     research_cutoff: str = "2024-11",
     resume: bool = False,
 ):
+    if reflection_model_name is None:
+        reflection_model_name = writer_model_name
+
     pdf_file = osp.join(base_dir, "final_paper.pdf")
     ensure_paths_absent((
         osp.join(base_dir, "latex_writeup"),
