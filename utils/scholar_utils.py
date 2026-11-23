@@ -31,6 +31,64 @@ S2_API_KEY = os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
 # --- SEMANTIC SCHOLAR UTILS ---
 
 
+
+def s2_keyword_search(
+    query: str, limit: int = 10, cutoff_date: str = None
+) -> List[Dict]:
+    """Search Semantic Scholar by topic and return metadata-rich candidates.
+
+    Unlike title verification, this endpoint supports broad topic queries and
+    provides a no-Gemini fallback for literature discovery.
+    """
+    if not query or not query.strip():
+        return []
+
+    headers = {"X-API-KEY": S2_API_KEY} if S2_API_KEY else {}
+    response = requests.get(
+        "https://api.semanticscholar.org/graph/v1/paper/search",
+        headers=headers,
+        params={
+            "query": query.strip(),
+            "limit": max(1, min(int(limit), 100)),
+            "fields": "title,authors,venue,year,abstract,citationCount,journal,publicationDate",
+        },
+        timeout=15,
+    )
+    if response.status_code != 200:
+        raise requests.HTTPError(
+            f"Semantic Scholar search failed with HTTP {response.status_code}"
+        )
+    payload = response.json()
+    results = payload.get("data", []) if isinstance(payload, dict) else []
+    return [
+        item for item in results
+        if isinstance(item, dict)
+        and item.get("title")
+        and (not cutoff_date or _is_before_cutoff(
+            item.get("publicationDate"), item.get("year"), cutoff_date
+        ))
+    ]
+
+
+def _is_before_cutoff(publication_date, year, cutoff_date):
+    try:
+        parts = [int(part) for part in cutoff_date.split("-")]
+        cutoff_year = parts[0]
+        cutoff_month = parts[1] if len(parts) > 1 else 12
+        if publication_date:
+            date_parts = [int(part) for part in str(publication_date).split("-")]
+            pub_year = date_parts[0]
+            pub_month = date_parts[1] if len(date_parts) > 1 else 1
+            return (pub_year, pub_month) < (cutoff_year, cutoff_month)
+        if year:
+            return int(year) < cutoff_year or (
+                int(year) == cutoff_year and cutoff_month > 1
+            )
+    except (TypeError, ValueError):
+        return True
+    return True
+
+
 def s2_title_search(
     title_query: str, year_hint: int = None, cutoff_date: str = None
 ) -> Optional[Dict]:
