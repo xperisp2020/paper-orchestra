@@ -1392,3 +1392,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CIهای پایه روی کد قبل از اصلاح parser موفق بودند: Python safety `45219816234` (64 آزمون روی Ubuntu و 64 روی Windows)، Research runtime `45219306447`، Windows packaging `45219306336`. اصلاح parser و regression test نیازمند اجرای مجدد CI روی HEAD جدید هستند.
 - Portable artifact `14839383190` و Installer artifact `14839487898` از run `45219306336` موجود و تا 2027-02-21 معتبرند؛ این artifactها قبل از اصلاح parser ساخته شده‌اند و هنوز بسته‌بندی نهاییِ commitهای جدید محسوب نمی‌شوند.
 - وضعیت باقی‌مانده: اجرای مجدد Python safety، Research runtime، Windows packaging و MiKTeX روی HEAD جدید؛ سپس بررسی خروجی‌ها و به‌روزرسانی hash artifactهای نهایی. اجرای واقعی provider با کلید مجاز، تست GUI روی دستگاه کاربر و Word 2010 همچنان انجام نشده‌اند.
+
+
+### 6.99.17 اصلاح و آزمون مجدد parser نسخه LaTeX
+- نخستین اجرای regression روی parser جدید (run `45220610588`) شکست خورد؛ علت، escape بیش‌ازحد در regex بود که باعث می‌شد هشدار MiKTeX به‌عنوان نسخه انتخاب شود. log کامل بررسی و علت ریشه‌ای مشخص شد.
+- regex به مرز کلمه واقعی اصلاح شد: commit `51d930d0d719b68ab4afae7e3c6281be91e89b17`. آزمون با خروجی warning-prefixed MiKTeX اکنون خط واقعی pdfTeX/BibTeX را استخراج می‌کند.
+- Python safety روی HEAD اصلاح‌شده موفق شد: run `45220710648`، هر دو job Ubuntu و Windows با conclusion=success؛ 64 آزمون در هر سیستم‌عامل.
+- Research runtime run `45220710705` روی commit parser اولیه (پیش از اصلاح escape) هر دو job Windows bootstrap و Ubuntu TeX Live را با موفقیت گذراند؛ این run را جایگزین اعتبارسنجی HEAD فعلی نمی‌دانیم.
+- اجرای مجدد MiKTeX روی HEAD فعلی: run `45220710357`. بار اول دریافت installer به timeout شبکه خورد (run همان commit در attempt اول)؛ job مجدداً اجرا شد و اکنون در مرحله نصب MiKTeX است. Windows packaging run `45220710674` نیز در مرحله build است. تا تکمیل این دو مورد، artifact جدیدی را نهایی اعلام نمی‌کنیم.
+- خطای regex، timeout دانلود و وضعیت rerunها در این بخش ثبت شد؛ پس از تکمیل باید نتیجه واقعی هر job و شناسه/hash artifactها اضافه شود.
