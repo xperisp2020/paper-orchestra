@@ -33,6 +33,7 @@ from utils.common_utils import (
     create_log_folder,
 )
 from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, publish_file_no_overwrite
+from utils.run_checkpoints import create_or_resume_attempt, fingerprint_inputs, fingerprint_path
 
 
 def write_single_paper(
@@ -46,6 +47,7 @@ def write_single_paper(
     image_model_name: str = "gemini-3-pro-image-preview",
     research_cutoff: str = "2024-11",
     plotting_max_critic_rounds: int = 3,
+    resume: bool = False,
 ):
     pdf_file = osp.join(base_dir, "final_paper.pdf")
     ensure_paths_absent((
@@ -58,11 +60,33 @@ def write_single_paper(
 
     materials_dir = osp.join(base_dir, "raw_materials")
 
+    checkpoint_fingerprint = fingerprint_inputs({
+        "raw_materials": fingerprint_path(materials_dir),
+        "latex_template": fingerprint_path(latex_template_dir),
+        "idea_filename": idea_filename,
+        "experimental_log_filename": experimental_log_filename,
+        "writer_model": writer_model_name,
+        "reflection_model": reflection_model_name,
+        "plotting_model": plotting_model_name,
+        "image_model": image_model_name,
+        "plotting_max_critic_rounds": plotting_max_critic_rounds,
+        "research_cutoff": research_cutoff,
+        "pipeline": "with_plotting_v1",
+    })
+    checkpoint_dependencies = {
+        "prepare_inputs": (),
+        "outline": ("prepare_inputs",),
+        "literature": ("outline",),
+        "plotting": ("outline",),
+        "draft": ("literature", "plotting"),
+        "refinement": ("draft",),
+    }
     max_n_tries = 3
     cur_try = 0
     succeed = False
 
     while (not succeed) and (cur_try < max_n_tries):
+        checkpoint_run_lock = None
         try:
             assert osp.exists(
                 materials_dir
@@ -70,14 +94,21 @@ def write_single_paper(
 
             # Keep each retry isolated so partial outputs cannot contaminate
             # later attempts. Previous attempt directories remain recoverable.
-            attempt_dir = create_new_workspace(base_dir, f"attempt_{cur_try + 1}")
+            attempt_dir, checkpoint_store, resumed_attempt = create_or_resume_attempt(
+                base_dir, checkpoint_fingerprint,
+                resume=(resume and cur_try == 0),
+                dependencies=checkpoint_dependencies,
+            )
+            checkpoint_run_lock = checkpoint_store.run_lock()
+            checkpoint_run_lock.__enter__()
             time_log = {"Start_Time_Absolute": time.time()}
             latex_writeup_dir = osp.join(attempt_dir, "latex_writeup")
             content_refinement_workdir = osp.join(attempt_dir, "content_refinement_workdir")
             outline_file_path = osp.join(attempt_dir, "outline.json")
             literature_agent_output_dir = osp.join(attempt_dir, "literature_agent_output")
 
-            shutil.copytree(latex_template_dir, latex_writeup_dir)
+            if not osp.isdir(latex_writeup_dir):
+                shutil.copytree(latex_template_dir, latex_writeup_dir)
             figures_dir = osp.join(latex_writeup_dir, "figures")
             os.makedirs(figures_dir, exist_ok=True)
 
@@ -102,19 +133,26 @@ def write_single_paper(
                 experimental_log_file_path
             ), f"No experimental log file detected at '{experimental_log_file_path}'!"
 
+            if not checkpoint_store.is_stage_valid("prepare_inputs"):
+                checkpoint_store.record_stage("prepare_inputs", [
+                    "latex_writeup/guidelines.md", "latex_writeup/template.tex"
+                ])
+
             ###############################################################################################
             # Step 1: Call outline agent
             _t0 = time.time()
-            outline_agent = OutlineAgent(
-                model_name=writer_model_name, cutoff_date=research_cutoff
-            )
-            outline_agent.run(
-                idea_file=idea_file_path,
-                experimental_log_file=experimental_log_file_path,
-                latex_template_file=latex_template_path,
-                conference_guidelines_file=guidelines_path,
-                output_filepath=outline_file_path,
-            )
+            if not checkpoint_store.is_stage_valid("outline"):
+                outline_agent = OutlineAgent(
+                    model_name=writer_model_name, cutoff_date=research_cutoff
+                )
+                outline_agent.run(
+                    idea_file=idea_file_path,
+                    experimental_log_file=experimental_log_file_path,
+                    latex_template_file=latex_template_path,
+                    conference_guidelines_file=guidelines_path,
+                    output_filepath=outline_file_path,
+                )
+                checkpoint_store.record_stage("outline", ["outline.json"])
             time_log["OutlineAgent"] = time.time() - _t0
 
             ###############################################################################################
@@ -155,13 +193,31 @@ def write_single_paper(
                 return res
 
             _t1 = time.time()
+            literature_valid = checkpoint_store.is_stage_valid("literature")
+            plotting_valid = checkpoint_store.is_stage_valid("plotting")
             with ThreadPoolExecutor(max_workers=2) as executor:
-                future_lit = executor.submit(run_literature_agent)
-                future_plot = executor.submit(run_plotting_agent)
-
-                future_lit.result()
-                plot_results = future_plot.result()
+                future_lit = (
+                    None if literature_valid else executor.submit(run_literature_agent)
+                )
+                future_plot = (
+                    None if plotting_valid else executor.submit(run_plotting_agent)
+                )
+                if future_lit is not None:
+                    future_lit.result()
+                if future_plot is not None:
+                    plot_results = future_plot.result()
+                else:
+                    with open(osp.join(attempt_dir, "plotting_results.json"), encoding="utf-8") as stream:
+                        plot_results = json.load(stream)
             time_log["Parallel_Lit_and_Plot"] = time.time() - _t1
+
+            if not plotting_valid:
+                plotting_artifacts = ["plotting_results.json"]
+                for plot_obj in plot_results:
+                    image_path = plot_obj.get("image_path") if isinstance(plot_obj, dict) else None
+                    if image_path:
+                        plotting_artifacts.append(image_path)
+                checkpoint_store.record_stage("plotting", plotting_artifacts)
 
             figures_info = []
             for plot_obj in plot_results:
@@ -179,19 +235,29 @@ def write_single_paper(
             with open(osp.join(figures_dir, "info.json"), "w") as f:
                 json.dump(figures_info, f, indent=4)
 
-            # Copy literature agent outputs
-            shutil.copy(
-                osp.join(literature_agent_output_dir, "outline_v1.json"),
-                outline_file_path,
-            )
-            shutil.copy(
-                osp.join(literature_agent_output_dir, "updated_template.tex"),
-                osp.join(latex_writeup_dir, "template.tex"),
-            )
-            shutil.copy(
-                osp.join(literature_agent_output_dir, "references.bib"),
-                osp.join(latex_writeup_dir, "references.bib"),
-            )
+            # Copy literature outputs once the parallel literature/plotting pair is complete.
+            if not literature_valid:
+                shutil.copy(
+                    osp.join(literature_agent_output_dir, "outline_v1.json"),
+                    outline_file_path,
+                )
+                shutil.copy(
+                    osp.join(literature_agent_output_dir, "updated_template.tex"),
+                    osp.join(latex_writeup_dir, "template.tex"),
+                )
+                shutil.copy(
+                    osp.join(literature_agent_output_dir, "references.bib"),
+                    osp.join(latex_writeup_dir, "references.bib"),
+                )
+                checkpoint_store.record_stage("literature", [
+                    "literature_agent_output/outline_v1.json",
+                    "literature_agent_output/updated_template.tex",
+                    "literature_agent_output/references.bib",
+                    "literature_agent_output/citation_map.json",
+                    "outline.json",
+                    "latex_writeup/template.tex",
+                    "latex_writeup/references.bib",
+                ])
 
             ###############################################################################################
             # Step 3. Call SectionWritingAgent
@@ -199,39 +265,46 @@ def write_single_paper(
                 literature_agent_output_dir, "citation_map.json"
             )
             _t2 = time.time()
-            section_writing_agent = SectionWritingAgent(
-                outline_path=outline_file_path,
-                template_path=osp.join(latex_writeup_dir, "template.tex"),
-                idea_path=idea_file_path,
-                experimental_log_path=experimental_log_file_path,
-                citation_map_path=citation_map_path,
-                figures_info_path=osp.join(figures_dir, "info.json"),
-                guidelines_path=guidelines_path,
-                model_name=writer_model_name,
-            )
             raw_draft_tex_path = osp.join(latex_writeup_dir, "raw_draft_paper.tex")
-            section_writing_agent.run(output_path=raw_draft_tex_path)
+            if not checkpoint_store.is_stage_valid("draft"):
+                section_writing_agent = SectionWritingAgent(
+                    outline_path=outline_file_path,
+                    template_path=osp.join(latex_writeup_dir, "template.tex"),
+                    idea_path=idea_file_path,
+                    experimental_log_path=experimental_log_file_path,
+                    citation_map_path=citation_map_path,
+                    figures_info_path=osp.join(figures_dir, "info.json"),
+                    guidelines_path=guidelines_path,
+                    model_name=writer_model_name,
+                )
+                section_writing_agent.run(output_path=raw_draft_tex_path)
+                checkpoint_store.record_stage("draft", ["latex_writeup/raw_draft_paper.tex"])
             time_log["SectionWritingAgent"] = time.time() - _t2
 
             ###############################################################################################
             # Step 4: Content Reflection
-            shutil.copytree(
-                latex_writeup_dir,
-                content_refinement_workdir,
-            )
+            if not osp.isdir(content_refinement_workdir):
+                shutil.copytree(latex_writeup_dir, content_refinement_workdir)
 
             _t3 = time.time()
-            content_refinement_agent = ContentRefinementAgent(
-                experimental_log_path=experimental_log_file_path,
-                citation_map_path=citation_map_path,
-                guidelines_path=guidelines_path,
-                model_name=reflection_model_name,
-                max_reflections=3,
-                work_dir=content_refinement_workdir,
+            content_refinment_agent_output_pdf_path = osp.join(
+                content_refinement_workdir, "final_refined_paper.pdf"
             )
-            content_refinment_agent_output_pdf_path = content_refinement_agent.run(
-                texfile_path=raw_draft_tex_path
-            )
+            if not checkpoint_store.is_stage_valid("refinement"):
+                content_refinement_agent = ContentRefinementAgent(
+                    experimental_log_path=experimental_log_file_path,
+                    citation_map_path=citation_map_path,
+                    guidelines_path=guidelines_path,
+                    model_name=reflection_model_name,
+                    max_reflections=3,
+                    work_dir=content_refinement_workdir,
+                )
+                content_refinment_agent_output_pdf_path = content_refinement_agent.run(
+                    texfile_path=raw_draft_tex_path
+                )
+                checkpoint_store.record_stage("refinement", [
+                    osp.relpath(content_refinment_agent_output_pdf_path, attempt_dir).replace(osp.sep, "/")
+                ])
             time_log["ContentRefinementAgent"] = time.time() - _t3
             time_log["Total_Time_Span"] = time.time() - time_log["Start_Time_Absolute"]
 
@@ -258,6 +331,9 @@ def write_single_paper(
             cur_try += 1
             if cur_try < max_n_tries:
                 print("Try again now...")
+        finally:
+            if checkpoint_run_lock is not None:
+                checkpoint_run_lock.__exit__(None, None, None)
 
     print(f"Writeup failed after {max_n_tries}! Stop here.")
     return False
