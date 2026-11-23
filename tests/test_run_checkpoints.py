@@ -16,6 +16,8 @@ from utils.run_checkpoints import (
     CheckpointStore,
     fingerprint_inputs,
     fingerprint_path,
+    fingerprint_source_tree,
+    fingerprint_runtime,
     create_or_resume_attempt,
 )
 
