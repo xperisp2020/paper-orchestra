@@ -183,6 +183,38 @@ class CliRunManifestIntegrationTests(unittest.TestCase):
                               stderr.getvalue())
                 self.assertFalse(os.path.exists(output))
 
+    def test_reflection_model_defaults_to_selected_writer_model(self):
+        with tempfile.TemporaryDirectory() as temp:
+            raw = os.path.join(temp, "raw")
+            template = os.path.join(temp, "template")
+            output = os.path.join(temp, "run")
+            os.makedirs(raw)
+            os.makedirs(template)
+            with open(os.path.join(raw, "idea_sparse.md"), "w", encoding="utf-8") as stream:
+                stream.write("idea")
+            captured = {}
+
+            def writer(**kwargs):
+                captured.update(kwargs)
+                return True
+
+            stdout = io.StringIO()
+            argv = [
+                "paper_writing_cli.py",
+                "--raw_materials_dir", raw,
+                "--output_dir", output,
+                "--latex_template_dir", template,
+                "--writer_model_name", "gpt-4o",
+            ]
+            with patch("sys.argv", argv), \\
+                 patch("paper_writing_cli.validate_runtime_prerequisites", return_value=[]), \\
+                 patch("sys.stdout", stdout), \\
+                 patch.dict(sys.modules, self._fake_methods(writer)):
+                main()
+
+            self.assertEqual(captured["writer_model_name"], "gpt-4o")
+            self.assertEqual(captured["reflection_model_name"], "gpt-4o")
+
     def test_successful_cli_run_completes_manifest_and_emits_matching_run_id(self):
         with tempfile.TemporaryDirectory() as temp:
             raw = os.path.join(temp, "raw")
