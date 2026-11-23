@@ -228,6 +228,13 @@ def main():
     if args.research_cutoff is None:
         args.research_cutoff = datetime.now().strftime("%Y-%m")
 
+    if args.resume and (not args.output_dir or not os.path.isdir(args.output_dir)):
+        message = "Resume requires an existing --output_dir from a previous run."
+        print("Error: " + message, file=sys.stderr, flush=True)
+        emit_event(args.events_jsonl, "pipeline_failed", stage="resume_preflight",
+                   error=message)
+        sys.exit(1)
+
     if not os.path.isdir(args.raw_materials_dir):
         message = (
             f"Raw materials directory does not exist or is not a directory: "
