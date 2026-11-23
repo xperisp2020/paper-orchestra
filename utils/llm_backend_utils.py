@@ -33,8 +33,17 @@ from utils.pdf_utils import load_paper
 
 
 def is_openai_model(model_name: str) -> bool:
+    """Return whether a model uses the OpenAI-compatible chat-completions backend.
+
+    Besides OpenAI model families, slash-qualified IDs are treated as
+    OpenRouter model identifiers (for example, openrouter/free or
+    nvidia/nemotron-3.5-super-vl:free).
+    """
     normalized = (model_name or "").strip().lower()
-    return normalized.startswith(("gpt-", "o1", "o3", "o4"))
+    return (
+        normalized.startswith(("gpt-", "o1", "o3", "o4", "openrouter/"))
+        or "/" in normalized
+    )
 
 
 def identity_parse(response: str):
