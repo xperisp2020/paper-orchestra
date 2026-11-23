@@ -303,7 +303,7 @@ class CheckpointStore:
 
 
 
-def create_or_resume_attempt(base_dir, input_fingerprint, resume=False, dependencies=None):
+def create_or_resume_attempt(base_dir, input_fingerprint, resume=False, dependencies=None, create_if_missing=True):
     """Reuse the newest matching attempt only when resume is explicitly requested.
 
     Invalid/corrupt attempts are preserved for diagnosis and skipped. A live
@@ -327,6 +327,9 @@ def create_or_resume_attempt(base_dir, input_fingerprint, resume=False, dependen
             except (ValueError, json.JSONDecodeError):
                 # Never overwrite or repair a corrupt historical attempt.
                 continue
+
+    if not create_if_missing:
+        return None, None, False
 
     for number in range(1, 10001):
         attempt_name = "attempt_" + str(number)
