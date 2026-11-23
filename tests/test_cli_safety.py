@@ -125,6 +125,17 @@ class ResearchRuntimeSetupTests(unittest.TestCase):
         self.assertNotIn("GEMINI_API_KEY", script)
         self.assertNotIn("OPENAI_API_KEY", script)
 
+    def test_windows_portable_workflow_bundles_research_engine_source(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        workflow = (repo_root / ".github" / "workflows" / "cpp-portable-ci.yml").read_text(encoding="utf-8")
+        for expected in (
+            "methods", "utils", "autoraters", "templates", "assets",
+            "paper_writing_cli.py", "requirements-research.txt",
+            "scripts/setup_research_runtime.ps1", "RESEARCH_ENGINE_COMMIT.txt",
+            "A .env file must never be packaged.",
+        ):
+            self.assertIn(expected, workflow)
+
     def test_desktop_research_runner_exposes_gemini_and_openai_routing(self):
         repo_root = Path(__file__).resolve().parents[1]
         source = (repo_root / "app_cpp" / "src" / "main.cpp").read_text(encoding="utf-8")
