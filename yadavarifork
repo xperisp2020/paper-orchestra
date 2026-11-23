@@ -1428,3 +1428,18 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Research runtime run `45221609520` روی commit اصلاح‌شده: bootstrap ویندوز success و هر ۱۳ آزمون provider، از جمله سه آزمون جدید OpenRouter، success؛ Ubuntu هنوز در حال نصب TeX Live برای smoke واقعی PDF در آخرین بررسی بود.
 - Windows packaging run `45221524713` روی commit کد اصلاح‌شده `f9bda5008bc9445b0107ed88bd1262817406f356` در مرحله Build بود. چون commit بعدی فقط syntax تست را اصلاح می‌کند، بسته‌بندی روی همان کد برنامه انجام می‌شود؛ نتیجه نهایی و artifactها هنوز در انتظار تأییدند.
 - اجرای واقعی با `OPENROUTER_API_KEY` انجام نشده و هیچ کلیدی در مخزن یا CI قرار نگرفته است؛ آزمون‌های provider با client و پاسخ‌های mock انجام شده‌اند.
+
+
+### 6.99.20 تکمیل CI پس از اصلاح مسیر‌دهی OpenRouter
+- Python Safety run `45221609581` روی commit `1f939078468060a5e2a01fefb854d1e549e6c8a2`: Ubuntu و Windows هر دو success.
+- Research runtime run `45221609520` روی همان commit: Windows venv/bootstrap و ۱۳ آزمون provider (از جمله OpenRouter text/image/PDF dispatch، client، quota retry) success؛ Ubuntu نیز نصب TeX Live و ساخت PDF واقعی دارای bibliography را success کرد.
+- Windows packaging run `45221524713` روی commit کد `f9bda5008bc9445b0107ed88bd1262817406f356`: configure/build/smoke/portable/installer success؛ job جداگانه `verify-portable-artifact` نیز دانلود، استخراج و بررسی هر دو بسته روی clean runner را success کرد.
+- Artifactهای جدید:
+  - Portable ID `14841796793`، حجم 27,087,466 بایت، تا 2027-02-21 معتبر.
+  - Installer ID `14840259211`، حجم 19,915,631 بایت، تا 2027-02-21 معتبر.
+- لینک‌ها:
+  - Python Safety: https://github.com/xperisp2020/paper-orchestra/actions/runs/45221609581
+  - Research runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45221609520
+  - Windows packaging + clean runner: https://github.com/xperisp2020/paper-orchestra/actions/runs/45221524713
+- نتیجه: انتخاب OpenRouter در مسیر متن، تصویر و ارزیابی PDF اکنون به backend سازگار هدایت می‌شود و regressionهای آن در Windows runtime اجرا شدند. بسته‌های Windows شامل کد اصلاح‌شده‌اند و clean-runner تأیید شده‌اند.
+- محدودیت: هیچ درخواست واقعی به OpenRouter ارسال نشد؛ آزمون‌های provider mock هستند. برای آزمون end-to-end واقعی، `OPENROUTER_API_KEY` باید فقط به‌صورت environment variable محلی کاربر تنظیم شود. PaperBanana plotting همچنان Gemini-only است و CLI این محدودیت را قبل از اجرا رد می‌کند.
