@@ -1305,3 +1305,26 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45213246962
 - CI Windows desktop: https://github.com/xperisp2020/paper-orchestra/actions/runs/45212628314
 - commitهای شاخص: Outline 33ac82403b6529b1c06293dba6bb295b1024d54c؛ Semantic Scholar search 9f6f3d646e524de3d34b4c03e5357d1ef79ecf2c؛ provider dispatch b6981a604c756db23a992e57b608a6ffa4303596؛ role مدل o4 9000b7b01d781e4fb75c37b66e942af17e25650d؛ Literature 170b4e563e0ec261225b5a887de391e8409e900b؛ اصلاح worker method 9bc829a48d057891b2c65b129f7926ffb0aecd39؛ review 25db7ef6b202cb1264c0a9fd62b296783db7a54b؛ refinement 49b8a1b64201b64d486cd6e47fd5715cae66b369؛ desktop provider UI b4831937a00b7935399fe4ce1e975c69e68a0770؛ image MIME dd2c44759c77e85d69d49a087190a70827d4748c؛ plotting guard 4b33d0e405202d936ceb7a627d564e8166b5ccfa؛ README provider docs db562c5f3fcf4e7819566391287c90123ef48322؛ CLI tests f0c9ee077540023b719eb2681f03afbc32bbff9f.
+
+
+### 6.99.11 تکمیل مسیر طرح رایگان OpenRouter و آزمون واقعی LaTeX/BibTeX
+- حالت free_tier در دسکتاپ فعال شد. مدل پیش‌فرض ثابت nvidia/nemotron-3.5-super-vl:free است؛ openrouter/free و سایر شناسه‌های OpenRouter با پسوند :free نیز مجازند. مدل پولی در حالت رایگان رد می‌شود.
+- OpenRouter از OpenAI-compatible API با base URL https://openrouter.ai/api/v1 استفاده می‌کند و کلید مستقل OPENROUTER_API_KEY می‌خواهد. clientهای OpenAI و OpenRouter جدا cache می‌شوند.
+- برای رعایت سهمیه، درخواست‌های OpenRouter با فاصله حداقل 3.05 ثانیه ارسال می‌شوند. خطای HTTP 429 بدون retry مجدد بالا می‌رود تا تلاش‌های ناموفق بیشتر سهمیه روزانه را مصرف نکنند.
+- در حالت free_tier، checkbox تأیید پردازش توسط ارائه‌دهنده ثالث اجباری است؛ هشدار می‌دهد داده محرمانه/شخصی/حساس ارسال نشود. کلید OpenRouter در Python و خروجی QProcess دسکتاپ redacted می‌شود و ذخیره نمی‌شود.
+- مدل ثابت Nemotron برای پایداری fingerprint checkpoint انتخاب شده است. مدل dynamic router یعنی openrouter/free مجاز است اما ممکن است مدل زیربنایی درخواست‌به‌درخواست تغییر کند.
+- README مسیر OpenRouter، کلید محیطی، سهمیه فعلی 20 درخواست در دقیقه و 50 درخواست در روز و هشدار حریم خصوصی را مستند کرد. free variantها فعلاً بدون خرید اعتبار قیمت‌گذاری می‌شوند؛ حساب و API key لازم است و سهمیه‌ها ممکن است تغییر کنند.
+- Runtime CI run 45214785541 موفق شد: Windows clean runner محیط Python 3.12 را ساخت، pip check با No broken requirements found موفق شد، import هر دو writer و CLI help موفق بود و 10 آزمون provider integration سبز شدند؛ شامل انتخاب client و base URL OpenRouter، توقف retry در 429، مسیرهای OpenAI، MIME تصویر و Semantic Scholar.
+- همان run یک job مستقل Ubuntu با TeX Live 2025 واقعی اجرا کرد؛ سند دارای citation با سه بار pdflatex و یک بار bibtex کامپایل شد و PDF یک‌صفحه‌ای و bibliography تأیید شدند. Windows هنوز با stubهای pdflatex/bibtex بررسی می‌شود؛ MiKTeX واقعی روی Windows هنوز تأیید نشده است.
+- Python safety run 45214950351 روی Ubuntu و Windows موفق شد؛ هر کدام 60 آزمون را با نتیجه OK اجرا کردند.
+- Windows desktop run 45214659791 موفق شد: configure/build/smoke، portable package، Inno Setup و clean-runner verification شامل اجرا، نصب silent، اجرای برنامه نصب‌شده، uninstall و حفظ sentinel data همگی سبز شدند.
+- Portable artifact: ID 14837129178، اندازه 25,136,994 بایت، SHA-256 52d32f8d4bed39fd7cb9a3fa2ad0cd1f98f276c56b62ed71c05818b465c71d6d.
+- Installer artifact: ID 14837074538، اندازه 18,003,587 بایت، SHA-256 fb9bc6bd5dadeaa4002930b2160a6b3edf35e18f068384daf6662ca68bccdd1b. انقضا: 2027-02-21.
+- چرخه خطا/اصلاح: runtime provider run 45214741448 به علت context manager نادرست در تست شکست خورد و با اصلاح تست‌ها run 45214785541 سبز شد. LaTeX smoke اولیه 45213887297 به علت escape دوگانه در heredoc شکست خورد؛ escape و assertion bibliography اصلاح شدند و اجرای نهایی سبز شد.
+- محدودیت: آزمون‌های provider با mock انجام شدند؛ هیچ درخواست واقعی OpenRouter/Gemini/OpenAI یا مصرف سهمیه انجام نشده است. Semantic Scholar نیز mock شده است. LaTeX واقعی فقط روی Ubuntu تأیید شده؛ تست دستی GUI، MiKTeX ویندوز و Word 2010 باقی مانده‌اند. PaperBanana plotting همچنان Gemini-only است.
+- گام بعدی: با کلید OpenRouter که کاربر خودش در محیط سیستم تنظیم می‌کند، یک اجرای end-to-end محدود روی پروژه آزمایشی غیرمحرمانه؛ سپس نصب MiKTeX واقعی و بررسی دستی GUI و Word 2010.
+- CI runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45214785541
+- CI Python safety: https://github.com/xperisp2020/paper-orchestra/actions/runs/45214950351
+- CI Windows desktop: https://github.com/xperisp2020/paper-orchestra/actions/runs/45214659791
+- commitهای OpenRouter: backend detection 26d8b937381c8aba7c2efbcd4dbf5d7a48f5b63b؛ client/base URL/rate pacing 0ff516e04775917ffc802344a339b74667279449؛ Python secret redaction 03ceff71b5a8626c8a10988e506840e4c4565c83؛ desktop secret redaction fcc4414bff99c87163073deed03f8a0cd20333e5؛ free-tier UI e6f4ea5f98133fde8d575b1a007584f8987c6cd2؛ fixed model 51fb03e0139de692a40e379df2ea5999c155a0f9؛ runtime tests b16a75a2b3e313153f0f94123960aebc3f75aa1d؛ README 0af84d9ac59adfcd970a7bfb7cc3ea6b502feba9؛ regression tests 465cb34ebb40143736e141d79181ab90de7d8132.
+- منابع رسمی OpenRouter: https://openrouter.ai/collections/free-models/ ؛ https://openrouter.ai/nvidia/nemotron-3.5-super-vl:free ؛ https://openrouter.ai/openrouter/free
