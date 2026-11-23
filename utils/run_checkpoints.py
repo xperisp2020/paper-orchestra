@@ -136,9 +136,10 @@ def fingerprint_runtime():
             version = lines[0].strip() if lines else "exit:" + str(completed.returncode)
         except (OSError, subprocess.SubprocessError) as exc:
             version = "unavailable:" + type(exc).__name__
+        resolved_executable = os.path.realpath(executable)
         latex_tools[command] = {
             "version": version,
-            "binary_sha256": fingerprint_path(executable),
+            "binary_sha256": fingerprint_path(resolved_executable),
         }
 
     return {
