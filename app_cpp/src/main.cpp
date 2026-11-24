@@ -1303,6 +1303,11 @@ private:
         return saveResearchSection(key, researchEditor_->toPlainText());
     }
 
+    QString researchRunsDirectory() const {
+        return QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
+            .filePath(QStringLiteral("research_runs"));
+    }
+
     bool writeResearchRunManifest(const QString &status, const QString &stage) {
         if (currentResearchRunOutput_.isEmpty())
             return false;
@@ -1348,18 +1353,27 @@ private:
     void showResearchRunHistory() {
         if (!projectId_)
             return;
-        const QString rootPath = QDir(QCoreApplication::applicationDirPath())
-                                     .filePath(QStringLiteral("data/research_runs"));
-        QDir root(rootPath);
+        const QStringList rootPaths{
+            researchRunsDirectory(),
+            QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("data/research_runs"))
+        };
         QDialog dialog(this);
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
         dialog.setWindowTitle(persian ? QStringLiteral("تاریخچه اجراهای پژوهش") :
                                         QStringLiteral("Research run history"));
         auto *layout = new QVBoxLayout(&dialog);
         auto *runs = new QListWidget(&dialog);
-        const QString prefix = QStringLiteral("project_%1_").arg(*projectId_);
-        const QFileInfoList folders = root.entryInfoList(
-            {prefix + QStringLiteral("*")}, QDir::Dirs | QDir::NoDotAndDotDot, QDir::Time);
+        const QString projectPrefix = QStringLiteral("project_%1_*").arg(*projectId_);
+        const QString noApiPrefix = QStringLiteral("no_api_project_%1_*").arg(*projectId_);
+        QFileInfoList folders;
+        for (const QString &rootPath : rootPaths) {
+            QDir root(rootPath);
+            folders.append(root.entryInfoList(
+                {projectPrefix, noApiPrefix}, QDir::Dirs | QDir::NoDotAndDotDot, QDir::Time));
+        }
+        std::sort(folders.begin(), folders.end(), [](const QFileInfo &left, const QFileInfo &right) {
+            return left.lastModified() > right.lastModified();
+        });
         for (const QFileInfo &folder : folders) {
             QFile manifestFile(QDir(folder.absoluteFilePath()).filePath(QStringLiteral("run_manifest.json")));
             if (!manifestFile.open(QIODevice::ReadOnly))
@@ -1507,9 +1521,9 @@ private:
                 : QStringLiteral("Free scholarly discovery requires Python 3 and scripts/no_api_scholarly_research.py."));
             return;
         }
-        const QString appDataRoot = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        const QString root = QDir(appDataRoot).filePath(QStringLiteral("research_runs"));
-        if (appDataRoot.isEmpty() || !QDir().mkpath(root)) {
+        const QString root = researchRunsDirectory();
+        if (QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).isEmpty() ||
+            !QDir().mkpath(root)) {
             researchStatus_->setText(persian
                 ? QStringLiteral("پوشهٔ دادهٔ قابل‌نوشتن برای اجرای پژوهش در دسترس نیست.")
                 : QStringLiteral("A writable application-data directory is unavailable for research runs."));
@@ -1779,8 +1793,7 @@ private:
             return;
         }
 
-        const QString dataRoot = QDir(QCoreApplication::applicationDirPath())
-                                     .filePath(QStringLiteral("data/research_runs"));
+        const QString dataRoot = researchRunsDirectory();
         if (!QDir().mkpath(dataRoot)) {
             fail(persian ? QStringLiteral("پوشه خروجی قابل ایجاد نیست.") :
                             QStringLiteral("Cannot create research run directory."));
