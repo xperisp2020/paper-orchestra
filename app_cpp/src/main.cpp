@@ -1998,6 +1998,24 @@ private:
             ? QStringLiteral("@article{...} یا TY  - JOUR ... ER  - را برای چند مقاله اینجا بچسبانید؛ هر رکورد BibTeX/RIS جداگانه.")
             : QStringLiteral("Paste multiple @article{...} BibTeX entries or TY  - ... ER  - RIS records here."));
         layout->addWidget(input, 1);
+        auto *loadFiles = new QPushButton(persian ? QStringLiteral("افزودن فایل‌های خروجی Cite") :
+                                                    QStringLiteral("Add citation files"), &dialog);
+        layout->addWidget(loadFiles);
+        connect(loadFiles, &QPushButton::clicked, &dialog, [input, &dialog, persian] {
+            const QStringList files = QFileDialog::getOpenFileNames(&dialog,
+                persian ? QStringLiteral("انتخاب فایل‌های استناد") : QStringLiteral("Select citation export files"),
+                QString(), QStringLiteral("Citation files (*.bib *.ris *.enw *.txt *.csv);;All files (*.*)"));
+            QString combined = input->toPlainText();
+            for (const QString &path : files) {
+                QFile file(path);
+                if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
+                const QString contents = QString::fromUtf8(file.readAll()).trimmed();
+                if (contents.isEmpty()) continue;
+                if (!combined.isEmpty()) combined += QStringLiteral("\n\n");
+                combined += contents;
+            }
+            input->setPlainText(combined);
+        });
         auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
         buttons->button(QDialogButtonBox::Save)->setText(persian ? QStringLiteral("بررسی و ورود منابع") :
                                                                QStringLiteral("Review and import"));
