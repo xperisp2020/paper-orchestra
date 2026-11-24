@@ -2728,7 +2728,7 @@ private:
                               valueAt(doiCol), valueAt(urlCol), valueAt(venueCol));
                 }
             }
-        } else if (raw.contains(QRegularExpression(QStringLiteral("(?im)^%0\\\\s+")))) {
+        } else if (raw.contains(QRegularExpression(QStringLiteral("(?im)^%0\\s+")))) {
             const QStringList entries = raw.split(QRegularExpression(QStringLiteral("(?im)^%0\\s+")), Qt::SkipEmptyParts);
             for (const QString &entry : entries) {
                 auto endnote = [&](const QString &tag) {
@@ -2736,7 +2736,15 @@ private:
                     const auto match = re.match(entry);
                     return match.hasMatch() ? match.captured(1).trimmed() : QString();
                 };
-                addParsed(endnote(QStringLiteral("%T")), endnote(QStringLiteral("%A")),
+                auto endnoteAuthors = [&](const QString &tag) {
+                    QRegularExpression re(QStringLiteral("(?im)^%1\\s+(.+)$").arg(QRegularExpression::escape(tag)));
+                    QStringList authors;
+                    auto matches = re.globalMatch(entry);
+                    while (matches.hasNext())
+                        authors.append(matches.next().captured(1).trimmed());
+                    return authors.join(QStringLiteral("; "));
+                };
+                addParsed(endnote(QStringLiteral("%T")), endnoteAuthors(QStringLiteral("%A")),
                           endnote(QStringLiteral("%D")), endnote(QStringLiteral("%R")),
                           endnote(QStringLiteral("%U")), endnote(QStringLiteral("%J")));
             }
