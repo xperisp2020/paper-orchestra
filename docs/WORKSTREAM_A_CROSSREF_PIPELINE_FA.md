@@ -71,3 +71,8 @@ python paper_writing_cli.py --help
 - آخرین HEAD کد محصول در run بسته‌بندی: `0fb187f3fe9a8a85e64cfcc7454b73053bee738a`. تغییرات بعدی در شاخه برای به‌روزرسانی مستندات/دفتر بوده‌اند؛ source code این بسته از همان کد تأییدشده ساخته شده است.
 - وضعیت این مسیر: PASS برای اتصال Crossref، مسیر single-run/Batch، retry پس از خطای موقت، Crossref live smoke و گیت‌های CI ذکرشده.
 - خارج از این مسیر و همچنان باز: providerهای live با credentials اختصاصی (Gemini/OpenAI/OpenRouter)، آزمایش Microsoft Word 2010 واقعی و اجرای روی دستگاه اصلی کاربر.
+
+### تکمیل ممیزی defensive و smoke-script
+- verify_doi_with_crossref اکنون یک کپی از نتیجهٔ cache برمی‌گرداند؛ مصرف‌کننده نمی‌تواند با تغییر دیکشنری، cache سراسری process را خراب کند.
+- smoke script شناسهٔ ورودی را با normalize_doi مقایسه می‌کند؛ DOI خام و URL-prefixed هر دو با پاسخ API درست match می‌شوند.
+- تست‌های جدید شامل cache immutability، نرمال‌سازی DOI در smoke script و انتقال واقعی گزینه از هر دو batch worker تا فراخوانی write_single_paper هستند.
