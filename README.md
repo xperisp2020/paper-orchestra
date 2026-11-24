@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/xperisp2020/paper-orchestra/main/docs/images/app-homepage-preview.png" alt="پیش‌نمایش صفحهٔ اصلی نرم‌افزار پژوهشکده سرخوش شیرازی" width="900" />
+<picture>
+  <img src="https://raw.githubusercontent.com/xperisp2020/paper-orchestra/main/docs/images/app-homepage-preview.png" alt="پیش‌نمایش صفحهٔ اصلی نرم‌افزار پژوهشکده سرخوش شیرازی" width="900" />
+</picture>
 
 # پژوهشکده سرخوش شیرازی
 
