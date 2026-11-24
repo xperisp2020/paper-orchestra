@@ -1774,3 +1774,14 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - برای کنترل‌های فرم objectName پایدار افزوده شد. تغییر کد فقط در `app_cpp/src/main.cpp` بود.
 - گزارش جزئیات در `docs/AI_SECOND_PASS_RESULT_2026-11-24_FA.md` بخش 15 ثبت شد؛ commit گزارش `ac7140fea40488eee4a1c8ca82d2aeffb51de487`.
 - در زمان ثبت، اجرای CI برای commit کد از ابزار قابل مشاهده نبود؛ نتیجه **PENDING VERIFICATION** است و PASS اعلام نمی‌شود. Word 2010 واقعی و دستگاه فیزیکی/VM همچنان گیت‌های خارج از دسترس‌اند.
+
+
+### 6.99.46 بستن گیت CI آزمون تعاملی پروپوزال و بسته‌بندی نهایی (2026-11-24)
+- پیش از ثبت: repo id `1467327081`، owner `xperisp2020`، branch `work/yadavarifork`؛ HEAD تأییدشده `323a3af9dccbed3f48dc37adb5c784a1b0dc658b` و SHA فایل دفتر `0f8179751b25adb46f3e3c0bc4c6a13a8de1db67`.
+- آزمون UI فرم اطلاعات نهایی که در commit `6e81d54b57bc81631767db69f50a83fc07fdf3f6` تکمیل شده بود، در run `45418371460` با نتیجه **COMPLETED / SUCCESS** تأیید شد.
+- هر دو job یعنی `build-windows` و `verify-portable-artifact` موفق شدند؛ Configure، Build، Smoke test، assemble/upload Portable، نصب Inno Setup، assemble/upload Installer و استخراج/بررسی هر دو artifact روی clean runner همگی PASS شدند.
+- Smoke مسیر واقعی Save را باز کرد، فرم را تکمیل و ذخیره کرد، پروژه را دوباره باز کرد و مقادیر، نبود خطای ذخیره و `final_details_status=completed` را assert کرد. مسیر Skip و خالی‌ماندن اطلاعات دانشجو/استاد نیز در smoke تعاملی پوشش دارد.
+- Artifactهای همین commit: Portable id `14933312168`، حجم 27,098,091 bytes، ZIP SHA-256 `a4c38def161981617c51ecfda9a701006cbb121eda68bce5a9d5e26b398a78eb`؛ Installer id `14933357432`، حجم 19,934,286 bytes، ZIP SHA-256 `b914b77dad75269388c7782707a42f1b318b9127451ec0971c080a6df0234816`؛ انقضای هر دو `2027-02-22T14:49:19Z`.
+- لینک اجرا: https://github.com/xperisp2020/paper-orchestra/actions/runs/45418371460
+- لینک artifactها: https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14933312168/zip و https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14933357432/zip
+- این موفقیت فقط CI ویندوز GitHub و clean runner را اثبات می‌کند؛ آزمون روی دستگاه فیزیکی/VM کاربر و باز/ذخیره/چاپ در Word 2010 واقعی همچنان **BLOCKED** است. Gemini/OpenAI پولی نیز بدون مجوز مالی صریح فعال نشده‌اند.
