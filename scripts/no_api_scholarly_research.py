@@ -319,7 +319,7 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
             "۴) مشخص‌کردن خلأهای قابل‌آزمون برای پژوهش بعدی."
         )
         strategy = (
-            "جست‌وجوی ماشینی با عبارت موضوعی عنوان پروژه در رابط‌های عمومی OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite و arXiv انجام شد. "
+            "جست‌وجوی ماشینی با عبارت موضوعی عنوان پروژه در رابط‌های عمومی OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite، OpenAIRE و arXiv انجام شد. "
             "نتایج بر اساس ارتباط/ترتیب ارائه‌شده توسط هر سرویس دریافت و بر مبنای DOI یا عنوان یکتا شدند. "
             "Google Scholar در این نسخه به‌صورت خودکار خزش نمی‌شود؛ برای تکمیل پوشش، جست‌وجوی دستی همان عبارت در "
             "Google Scholar و ثبت نتایج واجد شرایط توصیه می‌شود."
@@ -345,7 +345,7 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
             "رکوردها و چکیده‌های قابل دسترس:\n" + evidence + "\n\nمنابع کتاب‌شناختی:\n" + refs
         )
         methodology = (
-            "طرح پیشنهادی: مرور دامنه‌ای مقدماتی با پروتکل قابل تکرار. پایگاه‌ها: OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite و arXiv؛ "
+            "طرح پیشنهادی: مرور دامنه‌ای مقدماتی با پروتکل قابل تکرار. پایگاه‌ها: OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite، OpenAIRE و arXiv؛ "
             "Google Scholar فقط از طریق جست‌وجوی دستی و مطابق شرایط استفاده. ثبت تاریخ جست‌وجو، عبارت‌ها، "
             "تعداد نتایج، DOI، معیارهای ورود/خروج و دلایل حذف ضروری است. پس از حذف موارد تکراری، "
             "دو مرحله غربالگری عنوان/چکیده و متن کامل، سپس استخراج داده و ارزیابی کیفیت انجام شود."
