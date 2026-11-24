@@ -32,6 +32,7 @@
 #include <QTextEdit>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QRegularExpression>
 
 #include <optional>
 
@@ -170,7 +171,10 @@ public:
         deleteResearchSource_->setObjectName(QStringLiteral("deleteResearchSourceButton"));
         saveResearchSection_ = new QPushButton;
         saveResearchSection_->setObjectName(QStringLiteral("saveResearchSectionButton"));
+        importScholarCitations_ = new QPushButton;
+        importScholarCitations_->setObjectName(QStringLiteral("importScholarCitationsButton"));
         sourceButtons->addWidget(saveResearchSection_);
+        sourceButtons->addWidget(importScholarCitations_);
         sourceButtons->addWidget(addResearchSource_);
         sourceButtons->addWidget(deleteResearchSource_);
         sourceLayout->addWidget(researchSourcesList_);
@@ -375,6 +379,9 @@ public:
         });
         connect(addResearchSource_, &QPushButton::clicked, this, [this] {
             addResearchSource();
+        });
+        connect(importScholarCitations_, &QPushButton::clicked, this, [this] {
+            importScholarCitations();
         });
         connect(deleteResearchSource_, &QPushButton::clicked, this, [this] {
             deleteResearchSource();
@@ -990,7 +997,9 @@ private:
         openExistingProject_->setText(persian ? QStringLiteral("بازکردن پروژه ذخیره‌شده") : QStringLiteral("Open saved project"));
         newProject_->setText(persian ? QStringLiteral("پروژه جدید") : QStringLiteral("New project"));
         saveResearchSection_->setText(persian ? QStringLiteral("ذخیره بخش") : QStringLiteral("Save section"));
-        addResearchSource_->setText(persian ? QStringLiteral("افزودن منبع") : QStringLiteral("Add source"));
+        addResearchSource_->setText(persian ? QStringLiteral("افزودن دستی منبع") : QStringLiteral("Add source manually"));
+        importScholarCitations_->setText(persian ? QStringLiteral("ورود گروهی منابع از Google Scholar (Cite)") :
+                                                   QStringLiteral("Bulk import Google Scholar citations (Cite)"));
         deleteResearchSource_->setText(persian ? QStringLiteral("حذف منبع") : QStringLiteral("Delete source"));
         runResearchEngine_->setText(persian ? QStringLiteral("اجرای موتور چندعاملی") : QStringLiteral("Run multi-agent engine"));
         cancelResearchEngine_->setText(persian ? QStringLiteral("لغو اجرا") : QStringLiteral("Cancel run"));
@@ -1950,6 +1959,150 @@ private:
             : QStringLiteral("Source recorded; DOI and URL still require independent verification."));
     }
 
+
+    void importScholarCitations() {
+        if (!projectId_) return;
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        QDialog dialog(this);
+        dialog.setWindowTitle(persian ? QStringLiteral("ورود گروهی استنادهای Google Scholar") :
+                                        QStringLiteral("Bulk import Google Scholar citations"));
+        dialog.resize(900, 700);
+        auto *layout = new QVBoxLayout(&dialog);
+        auto *guide = new QLabel(&dialog);
+        guide->setWordWrap(true);
+        guide->setText(persian
+            ? QStringLiteral("راهنمای مرحله‌به‌مرحله:\n"
+                "۱) در مرورگر وارد Google Scholar شوید و موضوع پژوهش را جست‌وجو کنید.\n"
+                "۲) برای هر مقاله واجد شرایط، روی گزینهٔ Cite / نقل‌قول زیر همان نتیجه بزنید.\n"
+                "۳) در پنجرهٔ بازشده، BibTeX را انتخاب کنید؛ در صورت نیاز خروجی EndNote یا RefMan (RIS) را نیز می‌توانید کپی کنید.\n"
+                "۴) متن هر رکورد را کپی کنید و در کادر پایین بچسبانید؛ رکوردهای BibTeX یا RIS را پشت سر هم قرار دهید. برای متن ساده، هر استناد را در یک خط جداگانه بگذارید.\n"
+                "۵) دکمهٔ «بررسی و ورود» را بزنید. می‌توانید ۲۰، ۵۰ یا تعداد بیشتری رکورد را در یک نوبت وارد کنید. موارد تکراری و رکوردهای بدون عنوان معتبر کنار گذاشته می‌شوند.\n\n"
+                "نکته: Google Scholar API عمومی برای ورود انبوه خودکار ارائه نمی‌کند؛ این روش بر خروجی‌ای تکیه دارد که خودتان از رابط Scholar می‌گیرید. منابع پس از ورود همچنان «تأییدنشده» هستند و DOI/فراداده باید بازبینی شود.")
+            : QStringLiteral("Step-by-step guide:\\n"
+                "1) Open Google Scholar in your browser and search for your research topic.\\n"
+                "2) For each relevant result, click Cite below the article.\\n"
+                "3) Choose BibTeX; you may also copy EndNote or RefMan (RIS) exports.\\n"
+                "4) Paste each record below. Multiple BibTeX/RIS records may be pasted together; for plain citations, put one citation on each line.\\n"
+                "5) Select Review and import. You can import 20, 50, or more records in one batch. Duplicates and records without a valid title are skipped.\\n\\n"
+                "Google Scholar does not provide a public bulk API. This workflow imports exports you obtain manually; imported records remain unverified until their DOI and metadata are checked."));
+        layout->addWidget(guide);
+        auto *openScholar = new QPushButton(persian ? QStringLiteral("بازکردن Google Scholar") :
+                                                      QStringLiteral("Open Google Scholar"), &dialog);
+        layout->addWidget(openScholar);
+        connect(openScholar, &QPushButton::clicked, &dialog, [] {
+            QDesktopServices::openUrl(QUrl(QStringLiteral("https://scholar.google.com/")));
+        });
+        auto *input = new QTextEdit(&dialog);
+        input->setObjectName(QStringLiteral("scholarCitationBatchInput"));
+        input->setPlaceholderText(persian
+            ? QStringLiteral("@article{...} یا TY  - JOUR ... ER  - را برای چند مقاله اینجا بچسبانید؛ هر رکورد BibTeX/RIS جداگانه.")
+            : QStringLiteral("Paste multiple @article{...} BibTeX entries or TY  - ... ER  - RIS records here."));
+        layout->addWidget(input, 1);
+        auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+        buttons->button(QDialogButtonBox::Save)->setText(persian ? QStringLiteral("بررسی و ورود منابع") :
+                                                               QStringLiteral("Review and import"));
+        buttons->button(QDialogButtonBox::Cancel)->setText(persian ? QStringLiteral("انصراف") :
+                                                            QStringLiteral("Cancel"));
+        layout->addWidget(buttons);
+        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+        connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+        if (dialog.exec() != QDialog::Accepted) return;
+
+        const QString raw = input->toPlainText().trimmed();
+        if (raw.isEmpty()) return;
+        QList<ResearchSource> parsed;
+        auto field = [](const QString &entry, const QStringList &keys) {
+            for (const QString &key : keys) {
+                QRegularExpression re(QStringLiteral("(?is)(?:^|[,\\n])\\s*%1\\s*=\\s*[\\{\\\"]([^\\}\\\"]+)[\\}\\\"]")
+                                      .arg(QRegularExpression::escape(key)));
+                const auto match = re.match(entry);
+                if (match.hasMatch()) return match.captured(1).trimmed();
+            }
+            return QString();
+        };
+        auto addParsed = [&](const QString &title, const QString &authors, const QString &year,
+                             const QString &doi, const QString &url, const QString &venue) {
+            ResearchSource source;
+            source.title = title.trimmed();
+            source.authors = authors.trimmed();
+            source.publicationYear = year.trimmed();
+            source.doi = doi.trimmed();
+            source.url = url.trimmed();
+            source.notes = QStringLiteral("Imported from user-provided Google Scholar Cite export; venue: %1; unverified").arg(venue.trimmed());
+            if (!source.title.isEmpty()) parsed.push_back(source);
+        };
+
+        QRegularExpression bibStart(QStringLiteral("@[A-Za-z]+\\s*[\\{\\(]"));
+        auto bibMatches = bibStart.globalMatch(raw);
+        QList<int> starts;
+        while (bibMatches.hasNext()) starts.push_back(bibMatches.next().capturedStart());
+        if (!starts.isEmpty()) {
+            for (int i = 0; i < starts.size(); ++i) {
+                const QString entry = raw.mid(starts[i], (i + 1 < starts.size() ? starts[i + 1] : raw.size()) - starts[i]);
+                addParsed(field(entry, {QStringLiteral("title")}), field(entry, {QStringLiteral("author")}),
+                          field(entry, {QStringLiteral("year"), QStringLiteral("date")}),
+                          field(entry, {QStringLiteral("doi")}), field(entry, {QStringLiteral("url"), QStringLiteral("howpublished")}),
+                          field(entry, {QStringLiteral("journal"), QStringLiteral("booktitle"), QStringLiteral("publisher")}));
+            }
+        } else if (raw.contains(QRegularExpression(QStringLiteral("(?im)^TY  -")))) {
+            const QStringList entries = raw.split(QRegularExpression(QStringLiteral("(?im)^ER  -.*$")), Qt::SkipEmptyParts);
+            for (const QString &entry : entries) {
+                auto ris = [&](const QString &tag) {
+                    QRegularExpression re(QStringLiteral("(?im)^%1  -\\s*(.+)$").arg(QRegularExpression::escape(tag)));
+                    QStringList values;
+                    auto matches = re.globalMatch(entry);
+                    while (matches.hasNext()) values << matches.next().captured(1).trimmed();
+                    return values.join(QStringLiteral("; "));
+                };
+                addParsed(ris(QStringLiteral("TI")).isEmpty() ? ris(QStringLiteral("T1")) : ris(QStringLiteral("TI")),
+                          ris(QStringLiteral("AU")).isEmpty() ? ris(QStringLiteral("A1")) : ris(QStringLiteral("AU")),
+                          ris(QStringLiteral("PY")).isEmpty() ? ris(QStringLiteral("Y1")) : ris(QStringLiteral("PY")),
+                          ris(QStringLiteral("DO")), ris(QStringLiteral("UR")), ris(QStringLiteral("JO")).isEmpty() ? ris(QStringLiteral("JF")) : ris(QStringLiteral("JO")));
+            }
+        } else {
+            const QStringList lines = raw.split(QRegularExpression(QStringLiteral("[\\r\\n]+")), Qt::SkipEmptyParts);
+            for (const QString &line : lines) {
+                const QString doi = QRegularExpression(QStringLiteral("10\\.\\d{4,9}/[^\\s,;]+"), QRegularExpression::CaseInsensitiveOption)
+                                        .match(line).captured(0);
+                const QString url = QRegularExpression(QStringLiteral("https?://[^\\s]+"), QRegularExpression::CaseInsensitiveOption)
+                                        .match(line).captured(0);
+                addParsed(line, QString(), QString(), doi, url, QString());
+            }
+        }
+
+        QString error;
+        const auto previous = store_.loadResearchSources(*projectId_, &error);
+        if (!error.isEmpty()) {
+            QMessageBox::warning(this, QStringLiteral("Yadavarifork"), error);
+            return;
+        }
+        QSet<QString> known;
+        for (const auto &source : previous) {
+            if (!source.doi.trimmed().isEmpty()) known.insert(source.doi.trimmed().toLower());
+            if (!source.title.trimmed().isEmpty()) known.insert(source.title.simplified().toLower());
+        }
+        int imported = 0, duplicates = 0, invalid = 0;
+        for (ResearchSource &source : parsed) {
+            const QString doiKey = source.doi.trimmed().toLower();
+            const QString titleKey = source.title.simplified().toLower();
+            if (titleKey.isEmpty()) { ++invalid; continue; }
+            if ((!doiKey.isEmpty() && known.contains(doiKey)) || known.contains(titleKey)) {
+                ++duplicates;
+                continue;
+            }
+            if (!doiKey.isEmpty()) known.insert(doiKey);
+            known.insert(titleKey);
+            if (store_.addResearchSource(*projectId_, source, &error)) ++imported;
+            else { ++invalid; error.clear(); }
+        }
+        refreshResearchSources();
+        researchStatus_->setText(persian
+            ? QStringLiteral("ورود گروهی تمام شد: %1 منبع افزوده شد؛ %2 تکراری و %3 نامعتبر/بدون عنوان کنار گذاشته شد. همه منابع واردشده تا راستی‌آزمایی دستی تأییدنشده‌اند.")
+                .arg(imported).arg(duplicates).arg(invalid + (parsed.size() - imported - duplicates - invalid))
+            : QStringLiteral("Bulk import finished: %1 sources added; %2 duplicates and %3 invalid/incomplete records skipped. Imported sources remain unverified.")
+                .arg(imported).arg(duplicates).arg(invalid + (parsed.size() - imported - duplicates - invalid)));
+    }
+
     void deleteResearchSource() {
         if (!projectId_ || !researchSourcesList_->currentItem()) return;
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
@@ -2304,6 +2457,7 @@ private:
     QGroupBox *researchSourcesGroup_{};
     QPushButton *saveResearchSection_{};
     QPushButton *addResearchSource_{};
+    QPushButton *importScholarCitations_{};
     QPushButton *deleteResearchSource_{};
     QLabel *researchStatus_{};
     QPushButton *runResearchEngine_{};
