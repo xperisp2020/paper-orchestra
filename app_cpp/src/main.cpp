@@ -10,6 +10,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFormLayout>
+#include <QFrame>
 #include <QGroupBox>
 #include <QFile>
 #include <QSaveFile>
@@ -20,6 +21,8 @@
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QLabel>
+#include <QPixmap>
+#include <QStyle>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMainWindow>
@@ -135,6 +138,11 @@ public:
         editorNotice_->setWordWrap(true);
         static_cast<QVBoxLayout *>(editorPage->layout())->addWidget(editorNotice_);
         auto *exportRow = new QHBoxLayout;
+        generateProposal_ = new QPushButton;
+        generateProposal_->setObjectName(QStringLiteral("generateProposalButton"));
+        cancelProposalGeneration_ = new QPushButton;
+        cancelProposalGeneration_->setObjectName(QStringLiteral("cancelProposalGenerationButton"));
+        cancelProposalGeneration_->setEnabled(false);
         finalDetailsButton_ = new QPushButton;
         finalDetailsButton_->setObjectName(QStringLiteral("proposalFinalDetailsButton"));
         saveSection_ = new QPushButton;
@@ -143,6 +151,8 @@ public:
         exportDocx_ = new QPushButton;
         exportPng_ = new QPushButton;
         printDocument_ = new QPushButton;
+        exportRow->addWidget(generateProposal_);
+        exportRow->addWidget(cancelProposalGeneration_);
         exportRow->addWidget(finalDetailsButton_);
         exportRow->addWidget(saveSection_);
         exportRow->addWidget(exportPdf_);
@@ -198,6 +208,56 @@ public:
         researchStatus_->setWordWrap(true);
         static_cast<QVBoxLayout *>(researchPage->layout())->addWidget(researchStatus_);
         engineRunner_ = new ResearchEngineRunner(this);
+        proposalRunner_ = new ResearchEngineRunner(this);
+        connect(generateProposal_, &QPushButton::clicked, this, [this] { generateProposalWithAI(); });
+        connect(cancelProposalGeneration_, &QPushButton::clicked, this, [this] {
+            if (proposalRunner_ && proposalRunner_->isRunning()) {
+                proposalGenerationCancelRequested_ = true;
+                cancelProposalGeneration_->setEnabled(false);
+                editorStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
+                    ? QStringLiteral("درخواست لغو تولید ثبت شد؛ منتظر توقف امن فرایند باشید.")
+                    : QStringLiteral("Cancellation requested; waiting for the worker to stop safely."));
+                proposalRunner_->cancel();
+            }
+        });
+        connect(proposalRunner_, &ResearchEngineRunner::started, this, [this] {
+            proposalGenerationRunning_ = true;
+            generateProposal_->setEnabled(false);
+            cancelProposalGeneration_->setEnabled(true);
+            editorStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("تولید علمی پروپوزال با هوش مصنوعی آغاز شد؛ پیشرفت هر دسته نمایش داده می‌شود.")
+                : QStringLiteral("AI proposal drafting started; batch progress will be shown here."));
+        });
+        connect(proposalRunner_, &ResearchEngineRunner::outputLine, this, [this](const QString &line) {
+            const QJsonDocument document = QJsonDocument::fromJson(line.toUtf8());
+            if (document.isObject()) {
+                const QJsonObject event = document.object();
+                const QString name = event.value(QStringLiteral("event")).toString();
+                if (name == QStringLiteral("proposal_generation_progress")) {
+                    const int done = event.value(QStringLiteral("completed_batches")).toInt();
+                    const int total = event.value(QStringLiteral("total_batches")).toInt();
+                    editorStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
+                        ? QStringLiteral("تولید پروپوزال: دسته %1 از %2 تکمیل شد.").arg(done).arg(total)
+                        : QStringLiteral("Proposal generation: batch %1 of %2 completed.").arg(done).arg(total));
+                    return;
+                }
+                if (name == QStringLiteral("proposal_generation_failed")) {
+                    proposalGenerationLastError_ = event.value(QStringLiteral("message")).toString();
+                    return;
+                }
+                if (name == QStringLiteral("proposal_generation_completed"))
+                    return;
+            }
+            if (!line.trimmed().isEmpty())
+                editorStatus_->setText(line.left(1200));
+        });
+        connect(proposalRunner_, &ResearchEngineRunner::finished, this,
+                [this](int exitCode, bool normalExit) {
+            finishProposalGeneration(exitCode, normalExit);
+        });
+        connect(proposalRunner_, &ResearchEngineRunner::failed, this, [this](const QString &message) {
+            failProposalGeneration(message);
+        });
         connect(runResearchEngine_, &QPushButton::clicked, this, [this] { configureAndRunResearchEngine(); });
         connect(cancelResearchEngine_, &QPushButton::clicked, this, [this] {
             if (engineRunner_ && engineRunner_->isRunning()) {
@@ -324,6 +384,31 @@ public:
 
         auto *root = new QWidget;
         auto *rootLayout = new QVBoxLayout(root);
+        rootLayout->setContentsMargins(18, 16, 18, 16);
+        rootLayout->setSpacing(12);
+        auto *brandHeader = new QFrame(root);
+        brandHeader->setObjectName(QStringLiteral("brandHeader"));
+        auto *brandHeaderLayout = new QHBoxLayout(brandHeader);
+        brandHeaderLayout->setContentsMargins(14, 10, 16, 10);
+        auto *brandLogo = new QLabel(brandHeader);
+        brandLogo->setObjectName(QStringLiteral("brandLogo"));
+        brandLogo->setPixmap(QPixmap(QStringLiteral(":/brand/shiraztipsy.png")).scaled(
+            58, 58, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        brandTitle_ = new QLabel(brandHeader);
+        brandTitle_->setObjectName(QStringLiteral("brandTitle"));
+        brandSubtitle_ = new QLabel(QStringLiteral("RESEARCH  •  KNOWLEDGE  •  AI"), brandHeader);
+        brandSubtitle_->setObjectName(QStringLiteral("brandSubtitle"));
+        auto *brandText = new QVBoxLayout;
+        brandText->setContentsMargins(0, 0, 0, 0);
+        brandText->setSpacing(2);
+        brandText->addWidget(brandTitle_);
+        brandText->addWidget(brandSubtitle_);
+        auto *brandTag = new QLabel(QStringLiteral("SHIRAZTIPSY"), brandHeader);
+        brandTag->setObjectName(QStringLiteral("brandTag"));
+        brandHeaderLayout->addWidget(brandLogo);
+        brandHeaderLayout->addLayout(brandText, 1);
+        brandHeaderLayout->addWidget(brandTag, 0, Qt::AlignVCenter);
+        rootLayout->addWidget(brandHeader);
         rootLayout->addWidget(pages_, 1);
         rootLayout->addWidget(navigation);
         setCentralWidget(root);
@@ -866,6 +951,15 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override {
+        if (proposalRunner_ && proposalRunner_->isRunning()) {
+            proposalGenerationCancelRequested_ = true;
+            proposalRunner_->cancel();
+            event->ignore();
+            editorStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("ابتدا لغو تولید پروپوزال تکمیل شود؛ سپس برنامه را ببندید.")
+                : QStringLiteral("Wait for proposal generation to stop before closing the application."));
+            return;
+        }
         if (engineRunner_ && engineRunner_->isRunning()) {
             researchRunCancellationRequested_ = true;
             writeResearchRunManifest(QStringLiteral("cancelling"), QStringLiteral("cancel_requested"));
@@ -893,6 +987,11 @@ private:
         dialog.setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.svg")));
         dialog.setMinimumWidth(540);
         auto *layout = new QVBoxLayout(&dialog);
+        auto *logo = new QLabel(&dialog);
+        logo->setAlignment(Qt::AlignCenter);
+        logo->setPixmap(QPixmap(QStringLiteral(":/brand/shiraztipsy.png")).scaled(
+            104, 104, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        layout->addWidget(logo);
         auto *brand = new QLabel;
         brand->setAlignment(Qt::AlignCenter);
         brand->setTextFormat(Qt::RichText);
@@ -1013,6 +1112,11 @@ private:
         qApp->setLayoutDirection(direction);
         setWindowTitle(persian ? QStringLiteral("پژوهشکده سرخوش شیرازی") : QStringLiteral("ShirazTipsy Research Institute"));
         about_->setText(persian ? QStringLiteral("درباره ما") : QStringLiteral("About us"));
+        brandTitle_->setText(persian ? QStringLiteral("پژوهشکده سرخوش شیرازی")
+                                     : QStringLiteral("ShirazTipsy Research Institute"));
+        brandSubtitle_->setText(persian
+            ? QStringLiteral("پژوهش، دانش و فناوری هوش مصنوعی")
+            : QStringLiteral("RESEARCH  •  KNOWLEDGE  •  ARTIFICIAL INTELLIGENCE"));
 
         headings_[0]->setText(persian ? QStringLiteral("زبان برنامه") : QStringLiteral("Application language"));
         headings_[1]->setText(persian ? QStringLiteral("حالت هوش مصنوعی") : QStringLiteral("AI mode"));
@@ -1023,9 +1127,35 @@ private:
         editorNotice_->setText(persian
             ? QStringLiteral("مشخصات دانشجو و استاد در مرحله نهایی دریافت می‌شود. بخش‌های اداری، تأییدیه‌ها، امضاها و شماره‌های بایگانی عمداً خالی می‌مانند تا بعداً توسط شما تکمیل شوند.")
             : QStringLiteral("Student and supervisor details are collected at the final step. Administrative fields, approvals, signatures and archive numbers are intentionally left blank for you to complete later."));
+        generateProposal_->setText(persian
+            ? QStringLiteral("تولید علمی پروپوزال با هوش مصنوعی")
+            : QStringLiteral("Generate proposal with AI"));
+        cancelProposalGeneration_->setText(persian
+            ? QStringLiteral("لغو تولید")
+            : QStringLiteral("Cancel generation"));
         finalDetailsButton_->setText(persian
             ? QStringLiteral("تکمیل مشخصات فردی و استاد")
             : QStringLiteral("Complete student and supervisor details"));
+        const auto applyButtonIcon = [](QPushButton *button, QStyle::StandardPixmap icon) {
+            if (!button) return;
+            button->setIcon(QApplication::style()->standardIcon(icon));
+            button->setIconSize(QSize(18, 18));
+        };
+        applyButtonIcon(newProject_, QStyle::SP_FileDialogNewFolder);
+        applyButtonIcon(openExistingProject_, QStyle::SP_DialogOpenButton);
+        applyButtonIcon(generateProposal_, QStyle::SP_MediaPlay);
+        applyButtonIcon(cancelProposalGeneration_, QStyle::SP_MediaStop);
+        applyButtonIcon(finalDetailsButton_, QStyle::SP_DialogApplyButton);
+        applyButtonIcon(saveSection_, QStyle::SP_DialogSaveButton);
+        applyButtonIcon(exportPdf_, QStyle::SP_FileDialogDetailedView);
+        applyButtonIcon(exportDocx_, QStyle::SP_FileDialogContentsView);
+        applyButtonIcon(exportPng_, QStyle::SP_FileDialogListView);
+        applyButtonIcon(printDocument_, QStyle::SP_DialogSaveButton);
+        applyButtonIcon(importScholarCitations_, QStyle::SP_FileDialogStart);
+        applyButtonIcon(runResearchEngine_, QStyle::SP_MediaPlay);
+        applyButtonIcon(cancelResearchEngine_, QStyle::SP_MediaStop);
+        applyButtonIcon(researchRunHistory_, QStyle::SP_BrowserReload);
+        applyButtonIcon(about_, QStyle::SP_MessageBoxInformation);
 
         language_->setItemText(0, QStringLiteral("فارسی"));
         language_->setItemText(1, QStringLiteral("English"));
@@ -2561,6 +2691,8 @@ private:
 
     ProjectStore &store_;
     QStackedWidget *pages_{};
+    QLabel *brandTitle_{};
+    QLabel *brandSubtitle_{};
     QComboBox *language_{};
     QComboBox *aiMode_{};
     QComboBox *taskMode_{};
@@ -2577,6 +2709,8 @@ private:
     QPushButton *about_{};
     QPushButton *next_{};
     QPushButton *saveSection_{};
+    QPushButton *generateProposal_{};
+    QPushButton *cancelProposalGeneration_{};
     QPushButton *finalDetailsButton_{};
     QPushButton *exportPdf_{};
     QPushButton *exportDocx_{};
@@ -2594,6 +2728,10 @@ private:
     QPushButton *runResearchEngine_{};
     QPushButton *cancelResearchEngine_{};
     ResearchEngineRunner *engineRunner_{};
+    ResearchEngineRunner *proposalRunner_{};
+    QString proposalGenerationOutput_;
+    QString proposalGenerationModel_;
+    QString proposalGenerationLastError_;
     QPushButton *openExistingProject_{};
     QPushButton *newProject_{};
     QList<QLabel *> headings_;
@@ -2604,6 +2742,8 @@ private:
     std::optional<qint64> currentResearchRunProjectId_;
     QPushButton *researchRunHistory_{};
     bool researchRunCancellationRequested_{false};
+    bool proposalGenerationRunning_{false};
+    bool proposalGenerationCancelRequested_{false};
     bool noApiResearchRun_{false};
     int noApiImportedSourceCount_{0};
     bool proposalSectionDirty_{false};
@@ -2617,13 +2757,26 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     // Keep the legacy application-data namespace so existing projects remain discoverable.
     QCoreApplication::setApplicationName(QStringLiteral("yadavarifork"));
-    app.setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.svg")));
+    app.setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.png")));
+    QFont applicationFont;
+    applicationFont.setFamily(QStringLiteral("Segoe UI"));
+    applicationFont.setPointSize(10);
+    app.setFont(applicationFont);
     app.setStyleSheet(QStringLiteral(
         "QWidget { background-color:#091a35; color:#eaf2ff; font-size:13px; }"
         "QMainWindow, QDialog { background-color:#07152d; }"
+        "QFrame#brandHeader { background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #102d52,stop:1 #07172f); border:1px solid #a77b35; border-radius:15px; }"
+        "QLabel#brandTitle { color:#f4c56a; font-size:20px; font-weight:700; background:transparent; }"
+        "QLabel#brandSubtitle { color:#9bc9ff; font-size:10px; letter-spacing:1px; background:transparent; }"
+        "QLabel#brandTag { color:#ffe2a2; background:#0a1d37; border:1px solid #72582e; border-radius:12px; padding:7px 12px; font-size:10px; font-weight:700; }"
+        "QStackedWidget { background:transparent; }"
+        "QWidget#languagePage, QWidget#aiPage, QWidget#taskPage, QWidget#summaryPage, QWidget#proposalEditorPage, QWidget#researchWorkspacePage { background-color:#0c203b; border:1px solid #29486d; border-radius:14px; }"
         "QLabel { background:transparent; }"
         "QPushButton { background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #244b7e,stop:1 #122b50); color:#f5f7ff; border:1px solid #527eb2; border-radius:9px; padding:8px 14px; }"
         "QPushButton:hover { border:1px solid #f3c66b; background-color:#315b8d; }"
+        "QPushButton#generateProposalButton { background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #b8873c,stop:1 #76501e); color:#fff6df; border:1px solid #f2cf7c; font-weight:700; }"
+        "QPushButton#generateProposalButton:hover { background:#d09b42; color:#07152d; }"
+        "QPushButton#cancelProposalGenerationButton { background:#512d3b; border:1px solid #a95d68; }"
         "QPushButton:pressed { background-color:#102443; }"
         "QPushButton:disabled { color:#71839c; border-color:#263b58; }"
         "QLineEdit, QTextEdit, QListWidget, QComboBox { background-color:#102746; color:#edf4ff; border:1px solid #385d88; border-radius:7px; padding:7px; selection-background-color:#b8873c; }"
@@ -2634,6 +2787,8 @@ int main(int argc, char *argv[]) {
         "QScrollBar::handle:vertical { background:#42658c; border-radius:5px; min-height:24px; }"
         "QCheckBox { spacing:8px; }"
         "QLabel#proposalAdministrativeNotice { color:#f1c875; }"
+        "QLabel#brandLogo { background:transparent; }"
+        "QPushButton { min-height:20px; }"
         "QPushButton#aboutInstituteButton, QPushButton#aboutCloseButton { border:1px solid #c99a4b; color:#ffe0a0; }"
         "QMessageBox { background:#091a35; }"
     ));
