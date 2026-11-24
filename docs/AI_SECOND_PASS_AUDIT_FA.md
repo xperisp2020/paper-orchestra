@@ -75,3 +75,12 @@ V2 و handoff اولیه فقط برای سابقه نگه داشته شده‌�
 ## به‌روزرسانی پس از Crossref live (2026-11-24)
 - Crossref helper از داخل GitHub Actions با DOI `10.1038/nature12373` به API واقعی وصل شد؛ run `45363848472` success و log دارای `status=verified` است.
 - Crossref live دیگر مورد BLOCKED/untested نیست؛ تا وقتی regression جدید رخ ندهد، از موارد باز مسیر B خارج است.
+
+
+## به‌روزرسانی گیت‌های مسیر A و artifactهای فعلی (2026-11-24)
+- Python Safety run `45364548308`: Ubuntu و Windows success.
+- Research Runtime run `45364548656`: Windows runtime bootstrap و Batch runtime checks (18 tests OK) و Ubuntu real LaTeX/BibTeX compile موفق.
+- Crossref live run `45363848472`: status=verified برای DOI عمومی `10.1038/nature12373` با helper واقعی پروژه.
+- Windows run `45364368515`: build و clean-runner هر دو success؛ Portable/Installer، مسیر فارسی/دارای فاصله، export PDF/DOCX، install/uninstall و حفظ داده موفق.
+- artifactهای جاری: Portable id `14905488281`, digest `sha256:e546ddb0c47fc304b878d4c2f267a68ba41a6e056940a853d26ba5e35d9d8819`; Installer id `14906087195`, digest `sha256:29bf8583fede4ec69eca0a7056ed3e0e658a635fdd9ebbdd98dcc5d0bc248363`; expiry `2027-02-22T09:21:09Z`.
+- موارد باز مسیر B همچنان providerهای live، Word 2010 واقعی و دستگاه اصلی کاربر هستند؛ Crossref live از موارد باز خارج شده است.
