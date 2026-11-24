@@ -1630,3 +1630,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Crossref live run `45363848472` با conclusion=success پایان یافت؛ log: `Crossref live smoke PASS: status=verified doi=10.1038/nature12373`. درخواست از کد helper خود پروژه روی GitHub runner انجام شد؛ API key لازم نبود.
 - اولین live run `45363737924` به‌علت import path نادرست در اسکریپت smoke شکست خورد؛ `sys.path` به ریشهٔ مخزن اصلاح شد و run جدید موفق شد. این failure اولیه و علت آن حفظ می‌شود، نه اینکه از تاریخچه حذف شود.
 - C++/Windows build + clean-runner verification روی نسخهٔ جدید کد در run `45363487717` هنوز pending بود؛ نتیجهٔ artifact جدید تا تکمیل آن pending می‌ماند.
+
+
+### 6.99.41 افزودن آزمون runtime انتقال Crossref به Batch workers (2026-11-24)
+- مقصد پیش از تغییر تأیید شد: repo id 1467327081، owner xperisp2020، branch work/yadavarifork؛ HEAD مبنا c902635f5e18b6814633b11e747cd77bee4bc286.
+- تست AST موجود propagation را برای هر دو writer بررسی می‌کرد؛ برای افزایش اطمینان، آزمون runtime جدید به `tests/runtime_provider_checks.py` اضافه شد که خود `run_batch_writeup` را با ProcessPoolExecutor ساختگی اجرا می‌کند و keyword فعال‌بودن Crossref را در هر دو pipeline assert می‌کند.
+- این آزمون هیچ API/شبکه‌ای را فراخوانی نمی‌کند و فقط مسیر پارامتر را در runtime واقعی Python بررسی می‌کند.
+- CI Research Runtime بعد از این تغییر باید آزمون جدید را اجرا و نتیجه را مشخص کند.
