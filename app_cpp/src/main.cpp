@@ -2059,6 +2059,18 @@ private:
                           ris(QStringLiteral("PY")).isEmpty() ? ris(QStringLiteral("Y1")) : ris(QStringLiteral("PY")),
                           ris(QStringLiteral("DO")), ris(QStringLiteral("UR")), ris(QStringLiteral("JO")).isEmpty() ? ris(QStringLiteral("JF")) : ris(QStringLiteral("JO")));
             }
+        } else if (raw.contains(QRegularExpression(QStringLiteral("(?im)^%0\\s+")))) {
+            const QStringList entries = raw.split(QRegularExpression(QStringLiteral("(?im)^%0\\s+")), Qt::SkipEmptyParts);
+            for (const QString &entry : entries) {
+                auto endnote = [&](const QString &tag) {
+                    QRegularExpression re(QStringLiteral("(?im)^%1\\s+(.+)$").arg(QRegularExpression::escape(tag)));
+                    const auto match = re.match(entry);
+                    return match.hasMatch() ? match.captured(1).trimmed() : QString();
+                };
+                addParsed(endnote(QStringLiteral("%T")), endnote(QStringLiteral("%A")),
+                          endnote(QStringLiteral("%D")), endnote(QStringLiteral("%R")),
+                          endnote(QStringLiteral("%U")), endnote(QStringLiteral("%J")));
+            }
         } else {
             const QStringList lines = raw.split(QRegularExpression(QStringLiteral("[\\r\\n]+")), Qt::SkipEmptyParts);
             for (const QString &line : lines) {
