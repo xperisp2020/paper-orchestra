@@ -1560,3 +1560,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - C++ Windows portable CI run 45356257643 پس از افزودن چک‌باکس Qt: نصب Qt و Configure موفق؛ مرحله Build در زمان ثبت هنوز in_progress بود. نتیجه build/smoke/portable/installer تا تکمیل job باز می‌ماند.
 - بنابراین در این ثبت، اتصال Crossref و تست‌های Python با شواهد CI تأیید شده‌اند؛ build ویندوز و LaTeX واقعی هنوز PASS اعلام نمی‌شوند تا runهایشان completed/success شوند.
 - فایل‌های تقسیم و handoff: `docs/PARALLEL_REMAINING_WORK_SPLIT_FA.md`, `docs/WORKSTREAM_A_CROSSREF_PIPELINE_FA.md`, `docs/AI_HANDOFF_PROVIDER_WINDOWS_WORD2010_FA.md`.
+
+
+### 6.99.33 پیشرفت بسته‌بندی Qt و وضعیت آخرین گیت‌ها (2026-11-24)
+- HEAD هنگام ثبت: bae0a1c3c3fe3dcca665963d56117c4c8bbed126؛ هویت مخزن/شاخه: repo id 1467327081، owner=xperisp2020، branch=work/yadavarifork.
+- Python Safety run 45356267071: conclusion=success در Ubuntu و Windows، 86 تست.
+- C++ Windows portable CI run 45356257643: نصب Qt، Configure، Build، Smoke test، Assemble portable directory و Upload portable artifact همگی success؛ مرحلهٔ ساخت Inno Setup Installer در زمان ثبت in_progress بود.
+- Research Runtime run 45356069474: bootstrap-windows موفق؛ job مربوط به LaTeX smoke هنوز در مرحلهٔ نصب TeX Live/BibTeX بود و نتیجهٔ نهایی compile ثبت نشده است.
+- قابلیت Crossref در هر دو مسیر writer، Literature Agent، CLI و رابط Qt ادغام شده؛ پیش‌فرض خاموش است و فقط با گزینه/چک‌باکس صریح فعال می‌شود. فقط وضعیت verifier در citation_map ثبت می‌شود و DOI در BibTeX حفظ می‌شود.
+- آزمون Crossref در این مرحله mocked است؛ درخواست زندهٔ Crossref هنوز اجرا نشده و PASS زنده ادعا نمی‌شود.
