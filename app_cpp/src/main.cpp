@@ -2059,7 +2059,7 @@ private:
                           ris(QStringLiteral("PY")).isEmpty() ? ris(QStringLiteral("Y1")) : ris(QStringLiteral("PY")),
                           ris(QStringLiteral("DO")), ris(QStringLiteral("UR")), ris(QStringLiteral("JO")).isEmpty() ? ris(QStringLiteral("JF")) : ris(QStringLiteral("JO")));
             }
-        } else if (raw.contains(QRegularExpression(QStringLiteral("(?i)(^|[,\\\\])\\\\s*title\\\\s*[,\\\\]")))) {
+        } else if (raw.contains(QRegularExpression(QStringLiteral("(?i)(^|,)\\s*"?title"?\\s*(,|$)")))) {
             auto csvCells = [](const QString &line) {
                 QStringList cells;
                 QString cell;
@@ -2079,7 +2079,7 @@ private:
                 cells << cell.trimmed();
                 return cells;
             };
-            const QStringList lines = raw.split(QRegularExpression(QStringLiteral("[\\\\r\\\\n]+")), Qt::SkipEmptyParts);
+            const QStringList lines = raw.split(QRegularExpression(QStringLiteral("[\\r\\n]+")), Qt::SkipEmptyParts);
             if (!lines.isEmpty()) {
                 QStringList headers = csvCells(lines.first());
                 for (QString &header : headers) header = header.toLower().remove(QRegularExpression(QStringLiteral("[^a-z]")));
