@@ -213,6 +213,14 @@ def main():
         help="Maximum rounds of self-correction in the plotting agent.",
     )
     parser.add_argument(
+        "--verify_dois_with_crossref",
+        action="store_true",
+        help=(
+            "Enable best-effort Crossref checks for discovered DOIs. "
+            "This uses the network and may add latency; DOIs not found in Crossref are retained."
+        ),
+    )
+    parser.add_argument(
         "--resume",
         action="store_true",
         help="Resume the newest attempt whose input fingerprint and artifacts validate.",
@@ -342,6 +350,7 @@ def main():
                 research_cutoff=args.research_cutoff,
                 plotting_max_critic_rounds=args.plotting_max_critic_rounds,
                 resume=args.resume,
+                verify_dois_with_crossref=args.verify_dois_with_crossref,
             )
         else:
             from methods.paper_writer import write_single_paper
@@ -359,6 +368,7 @@ def main():
                 reflection_model_name=args.reflection_model_name,
                 research_cutoff=args.research_cutoff,
                 resume=args.resume,
+                verify_dois_with_crossref=args.verify_dois_with_crossref,
             )
         if pipeline_result is not True:
             raise RuntimeError(
