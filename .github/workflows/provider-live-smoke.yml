@@ -1,0 +1,74 @@
+name: Provider live smoke
+
+on:
+  push:
+    branches: [work/yadavarifork]
+    paths:
+      - "scripts/provider_live_smoke.py"
+      - "tests/test_provider_live_smoke.py"
+      - ".github/workflows/provider-live-smoke.yml"
+  workflow_dispatch:
+    inputs:
+      run_openrouter_free:
+        description: "Run one zero-priced OpenRouter :free smoke request when its secret exists"
+        required: true
+        type: boolean
+        default: true
+      run_gemini:
+        description: "Request one Gemini smoke call (may incur API charges)"
+        required: true
+        type: boolean
+        default: false
+      run_openai:
+        description: "Request one OpenAI smoke call (may incur API charges)"
+        required: true
+        type: boolean
+        default: false
+      allow_billable_provider_smokes:
+        description: "Explicit opt-in required before Gemini/OpenAI requests can run"
+        required: true
+        type: boolean
+        default: false
+      gemini_model:
+        description: "Gemini model ID"
+        required: true
+        type: string
+        default: "gemini-3-flash-preview"
+      openai_model:
+        description: "OpenAI model ID"
+        required: true
+        type: string
+        default: "gpt-4o-mini"
+      openrouter_model:
+        description: "Must be openrouter/free or end in :free"
+        required: true
+        type: string
+        default: "nvidia/nemotron-3.5-super-vl:free"
+
+permissions:
+  contents: read
+
+jobs:
+  provider-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      RUN_OPENROUTER_FREE_LIVE: ${{ github.event_name == 'push' || inputs.run_openrouter_free }}
+      RUN_GEMINI_LIVE: ${{ github.event_name == 'workflow_dispatch' && inputs.run_gemini }}
+      RUN_OPENAI_LIVE: ${{ github.event_name == 'workflow_dispatch' && inputs.run_openai }}
+      ALLOW_BILLABLE_PROVIDER_SMOKES: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_billable_provider_smokes }}
+      GEMINI_SMOKE_MODEL: ${{ inputs.gemini_model || 'gemini-3-flash-preview' }}
+      OPENAI_SMOKE_MODEL: ${{ inputs.openai_model || 'gpt-4o-mini' }}
+      OPENROUTER_SMOKE_MODEL: ${{ inputs.openrouter_model || 'nvidia/nemotron-3.5-super-vl:free' }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run secret-safe, single-request provider smoke checks
+        run: python scripts/provider_live_smoke.py
