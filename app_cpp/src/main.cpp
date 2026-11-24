@@ -1412,6 +1412,13 @@ private:
             ? QStringLiteral("فقط مراحل دارای ورودی یکسان و خروجی‌های سالم بازیابی می‌شوند.")
             : QStringLiteral("Only stages with matching inputs and intact artifacts are reused."));
         form->addRow(resumeCheck);
+        auto *crossrefCheck = new QCheckBox(persian
+            ? QStringLiteral("اعتبارسنجی اختیاری DOI با Crossref")
+            : QStringLiteral("Optionally verify DOIs with Crossref"), &dialog);
+        crossrefCheck->setToolTip(persian
+            ? QStringLiteral("برای DOIهای عمومی درخواست شبکه می‌فرستد و ممکن است زمان اجرا را افزایش دهد؛ اگر Crossref در دسترس نباشد یا DOI را پیدا نکند، منبع و DOI حذف یا تغییر نمی‌شوند.")
+            : QStringLiteral("Sends public DOI identifiers to Crossref and may add latency; unavailable or not-found results never remove or change a source DOI."));
+        form->addRow(crossrefCheck);
         QCheckBox *freeTierConsent = nullptr;
         if (freeTierMode) {
             freeTierConsent = new QCheckBox(persian
@@ -1581,6 +1588,8 @@ private:
         // The Python engine also verifies a published PDF against the completed refinement checkpoint.
         if (resumeRequested)
             arguments.append(QStringLiteral("--resume"));
+        if (crossrefCheck->isChecked())
+            arguments.append(QStringLiteral("--verify_dois_with_crossref"));
         currentResearchRunOutput_ = output;
         currentResearchRunProjectId_ = projectId_;
         researchRunCancellationRequested_ = false;
