@@ -43,6 +43,10 @@ jobs:
         run: python -m py_compile scripts/no_api_scholarly_research.py
       - name: Test keyless scholarly discovery helpers
         run: python -m unittest discover -s tests -p "test_no_api_scholarly_research.py" -v
+      - name: Validate AI proposal generation worker
+        run: |
+          python -m py_compile scripts/generate_proposal.py
+          python -m unittest discover -s tests -p "test_proposal_generator.py" -v
       - name: Validate research runtime bootstrap syntax
         shell: pwsh
         run: |
@@ -66,7 +70,6 @@ jobs:
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
-          modules: 'qtsvg'
       - name: Configure
         run: cmake -S app_cpp -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build
