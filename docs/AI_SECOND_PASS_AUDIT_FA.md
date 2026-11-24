@@ -49,3 +49,24 @@
 - دستورالعمل جدید: `docs/AI_HANDOFF_PROVIDER_WORD2010_V2_FA.md`
 - قالب گزارش نتیجه: `docs/AI_SECOND_PASS_RESULT_TEMPLATE_FA.md`
 - نسخهٔ قبلی `docs/AI_HANDOFF_PROVIDER_WINDOWS_WORD2010_FA.md` فقط برای سابقه نگه داشته می‌شود و با V2 جایگزین شده است.
+
+
+## به‌روزرسانی ممیزی پس از ورود شش commit مستنداتی (HEAD جدید: b08be9a11edabdc5c1e53878082de24bdd44aec9)
+پس از checkpoint اولیهٔ 743d19e، شش commit جدید روی شاخه مشاهده شد. مقایسهٔ GitHub از 743d19e تا b08be9a نشان داد:
+- تعداد commitهای جلوتر: 6؛ عقب‌تر: 0.
+- فایل‌های تغییرکرده: فقط مستندات و دفتر کار.
+- فایل‌های جدید: `docs/AI_HANDOFF_PROVIDER_WORD2010_V2_FA.md`, `docs/AI_SECOND_PASS_AUDIT_FA.md`, `docs/AI_SECOND_PASS_RESULT_TEMPLATE_FA.md`.
+- فایل‌های تغییرکرده: `docs/AI_HANDOFF_PROVIDER_WINDOWS_WORD2010_FA.md`, `docs/PARALLEL_REMAINING_WORK_SPLIT_FA.md`, `yadavarifork`.
+- هیچ source code، test یا workflow در این شش commit تغییر نکرد.
+- Git author/committer با account `xperisp2020` ثبت شده؛ این داده، انسان/AI بودن نویسنده را مشخص نمی‌کند. بنابراین attribution قطعی به AI دوم ممکن نیست.
+- این شش commit، به‌عنوان بهبود مستندات/ممیزی قابل مشاهده‌اند؛ اما اثبات‌کنندهٔ تغییرات کدنویسی، provider live، Word 2010 یا دستگاه واقعی نیستند.
+
+نتیجهٔ راستی‌آزمایی CI که در V2 نیز ثبت شده بود، اکنون دوباره بررسی شد:
+- Python Safety `45356267071`: Ubuntu success و Windows success، 86 تست در هر job.
+- Research Runtime `45356069474`: Windows bootstrap success و Ubuntu LaTeX/BibTeX compile success.
+- Windows build/clean runner `45356339161`: هر دو job success؛ Portable و Installer روی clean runner، مسیر فارسی/دارای فاصله، smoke/export، install/uninstall و حفظ داده sentinel پاس شدند.
+
+برای رفع ابهام base قدیم و HEAD جدید، دستورالعمل V3 و فایل موجودی/patch ساخته شد:
+- `docs/AI_HANDOFF_PROVIDER_WORD2010_V3_FA.md`
+- `docs/AI_CHANGE_INVENTORY_AND_PATCH_REQUEST_FA.md`
+V2 و handoff اولیه فقط برای سابقه نگه داشته شده‌اند و superseded هستند.
