@@ -359,6 +359,57 @@ bool ProjectStore::saveSection(qint64 projectId, const QString &sectionKey,
     return true;
 }
 
+bool ProjectStore::saveSections(qint64 projectId, const QMap<QString, QString> &sections,
+                                QString *error) {
+    if (error) error->clear();
+    if (sections.isEmpty()) {
+        setError(error, QStringLiteral("No proposal sections were supplied."));
+        return false;
+    }
+    for (auto it = sections.cbegin(); it != sections.cend(); ++it) {
+        if (!proposalSectionKeys().contains(it.key())) {
+            setError(error, QStringLiteral("Unknown proposal section: %1").arg(it.key()));
+            return false;
+        }
+    }
+    if (!database_.isOpen() && !initialize(error))
+        return false;
+    if (!database_.transaction()) {
+        setError(error, database_.lastError().text());
+        return false;
+    }
+    QSqlQuery query(database_);
+    query.prepare(QStringLiteral(
+        "INSERT INTO proposal_sections(project_id, section_key, content) VALUES (?, ?, ?) "
+        "ON CONFLICT(project_id, section_key) DO UPDATE SET content=excluded.content"));
+    for (auto it = sections.cbegin(); it != sections.cend(); ++it) {
+        query.bindValue(0, projectId);
+        query.bindValue(1, it.key());
+        query.bindValue(2, it.value().isNull() ? QStringLiteral("") : it.value());
+        if (!query.exec()) {
+            setError(error, query.lastError().text());
+            database_.rollback();
+            return false;
+        }
+    }
+    QSqlQuery update(database_);
+    update.prepare(QStringLiteral("UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?"));
+    update.addBindValue(projectId);
+    if (!update.exec() || update.numRowsAffected() != 1) {
+        setError(error, update.lastError().text().isEmpty()
+            ? QStringLiteral("Project not found while saving proposal sections.")
+            : update.lastError().text());
+        database_.rollback();
+        return false;
+    }
+    if (!database_.commit()) {
+        setError(error, database_.lastError().text());
+        database_.rollback();
+        return false;
+    }
+    return true;
+}
+
 QMap<QString, QString> ProjectStore::loadSections(qint64 projectId, QString *error) {
     if (error) error->clear();
     QMap<QString, QString> sections;
