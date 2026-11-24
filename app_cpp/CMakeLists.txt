@@ -48,6 +48,7 @@ qt_add_executable(research_engine_runner_tests EXCLUDE_FROM_ALL
     src/research_engine_runner.h
 )
 target_link_libraries(research_engine_runner_tests PRIVATE Qt6::Core)
+target_include_directories(research_engine_runner_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if(WIN32)
     set_target_properties(research_engine_runner_tests PROPERTIES WIN32_EXECUTABLE FALSE)
 endif()
