@@ -37,7 +37,7 @@ class CrossrefVerificationTests(unittest.TestCase):
         get.return_value = self.response(503)
         self.assertEqual(verify_doi_with_crossref("10.1000/server")["status"], "unavailable")
 
-    @patch("utils.crossref_utils.requests.get", side_effect=TimeoutError("timeout"))
+    @patch("utils.crossref_utils.requests.get", side_effect=__import__("requests").Timeout("timeout"))
     def test_network_failure_is_unavailable(self, get):
         self.assertEqual(verify_doi_with_crossref("10.1000/timeout")["status"], "unavailable")
 
