@@ -1265,8 +1265,8 @@ private:
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
         if (mode == QStringLiteral("no_api")) {
             aiDescription_->setText(persian
-                ? QStringLiteral("جست‌وجوی رایگان منابع علمی از OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite و arXiv و تکمیل ساختاریافته بخش‌های پژوهش؛ بدون کلید API و بدون مدل زبانی.")
-                : QStringLiteral("Free scholarly discovery from OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, and arXiv with structured research drafting; no API key or language model."));
+                ? QStringLiteral("جست‌وجوی رایگان منابع علمی از OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite، OpenAIRE Graph و arXiv و تکمیل ساختاریافته بخش‌های پژوهش؛ جست‌وجوی تکمیلی دستی در CORE نیز در دسترس است؛ بدون کلید API و بدون مدل زبانی.")
+                : QStringLiteral("Free scholarly discovery from OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, OpenAIRE Graph, and arXiv, plus manual CORE search; no API key or language model."));
         } else if (mode == QStringLiteral("free_tier")) {
             aiDescription_->setText(persian
                 ? QStringLiteral("مسیر OpenRouter با مدل رایگان چندوجهی Nemotron؛ کلید OPENROUTER_API_KEY لازم است. سهمیه فعلی رایگان ۲۰ درخواست در دقیقه و ۵۰ درخواست در روز است و ارائه‌دهنده ثالث ممکن است داده‌ها را ثبت یا برای بهبود مدل استفاده کند.")
@@ -2226,8 +2226,8 @@ private:
             return;
         }
         researchStatus_->setText(persian
-            ? QStringLiteral("جست‌وجوی رایگان در OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite و arXiv آغاز شد؛ هدف ۵۰ منبع یکتا است و کلید API لازم نیست.")
-            : QStringLiteral("Free OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, and arXiv discovery started; target is 50 unique records, no API key required."));
+            ? QStringLiteral("جست‌وجوی رایگان در OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite، OpenAIRE Graph و arXiv آغاز شد؛ هدف ۵۰ منبع یکتا است و کلید API لازم نیست.")
+            : QStringLiteral("Free OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, OpenAIRE Graph, and arXiv discovery started; target is 50 unique records, no API key required."));
         const QStringList arguments{
             script, QStringLiteral("--query"), projectTitle_->text().trimmed(),
             QStringLiteral("--language"), language_->currentData().toString(),
