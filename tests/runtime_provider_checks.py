@@ -321,7 +321,7 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
 
 
     def test_crossref_opt_in_reaches_both_batch_process_pools(self):
-        from types import SimpleNamespace
+        from concurrent.futures import Future
         from unittest.mock import patch
 
         from methods import paper_writer, paper_writer_with_plotting
@@ -335,9 +335,8 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
         for module in (paper_writer, paper_writer_with_plotting):
             with self.subTest(module=module.__name__), tempfile.TemporaryDirectory() as temp:
                 output = Path(temp) / "batch-output"
-                future = SimpleNamespace(
-                    result=lambda: {"status": "success", "paper_path": "unused.pdf"}
-                )
+                future = Future()
+                future.set_result({"status": "success", "paper_path": "unused.pdf"})
 
                 class RecordingExecutor:
                     def __init__(self, max_workers):
