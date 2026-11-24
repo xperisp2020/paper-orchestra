@@ -76,3 +76,23 @@ python paper_writing_cli.py --help
 - verify_doi_with_crossref اکنون یک کپی از نتیجهٔ cache برمی‌گرداند؛ مصرف‌کننده نمی‌تواند با تغییر دیکشنری، cache سراسری process را خراب کند.
 - smoke script شناسهٔ ورودی را با normalize_doi مقایسه می‌کند؛ DOI خام و URL-prefixed هر دو با پاسخ API درست match می‌شوند.
 - تست‌های جدید شامل cache immutability، نرمال‌سازی DOI در smoke script و انتقال واقعی گزینه از هر دو batch worker تا فراخوانی write_single_paper هستند.
+
+
+### تکمیل نهایی مسیر A پس از hardening و بازآزمون‌ها (2026-11-24)
+- ممیزی دفاعی helper نشان داد خروجی دیکشنری LRU مستقیم به مصرف‌کننده برمی‌گشت و تغییر آن از سمت caller می‌توانست cache process-local را آلوده کند؛ تابع اکنون یک کپی مستقل برمی‌گرداند. تست regression این رفتار را اثبات می‌کند.
+- live smoke script اکنون DOI ورودی را با normalize_doi مقایسه می‌کند؛ DOI خام و DOI دارای پیشوند https://doi.org/ به‌درستی match می‌شوند. تست‌های مستقل mismatch، case-insensitive، status not_found و DOI malformed را بررسی می‌کنند.
+- runtime regression جدید هر دو تابع واقعی process_paper_task را اجرا می‌کند و انتقال verify_dois_with_crossref=True را تا فراخوانی write_single_paper assert می‌کند؛ علاوه بر تست قبلی ProcessPoolExecutor.submit.
+- Python Safety run 45366337200: Ubuntu و Windows هر دو success؛ هر job 94 تست، شامل cache copy و smoke normalization.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45366337200
+- Research Runtime run 45366337215: Windows Python 3.12 runtime success؛ 19 تست شامل دو تست Batch propagation؛ Ubuntu real LaTeX/BibTeX success.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45366337215
+- Crossref live runs 45366306443 و 45366313174 هر دو success و پاسخ واقعی verified برای DOI عمومی 10.1038/nature12373 ثبت کردند.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45366306443
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45366313174
+- فیلتر workflow ویندوز به scripts/** گسترش یافت؛ چون پوشه scripts به Portable کپی می‌شود، تغییرات این پوشه اکنون بسته‌بندی را trigger می‌کنند.
+- Windows build + clean-runner run 45367143582 با هر دو job success پایان یافت؛ Build، app smoke، export package validation، Portable و Installer، اجرای بسته در مسیر فارسی/دارای فاصله، install/uninstall و حفظ داده sentinel موفق شدند.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45367143582
+- Portable: artifact 14906139648؛ size 27093368 bytes؛ ZIP SHA-256 dd4a8991fde4866163d545cf8339224c07739a920ebe6f2c8ab1b511399a45cb.
+- Installer: artifact 14907232374؛ size 19931308 bytes؛ ZIP SHA-256 57dd5238c287f47dd431676e1fa19537c80ef98c7b5851ce079860400b05b65a.
+- انقضای هر دو artifact: 2027-02-22T09:38:40Z. این مقادیر hash آرشیو ZIP هستند.
+- نتیجه: Workstream A در سطح پیاده‌سازی، helper/live smoke، Single-run، Batch، CLI/Qt، Python Safety، Research Runtime و Windows clean-runner PASS است. موارد خارج از این مسیر همچنان Gemini/OpenAI/OpenRouter live با credentials اختصاصی، Word 2010 واقعی و دستگاه اصلی کاربر است.
