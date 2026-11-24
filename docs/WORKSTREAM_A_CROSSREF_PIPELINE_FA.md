@@ -59,3 +59,6 @@ python paper_writing_cli.py --help
   https://github.com/xperisp2020/paper-orchestra/actions/runs/45363848472
 - live smoke یک درخواست عمومی و کم‌هزینه با DOI شناخته‌شده انجام می‌دهد؛ این فقط دسترسی helper از GitHub runner را ثابت می‌کند و دسترسی تمام دستگاه‌ها/شبکه‌ها را تضمین نمی‌کند.
 - C++/Windows بسته‌بندی با کد منبع Batch و Crossref در workflow جاری `45363487717` هنوز باید به conclusion نهایی برسد؛ artifact نسخهٔ قبلی تا قبل از آن آخرین بستهٔ تأییدشده باقی می‌ماند.
+
+### آزمون runtime برای Batch
+- علاوه بر تست dependency-free مبتنی بر AST، `tests/runtime_provider_checks.py` هر دو تابع واقعی `run_batch_writeup` را با executor ساختگی اجرا می‌کند و assert می‌کند `verify_dois_with_crossref=True` به keywordهای `ProcessPoolExecutor.submit` منتقل شده است. هیچ provider یا شبکه‌ای در این آزمون فراخوانی نمی‌شود.
