@@ -1842,3 +1842,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - commit `192584054cdcbc63080e86609c5e2c8573f65e22` ذخیرهٔ خودکار عنوان انتخاب‌شده در فیلد متناظر `title_fa` یا `title_en` را هنگام ساخت پروژه پروپوزال اضافه کرد؛ commit `3e5a36a486cd03f5ef8ef350c0e6bb64ae022c27` assertion smoke برای ماندگاری همین عنوان را اضافه کرد.
 - run `45427957011` برای commit `4ee3e71...` و run `45428262795` برای commit `1925840...` در زمان ثبت در حال اجرا بودند؛ نتیجهٔ آن‌ها جداگانه بررسی می‌شود.
 - نسخهٔ ارسالی `proposal.docx` و تفاوت فرم‌های مرجع همچنان گیت محتوایی/قالبی باز هستند؛ موفقیت smoke فنی به معنی انطباق کامل با فرم مرجع یا تکمیل علمی پروپوزال نیست.
+
+
+### 6.99.52 بستن آزمون نصب و fallback پایگاه داده در Windows CI (2026-11-24)
+- مقصد: `xperisp2020/paper-orchestra`، شاخه `work/yadavarifork`؛ HEAD پیش از ثبت `bedb5874109267f8f752e7abc8f41613cf57dcd2`.
+- run `45427957011` روی commit `4ee3e71398e30ff67a3e9b2e3a1614cb115d308b`: Build و smoke موفق، سپس job `verify-portable-artifact` نیز **SUCCESS**؛ Portable و Installer روی clean runner استخراج و اجرا شدند. این commit شامل fallback پایگاه داده به AppData است.
+- artifactهای run `45427957011`: Portable id `14936584819`؛ Installer id `14938326013`. این artifactها مربوط به commit `4ee3e71...` هستند و تغییر بعدی ذخیره خودکار عنوان را ندارند؛ به‌عنوان آخرین نسخهٔ شاخه معرفی نمی‌شوند.
+- run `45428262795` روی commit `192584054cdcbc63080e86609c5e2c8573f65e22`: Python unit tests، Configure، Build و app smoke تا زمان ثبت **PASS**؛ Assemble/clean-runner هنوز ادامه داشت.
+- run `45428312203` روی commit `3e5a36a486cd03f5ef8ef350c0e6bb64ae022c27` (شامل assertion ذخیره عنوان): Python unit tests، Configure و Build **PASS**؛ app smoke در زمان ثبت در حال اجرا بود.
+- هیچ artifactی از run قدیمی‌تر به‌عنوان build نهایی HEAD فعلی ارائه نمی‌شود؛ artifact نهایی فقط پس از موفقیت هر دو job روی commit جاری معرفی خواهد شد.
