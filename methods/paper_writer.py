@@ -494,6 +494,7 @@ def run_batch_writeup(
     research_cutoff: str = "2024-11",
     n_papers=-1,
     max_workers=4,
+    verify_dois_with_crossref: bool = False,
 ):
     if output_dir == "":
         output_dir = create_log_folder(prefix=output_dir_prefix, date_str=date_str)
@@ -527,6 +528,7 @@ def run_batch_writeup(
                 experimental_log_filename,
                 writer_model_name,
                 research_cutoff,
+                verify_dois_with_crossref=verify_dois_with_crossref,
             ): paper["paper_id"]
             for paper in papers_to_process
         }
