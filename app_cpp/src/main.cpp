@@ -216,6 +216,18 @@ public:
             const QJsonDocument eventDocument = QJsonDocument::fromJson(line.toUtf8());
             if (eventDocument.isObject()) {
                 const QJsonObject event = eventDocument.object();
+                if (event.contains(QStringLiteral("ok")) && event.contains(QStringLiteral("count"))) {
+                    if (!event.value(QStringLiteral("ok")).toBool()) {
+                        displayLine = event.value(QStringLiteral("message")).toString(
+                            language_->currentData().toString() == QStringLiteral("fa")
+                                ? QStringLiteral("منابع کافی بازیابی نشدند؛ محتوای ناقص ذخیره نشد.")
+                                : QStringLiteral("Not enough sources were retrieved; incomplete content was not saved."));
+                    } else {
+                        displayLine = language_->currentData().toString() == QStringLiteral("fa")
+                            ? QStringLiteral("تعداد منابع بازیابی‌شده: %1").arg(event.value(QStringLiteral("count")).toInt())
+                            : QStringLiteral("Retrieved sources: %1").arg(event.value(QStringLiteral("count")).toInt());
+                    }
+                }
                 const QString eventName = event.value(QStringLiteral("event")).toString();
                 if (!eventName.isEmpty()) {
                     if (eventName == QStringLiteral("pipeline_started")) {
@@ -283,6 +295,7 @@ public:
             runResearchEngine_->setEnabled(true);
             cancelResearchEngine_->setEnabled(false);
             writeResearchRunManifest(QStringLiteral("failed"), QStringLiteral("process_start_failed"));
+            noApiResearchRun_ = false;
             currentResearchRunOutput_.clear();
             currentResearchRunProjectId_.reset();
             researchRunCancellationRequested_ = false;
