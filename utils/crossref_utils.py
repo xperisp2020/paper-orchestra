@@ -1,19 +1,21 @@
-"""Best-effort Crossref DOI existence check; never treats outages as invalid DOIs."""
+"""Best-effort Crossref DOI check using only the Python standard library."""
 from functools import lru_cache
 from urllib.parse import quote
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+import json
 import os
-import requests
+import socket
 
 from utils.doi_utils import normalize_doi
 
 
 @lru_cache(maxsize=4096)
 def verify_doi_with_crossref(doi, timeout=6):
-    """Return verified, not_found, unavailable, or invalid without destructive edits.
+    """Return verified/not_found/unavailable/invalid without destructive edits.
 
-    Crossref is an independent metadata source, not an authority for every DOI
-    (e.g. non-Crossref registrants). Network errors and rate limits are
-    explicitly reported as unavailable.
+    Crossref does not cover every DOI registrant. A 404 means only that Crossref
+    did not find this DOI; network errors and rate limits are unavailable.
     """
     normalized = normalize_doi(doi)
     if not normalized:
@@ -27,26 +29,25 @@ def verify_doi_with_crossref(doi, timeout=6):
     if mailto:
         headers["User-Agent"] += " mailto:" + mailto
 
+    request = Request(
+        "https://api.crossref.org/works/" + quote(normalized, safe=""),
+        headers=headers,
+    )
     try:
-        response = requests.get(
-            "https://api.crossref.org/works/" + quote(normalized, safe=""),
-            headers=headers,
-            timeout=timeout,
-        )
-        if response.status_code == 404:
-            return {"status": "not_found", "doi": normalized,
-                    "message": "DOI not found in Crossref; it may be registered elsewhere"}
-        if response.status_code == 429 or response.status_code >= 500:
-            return {"status": "unavailable", "doi": normalized,
-                    "message": "Crossref temporarily unavailable"}
-        response.raise_for_status()
-        payload = response.json()
+        with urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
         message = payload.get("message", {}) if isinstance(payload, dict) else {}
         returned = normalize_doi(message.get("DOI")) if isinstance(message, dict) else None
         if returned and returned.casefold() == normalized.casefold():
             return {"status": "verified", "doi": normalized, "message": "DOI confirmed by Crossref"}
         return {"status": "unavailable", "doi": normalized,
                 "message": "Crossref response did not contain a matching DOI"}
-    except (requests.RequestException, ValueError, TypeError):
+    except HTTPError as exc:
+        if exc.code == 404:
+            return {"status": "not_found", "doi": normalized,
+                    "message": "DOI not found in Crossref; it may be registered elsewhere"}
+        return {"status": "unavailable", "doi": normalized,
+                "message": "Crossref returned HTTP {}".format(exc.code)}
+    except (URLError, socket.timeout, TimeoutError, OSError, ValueError, TypeError):
         return {"status": "unavailable", "doi": normalized,
                 "message": "Crossref could not be reached or returned invalid metadata"}
