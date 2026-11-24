@@ -1465,7 +1465,31 @@ private:
         if (!projectId_ || !saveActiveResearchSection() || (engineRunner_ && engineRunner_->isRunning()))
             return;
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
-        QString python = QStandardPaths::findExecutable(QStringLiteral("python"));
+        QString python = qEnvironmentVariable("YADAVARIFORK_PYTHON").trimmed();
+        if (!python.isEmpty() && !QFileInfo(python).isFile())
+            python.clear();
+        const QString appDirectory = QCoreApplication::applicationDirPath();
+#ifdef Q_OS_WIN
+        const QStringList bundledRuntimeCandidates{
+            QDir(appDirectory).filePath(QStringLiteral("runtime/Scripts/python.exe")),
+            QDir(appDirectory).filePath(QStringLiteral("data/research-runtime/Scripts/python.exe")),
+            QDir(appDirectory).filePath(QStringLiteral(".venv/Scripts/python.exe")),
+            QDir(appDirectory).filePath(QStringLiteral("venv/Scripts/python.exe"))
+        };
+#else
+        const QStringList bundledRuntimeCandidates{
+            QDir(appDirectory).filePath(QStringLiteral("runtime/bin/python3")),
+            QDir(appDirectory).filePath(QStringLiteral("data/research-runtime/bin/python3")),
+            QDir(appDirectory).filePath(QStringLiteral(".venv/bin/python3")),
+            QDir(appDirectory).filePath(QStringLiteral("venv/bin/python3"))
+        };
+#endif
+        if (python.isEmpty()) {
+            for (const QString &candidate : bundledRuntimeCandidates) {
+                if (QFileInfo(candidate).isFile()) { python = candidate; break; }
+            }
+        }
+        if (python.isEmpty()) python = QStandardPaths::findExecutable(QStringLiteral("python"));
         if (python.isEmpty()) python = QStandardPaths::findExecutable(QStringLiteral("python3"));
 #ifdef Q_OS_WIN
         if (python.isEmpty()) python = QStandardPaths::findExecutable(QStringLiteral("py"));
@@ -1478,7 +1502,14 @@ private:
                 : QStringLiteral("Free scholarly discovery requires Python 3 and scripts/no_api_scholarly_research.py."));
             return;
         }
-        const QString root = QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("data/research_runs"));
+        const QString appDataRoot = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        const QString root = QDir(appDataRoot).filePath(QStringLiteral("research_runs"));
+        if (appDataRoot.isEmpty() || !QDir().mkpath(root)) {
+            researchStatus_->setText(persian
+                ? QStringLiteral("پوشهٔ دادهٔ قابل‌نوشتن برای اجرای پژوهش در دسترس نیست.")
+                : QStringLiteral("A writable application-data directory is unavailable for research runs."));
+            return;
+        }
         const QString output = QDir(root).filePath(QStringLiteral("no_api_project_%1_%2")
             .arg(*projectId_).arg(QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz"))));
         if (QFileInfo::exists(output) || !QDir().mkpath(output)) return;
