@@ -16,6 +16,7 @@
 #include <QSaveFile>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QUrlQuery>
 #include <QFileDialog>
 #include <iostream>
 #include <QHBoxLayout>
@@ -189,8 +190,17 @@ public:
         sourceButtons->addWidget(importScholarCitations_);
         sourceButtons->addWidget(addResearchSource_);
         sourceButtons->addWidget(deleteResearchSource_);
+        auto *externalSourceButtons = new QHBoxLayout;
+        openCoreSearch_ = new QPushButton;
+        openCoreSearch_->setObjectName(QStringLiteral("openCoreSearchButton"));
+        openPublishOrPerish_ = new QPushButton;
+        openPublishOrPerish_->setObjectName(QStringLiteral("openPublishOrPerishButton"));
+        externalSourceButtons->addWidget(openCoreSearch_);
+        externalSourceButtons->addWidget(openPublishOrPerish_);
+        externalSourceButtons->addStretch();
         sourceLayout->addWidget(researchSourcesList_);
         sourceLayout->addLayout(sourceButtons);
+        sourceLayout->addLayout(externalSourceButtons);
         static_cast<QVBoxLayout *>(researchPage->layout())->addWidget(researchSourcesGroup_, 2);
         auto *engineButtons = new QHBoxLayout;
         runResearchEngine_ = new QPushButton;
@@ -473,6 +483,23 @@ public:
         });
         connect(importScholarCitations_, &QPushButton::clicked, this, [this] {
             importScholarCitations();
+        });
+        connect(openCoreSearch_, &QPushButton::clicked, this, [this] {
+            const QString topic = projectTitle_->text().trimmed();
+            if (topic.isEmpty()) {
+                researchStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
+                    ? QStringLiteral("ابتدا عنوان یا موضوع پژوهش را وارد کنید.")
+                    : QStringLiteral("Enter a project title or research topic first."));
+                return;
+            }
+            QUrl url(QStringLiteral("https://core.ac.uk/search"));
+            QUrlQuery query;
+            query.addQueryItem(QStringLiteral("q"), topic);
+            url.setQuery(query);
+            QDesktopServices::openUrl(url);
+        });
+        connect(openPublishOrPerish_, &QPushButton::clicked, this, [] {
+            QDesktopServices::openUrl(QUrl(QStringLiteral("https://harzing.com/resources/publish-or-perish")));
         });
         connect(deleteResearchSource_, &QPushButton::clicked, this, [this] {
             deleteResearchSource();
@@ -1172,6 +1199,8 @@ private:
         applyButtonIcon(exportPng_, QStyle::SP_FileDialogListView);
         applyButtonIcon(printDocument_, QStyle::SP_DialogSaveButton);
         applyButtonIcon(importScholarCitations_, QStyle::SP_FileDialogInfoView);
+        applyButtonIcon(openCoreSearch_, QStyle::SP_BrowserReload);
+        applyButtonIcon(openPublishOrPerish_, QStyle::SP_DialogHelpButton);
         applyButtonIcon(runResearchEngine_, QStyle::SP_MediaPlay);
         applyButtonIcon(cancelResearchEngine_, QStyle::SP_MediaStop);
         applyButtonIcon(researchRunHistory_, QStyle::SP_BrowserReload);
@@ -1197,6 +1226,8 @@ private:
         addResearchSource_->setText(persian ? QStringLiteral("افزودن دستی منبع") : QStringLiteral("Add source manually"));
         importScholarCitations_->setText(persian ? QStringLiteral("ورود گروهی منابع از Google Scholar (Cite)") :
                                                    QStringLiteral("Bulk import Google Scholar citations (Cite)"));
+        openCoreSearch_->setText(persian ? QStringLiteral("جست‌وجو در CORE") : QStringLiteral("Search CORE"));
+        openPublishOrPerish_->setText(persian ? QStringLiteral("راهنمای Publish or Perish") : QStringLiteral("Publish or Perish"));
         deleteResearchSource_->setText(persian ? QStringLiteral("حذف منبع") : QStringLiteral("Delete source"));
         runResearchEngine_->setText(persian ? QStringLiteral("اجرای موتور چندعاملی") : QStringLiteral("Run multi-agent engine"));
         cancelResearchEngine_->setText(persian ? QStringLiteral("لغو اجرا") : QStringLiteral("Cancel run"));
@@ -2545,12 +2576,12 @@ private:
                 "۴) با دکمهٔ افزودن فایل، فایل‌های .bib، .ris، .enw یا .csv را انتخاب کنید (در هر نوبت یک فرمت)؛ یا متن چند رکورد هم‌نوع را پشت سر هم در کادر بچسبانید.\n"
                 "۵) دکمهٔ «بررسی و ورود» را بزنید. می‌توانید ۲۰، ۵۰ یا تعداد بیشتری رکورد را در یک نوبت وارد کنید. موارد تکراری و رکوردهای بدون عنوان معتبر کنار گذاشته می‌شوند.\n\n"
                 "نکته: Google Scholar API عمومی برای ورود انبوه خودکار ارائه نمی‌کند؛ این روش بر خروجی‌ای تکیه دارد که خودتان از رابط Scholar می‌گیرید. منابع پس از ورود همچنان «تأییدنشده» هستند و DOI/فراداده باید بازبینی شود.")
-            : QStringLiteral("Step-by-step guide:\\n"
-                "1) Open Google Scholar in your browser and search for your research topic.\\n"
-                "2) For each relevant result, click Cite below the article.\\n"
-                "3) Choose BibTeX to download that article's .bib file; repeat for each of the 20 or 50 selected articles.\\n"
-                "4) Use Add citation files to load .bib, .ris, .enw, or .csv files (one format per batch), or paste multiple records of the same format below.\\n"
-                "5) Select Review and import. You can import 20, 50, or more records in one batch. Duplicates and records without a valid title are skipped.\\n\\n"
+            : QStringLiteral("Step-by-step guide:\n"
+                "1) Open Google Scholar in your browser and search for your research topic.\n"
+                "2) For each relevant result, click Cite below the article.\n"
+                "3) Choose BibTeX, EndNote, or RefMan (whichever is available); repeat for each selected article.\n"
+                "4) Use Add citation files to load .bib, .ris, .enw, or .csv files (one format per batch), or paste multiple records of the same format below. Publish or Perish exports can also be imported as RIS/CSV.\n"
+                "5) Select Review and import. You can import 20, 50, or more records in one batch. Duplicates and records without a valid title are skipped.\n\n"
                 "Google Scholar does not provide a public bulk API. This workflow imports exports you obtain manually; imported records remain unverified until their DOI and metadata are checked."));
         layout->addWidget(guide);
         auto *openScholar = new QPushButton(persian ? QStringLiteral("بازکردن Google Scholar") :
@@ -3113,6 +3144,8 @@ private:
     QPushButton *saveResearchSection_{};
     QPushButton *addResearchSource_{};
     QPushButton *importScholarCitations_{};
+    QPushButton *openCoreSearch_{};
+    QPushButton *openPublishOrPerish_{};
     QPushButton *deleteResearchSource_{};
     QLabel *researchStatus_{};
     QPushButton *runResearchEngine_{};
