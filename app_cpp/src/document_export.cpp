@@ -382,19 +382,34 @@ bool toDocx(const QMap<QString, QString> &sections, const QMap<QString, QString>
     return publishTempFile(temporaryPath, outputPath, error);
 }
 
-bool toPngPages(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
-                const QString &title, const QString &language, const QString &outputDirectory,
-                QString *error) {
+bool toImagePages(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
+                  const QString &title, const QString &language, const QString &outputBasePath,
+                  const QString &imageFormat, QString *error) {
     if (!validateProposalLayout(error)) return false;
-    const QFileInfo outputInfo(outputDirectory);
-    if (!QDir().mkpath(outputInfo.absolutePath())) {
-        setError(error, QStringLiteral("Cannot create PNG parent directory."));
+    const QString normalizedFormat = imageFormat.trimmed().toLower();
+    const QString qtFormat = normalizedFormat == QStringLiteral("jpg") ||
+                             normalizedFormat == QStringLiteral("jpeg")
+        ? QStringLiteral("JPEG")
+        : normalizedFormat.toUpper();
+    if (qtFormat != QStringLiteral("JPEG") && qtFormat != QStringLiteral("PNG") &&
+        qtFormat != QStringLiteral("BMP")) {
+        setError(error, QStringLiteral("Unsupported image format: %1").arg(imageFormat));
         return false;
     }
-    if (!QDir().mkdir(outputDirectory)) {
-        setError(error, QStringLiteral("Refusing to overwrite existing PNG directory: %1").arg(outputDirectory));
+    const QString extension = qtFormat == QStringLiteral("JPEG")
+        ? QStringLiteral("jpg") : qtFormat.toLower();
+    const QFileInfo baseInfo(outputBasePath);
+    const QString baseName = baseInfo.completeBaseName().trimmed();
+    if (baseName.isEmpty()) {
+        setError(error, QStringLiteral("Choose a valid image file name."));
         return false;
     }
+    const QString parentDirectory = baseInfo.absolutePath();
+    if (!QDir().mkpath(parentDirectory)) {
+        setError(error, QStringLiteral("Cannot create image output directory: %1").arg(parentDirectory));
+        return false;
+    }
+
     QTextDocument document;
     document.setHtml(buildHtml(sections, labels, title, language));
     constexpr int pageWidth = 794;
@@ -402,7 +417,21 @@ bool toPngPages(const QMap<QString, QString> &sections, const QMap<QString, QStr
     constexpr int scale = 2;
     document.setPageSize(QSizeF(pageWidth, pageHeight));
     const int pageCount = qMax(1, document.pageCount());
-    QDir output(outputDirectory);
+    QDir output(parentDirectory);
+    QStringList targetFiles;
+    for (int page = 0; page < pageCount; ++page) {
+        const QString fileName = QStringLiteral("%1_page_%2.%3")
+            .arg(baseName)
+            .arg(page + 1, 3, 10, QLatin1Char('0'))
+            .arg(extension);
+        const QString filePath = output.filePath(fileName);
+        if (QFileInfo::exists(filePath)) {
+            setError(error, QStringLiteral("Refusing to overwrite existing image: %1").arg(filePath));
+            return false;
+        }
+        targetFiles.append(filePath);
+    }
+
     QStringList createdFiles;
     for (int page = 0; page < pageCount; ++page) {
         QImage image(pageWidth * scale, pageHeight * scale, QImage::Format_ARGB32_Premultiplied);
@@ -412,17 +441,32 @@ bool toPngPages(const QMap<QString, QString> &sections, const QMap<QString, QStr
         painter.translate(0, -page * pageHeight);
         document.drawContents(&painter, QRectF(0, page * pageHeight, pageWidth, pageHeight));
         painter.end();
-        const QString fileName = QStringLiteral("page_%1.png").arg(page + 1, 3, 10, QLatin1Char('0'));
-        const QString filePath = output.filePath(fileName);
-        if (!image.save(filePath, "PNG")) {
+        const QString filePath = targetFiles.at(page);
+        if (!image.save(filePath, qtFormat.toLatin1().constData())) {
             for (const QString &created : createdFiles) QFile::remove(created);
-            QDir().rmdir(outputDirectory);
-            setError(error, QStringLiteral("Failed to write PNG page %1.").arg(page + 1));
+            setError(error, QStringLiteral("Failed to write %1 page %2.")
+                         .arg(qtFormat).arg(page + 1));
             return false;
         }
         createdFiles.append(filePath);
     }
     return true;
+}
+
+bool toPngPages(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
+                const QString &title, const QString &language, const QString &outputDirectory,
+                QString *error) {
+    if (QFileInfo::exists(outputDirectory)) {
+        setError(error, QStringLiteral("Refusing to overwrite existing PNG directory: %1").arg(outputDirectory));
+        return false;
+    }
+    if (!QDir().mkpath(outputDirectory)) {
+        setError(error, QStringLiteral("Cannot create PNG output directory: %1").arg(outputDirectory));
+        return false;
+    }
+    return toImagePages(sections, labels, title, language,
+                        QDir(outputDirectory).filePath(QStringLiteral("proposal.png")),
+                        QStringLiteral("png"), error);
 }
 
 bool print(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
