@@ -133,3 +133,50 @@
 - Crossref live: PASS و تکمیل‌شده در مسیر A؛ اجراهای `45366306443` و `45366313174`.
 - workspace محلی AI دوم: NO LOCAL WORKSPACE ACCESS؛ patch یا فایل تغییرات محلی ارائه نشده است.
 - هیچ API key/token یا مقدار Secret در این تغییرات/گزارش‌ها چاپ یا commit نشده است.
+
+
+## 11) نتیجهٔ نهایی اجرای C++ cancellation/redaction و بسته‌بندی (2026-11-24)
+
+### اصلاح و آزمون نهایی
+- علت failure اولیهٔ C++ run `45410733350` در log مشخص بود: compiler نمی‌توانست `research_engine_runner.h` را از target تست پیدا کند (include directory تعریف نشده بود).
+- در commit `0b06ab88ae69ed29f846756b845b94227a2a7ca6` مسیر `app_cpp/src` به include directories target افزوده شد؛ تاریخچه حفظ شد و هیچ force-push انجام نشد.
+- Windows CI run `45411318052` روی همین commit با هر دو job success پایان یافت:
+  - Build/CTest/Portable/Installer: PASS.
+  - Clean-runner artifact verification: PASS.
+- لاگ CTest:
+  - `app_smoke`: Passed (8.58s).
+  - `research_engine_runner_contract`: Passed (5.15s).
+  - `100% tests passed, 0 tests failed out of 2`.
+- آزمون C++ runner به‌صورت runtime فرایند فرزند می‌سازد؛ خروجی دارای متغیر محیطی، Bearer header و x-api-key را از signal خروجی بررسی می‌کند؛ start دوم هنگام running رد می‌شود و cancellation واقعی از terminate/kill lifecycle عبور می‌کند.
+- لاگ clean runner:
+  - `Clean-runner portable smoke, proposal save/reopen, and Unicode-path exports passed.`
+  - `Installer install, app smoke, uninstall, and user-data preservation passed.`
+- لینک اجرا: https://github.com/xperisp2020/paper-orchestra/actions/runs/45411318052
+
+### Artifactهای جدید و مرجع
+- Portable artifact id `14930080169`, size `27096591` bytes, archive digest `sha256:5c8677a86d1cc4dace61e4d523aeb406124ce5b9a424f0372ccbbace8bc59719`.
+- Installer artifact id `14930015297`, size `19933400` bytes, archive digest `sha256:1ce08a97fcfbc7b3a595a6765549da7b01e59b5d46cd09d131c02999dea820d0`.
+- Expiry: `2027-02-22T14:11:25Z`.
+- [Portable ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14930080169/zip)
+- [Installer ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14930015297/zip)
+- digestها مختص آرشیو ZIP هستند و hash فایل اجرایی داخل archive نیستند.
+
+### ماتریس گیت‌ها پس از این دور
+| Gate | Result | Evidence |
+|---|---|---|
+| Python Safety (provider-smoke suite) | PASS — 102 tests on Ubuntu and Windows | `45409722980` |
+| Provider live harness | Harness PASS; Gemini/OpenAI/OpenRouter each BLOCKED: credential_missing | `45409723175` |
+| C++ ResearchEngineRunner cancellation/redaction | PASS | `45411318052`, CTest 2/2 |
+| Windows GitHub clean-runner Portable/Installer | PASS | `45411318052` |
+| Crossref live | PASS — completed in Workstream A | `45366306443`, `45366313174` |
+| Prior AI2 local workspace/patch | NO LOCAL WORKSPACE ACCESS | No patch supplied |
+| User's physical Windows device / VM | BLOCKED | No interactive device/VM available |
+| Microsoft Word 2010 real application | BLOCKED | No Word 2010 environment available |
+| Gemini/OpenAI paid live | BLOCKED | Missing workflow credential; additionally requires explicit billable opt-in |
+
+### نتیجهٔ صادقانه
+- بخش قابل اجرا از سمت دستیار تکمیل و CI شده است: provider smoke harness امن، mock coverage افزوده‌شده، QProcess cancellation/redaction runtime test، و بسته‌بندی جدید Windows.
+- سه provider در این نوبت live-tested نشده‌اند؛ هیچ credential در job environment حاضر نبود و به همین علت هیچ درخواست واقعی ارسال نشد. workflow به‌صورت دستی و با Secretهای امن قابل اجرای مجدد است؛ Gemini/OpenAI به opt-in پرداختی صریح نیاز دارند.
+- PASS بودن clean runner معادل اجرای روی دستگاه اصلی کاربر نیست. Word 2010 نیز با CI XML/PDF validation اثبات نمی‌شود.
+- نتیجهٔ کامل پروژه هنوز **BLOCKED** است تا گیت‌های محیط واقعی و provider زنده (در صورت فراهم بودن Secret مجاز) تعیین تکلیف شوند.
+- Secret/API key/token خوانده یا در log/commit/artifact چاپ نشده است.
