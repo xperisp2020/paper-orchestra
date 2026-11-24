@@ -1740,3 +1740,20 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - diff این بازه 9 مسیر را تغییر داده: دو workflow، CMake، تست C++، اسناد handoff/report، اسکریپت و تست Provider، و همین دفتر. بنابراین توضیح قدیمی «فقط اسناد تغییر کرده‌اند» برای کل بازه دیگر دقیق نیست؛ provider harness و C++ QProcess regression در commitهای `778dbcb7370fee107edbed5b668958ab4a50eaec`، `276746ecf149881da41f73aac5aea2f8d759a6b1` و `0b06ab88ae69ed29f846756b845b94227a2a7ca6` قبلاً وارد تاریخچه شده‌اند.
 - هیچ patch ناشناخته‌ای اعمال نشد؛ هیچ مسیر A تغییر نکرد. جزئیات 14 commit و 9 فایل در بخش 12 گزارش مسیر B ثبت شد.
 - نتیجهٔ inventory: workspace قبلی **NO LOCAL WORKSPACE ACCESS**؛ تغییرات commitشدهٔ قابل مشاهده **ALREADY PRESENT**؛ patch محلی **NOT AVAILABLE**.
+
+
+### 6.99.43 اصلاح OpenRouter Free smoke و اجرای چرخهٔ کامل آزمون‌ها (2026-11-24)
+- failure قبلی Provider run `45413396317`: OpenRouter HTTP 200 ولی متن پاسخ در schema مورد انتظار harness پیدا نشد. مدل `nvidia/nemotron-3.5-super-vl:free` reasoning را به‌صورت پیش‌فرض فعال می‌کند و smoke فقط 8 output token مجاز کرده بود.
+- اسکریپت Provider با `reasoning: {effort: none}` مخصوص OpenRouter و سقف پاسخ 16 token اصلاح شد؛ تست request نیز این دو پارامتر را assert می‌کند.
+- Commit کد: `9412064616b8e5bc7f51be02fc3674dc62b077b3`. به‌دلیل ایجاد اشتباه tree ناقص در همان commit، commit بازیابی `175d9075bff98edaf889ab83e818b90ada4171cd` فوراً parent tree کامل را برگرداند؛ compare از `676919a9c6fe5aa1d25fcbc595a5cc6b4b184c03` تا recovery فقط دو فایل Provider را تغییر‌یافته نشان می‌دهد و recursive tree 137 entry داشت. رخداد و بازیابی در گزارش بخش 13 ثبت شده‌اند؛ هیچ force-push/reset انجام نشد.
+- Trigger/یادداشت workflow: `5f8fc56578a9297dba57f32ec88f83eab4069365`.
+- Provider live run `45415368110`: OpenRouter Free **LIVE PASS**, HTTP 200, 478ms؛ Gemini و OpenAI به دلیل not_enabled BLOCKED ماندند.
+- Python Safety run `45415328764`: Ubuntu و Windows هر کدام 102 تست PASS.
+- Research Runtime `45415328732`: Windows bootstrap و Ubuntu LaTeX/BibTeX هر دو PASS.
+- Portable Windows CI `45415328651`: PASS.
+- Windows MiKTeX smoke `45415328550`: PASS.
+- C++ Windows portable CI `45415328570`: Build و clean-runner هر دو PASS؛ CTest دو تست از دو تست PASS. Portable artifact `14932002540`, SHA-256 `c1b24adea5081f8000441b8188e94ce8e65667647f9d0939053d55e0ec2ed473`; Installer artifact `14932192574`, SHA-256 `ed0d829e98e6e2a1c0cd614bee899cb31f48bcdcb38c4f2db6404d727bf9cd61`.
+- Crossref live `45415328728`: PASS؛ مسیر A دست‌نخورده.
+- commitهای موازی RTL `2398f960066a9746d97eb55f0b1eb2a2cf5e1562` و `0e9cc4ae54860c479eb8fa0fb69ad5592310df3f` حفظ شدند؛ CIهایشان `45415689848` و `45415730486` هنگام آخرین بررسی pending بودند.
+- Windows فیزیکی/VM کاربر و Word 2010 واقعی همچنان BLOCKED؛ Gemini/OpenAI live نیز بدون opt-in هزینه‌دار عمداً فعال نشدند.
+- هیچ Secret/token/header در log یا artifact چاپ نشد؛ Release/merge/main/publication انجام نشد.
