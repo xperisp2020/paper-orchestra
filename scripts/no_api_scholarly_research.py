@@ -250,7 +250,6 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
         "findings": findings,
         "limitations": limitations,
         "future_work": future,
-        "references": sources_text,
     }
 
 
