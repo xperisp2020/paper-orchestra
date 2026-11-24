@@ -54,6 +54,86 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
                 )
         self.assertEqual(create.call_count, 1)
 
+    def test_openai_timeout_retries_are_bounded(self):
+        from utils import openai_utils as module
+
+        create = Mock(side_effect=TimeoutError("simulated provider timeout"))
+        client = SimpleNamespace(
+            chat=SimpleNamespace(completions=SimpleNamespace(create=create))
+        )
+        with (
+            patch.object(module, "get_openai_client", return_value=client),
+            patch.object(module.time, "sleep"),
+        ):
+            with self.assertRaisesRegex(TimeoutError, "simulated provider timeout"):
+                module.call_openai_models_with_content(
+                    content=[{"type": "text", "text": "test"}],
+                    model_name="gpt-4o",
+                    max_retries=2,
+                    base_interval_sec=0,
+                )
+        self.assertEqual(create.call_count, 2)
+
+    def test_openai_empty_response_is_rejected(self):
+        from utils import openai_utils as module
+
+        create = Mock(return_value=SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content=""))]
+        ))
+        client = SimpleNamespace(
+            chat=SimpleNamespace(completions=SimpleNamespace(create=create))
+        )
+        with (
+            patch.object(module, "get_openai_client", return_value=client),
+            patch("sys.stdout", io.StringIO()),
+        ):
+            with self.assertRaises(AssertionError):
+                module.call_openai_models_with_content(
+                    content=[{"type": "text", "text": "test"}],
+                    model_name="gpt-4o",
+                    max_retries=1,
+                    result_parsing_func=lambda _: None,
+                )
+        self.assertEqual(create.call_count, 1)
+
+    def test_gemini_timeout_retries_are_bounded(self):
+        from utils import gemini_utils as module
+
+        generate = Mock(side_effect=TimeoutError("simulated Gemini timeout"))
+        client = SimpleNamespace(models=SimpleNamespace(generate_content=generate))
+        with (
+            patch.object(module, "get_genai_client", return_value=client),
+            patch.object(module.time, "sleep"),
+            patch("sys.stdout", io.StringIO()),
+        ):
+            with self.assertRaisesRegex(TimeoutError, "simulated Gemini timeout"):
+                module.call_gemini_with_contents(
+                    "test prompt",
+                    model_name="gemini-2.5-flash",
+                    max_retries=2,
+                    base_interval_sec=0,
+                )
+        self.assertEqual(generate.call_count, 2)
+
+    def test_gemini_rejects_empty_or_missing_text(self):
+        from utils import gemini_utils as module
+
+        for response_text in (None, "", "   "):
+            with self.subTest(response_text=response_text):
+                generate = Mock(return_value=SimpleNamespace(text=response_text))
+                client = SimpleNamespace(models=SimpleNamespace(generate_content=generate))
+                with (
+                    patch.object(module, "get_genai_client", return_value=client),
+                    patch("sys.stdout", io.StringIO()),
+                ):
+                    with self.assertRaisesRegex(ValueError, "empty text"):
+                        module.call_gemini_with_contents(
+                            "test prompt",
+                            model_name="gemini-2.5-flash",
+                            max_retries=1,
+                        )
+                self.assertEqual(generate.call_count, 1)
+
     def test_openai_image_payload_preserves_png_mime_type(self):
         with tempfile.TemporaryDirectory() as temp:
             image_path = Path(temp) / "page.png"

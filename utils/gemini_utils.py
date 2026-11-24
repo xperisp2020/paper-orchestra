@@ -181,10 +181,11 @@ def call_gemini_with_contents(
                 config=types.GenerateContentConfig(**generation_configs),
             )
 
-            if not response or not hasattr(response, "text") or response.text is None:
+            response_text = getattr(response, "text", None)
+            if not isinstance(response_text, str) or not response_text.strip():
                 raise ValueError("Incomplete response from Gemini API or empty text")
 
-            raw_response = response.text
+            raw_response = response_text
             parsed_response = result_parsing_func(raw_response)
 
             if check_parsed_response_not_none:

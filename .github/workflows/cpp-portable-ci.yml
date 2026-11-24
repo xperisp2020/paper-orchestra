@@ -184,8 +184,9 @@ jobs:
         run: |
           $archive = Join-Path $PWD 'artifact/yadavarifork-windows-portable.zip'
           if (!(Test-Path $archive)) { throw "Portable archive is missing." }
-          Expand-Archive -LiteralPath $archive -DestinationPath 'portable'
-          $root = Join-Path $PWD 'portable'
+          $portableRoot = Join-Path $PWD 'Portable With Spaces - آزمون فارسی'
+          Expand-Archive -LiteralPath $archive -DestinationPath $portableRoot
+          $root = $portableRoot
           $exe = Join-Path $root 'yadavarifork.exe'
           if (!(Test-Path $exe)) { throw "Portable executable is missing." }
           foreach ($required in @(
@@ -205,29 +206,45 @@ jobs:
           }
           if (Test-Path (Join-Path $root 'yadavarifork_smoke.exe')) { throw "Test-only executable leaked into portable package." }
           $env:QT_QPA_PLATFORM = 'windows'
-          $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru
+          $smokeOutput = Join-Path $root 'Smoke Output - آزمون فارسی'
+          $env:YADAVARIFORK_SMOKE_OUTPUT_DIR = $smokeOutput
+          $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -WorkingDirectory $root -WindowStyle Hidden -PassThru
           if (!$process.WaitForExit(30000)) {
             $process.Kill()
             throw "Clean-runner portable smoke test timed out after 30 seconds."
           }
           $process.Refresh()
           if ($process.ExitCode -ne 0) { throw "Clean-runner portable smoke test failed with exit code $($process.ExitCode)." }
-          Write-Host "Clean-runner portable smoke test passed."
+          Remove-Item Env:YADAVARIFORK_SMOKE_OUTPUT_DIR -ErrorAction SilentlyContinue
+          foreach ($output in @('proposal.pdf', 'proposal.docx')) {
+            if (!(Test-Path -LiteralPath (Join-Path $smokeOutput $output))) {
+              throw "Portable Unicode-path smoke output is missing: $output"
+            }
+          }
+          Write-Host "Clean-runner portable smoke, proposal save/reopen, and Unicode-path exports passed."
           $setup = Join-Path $PWD 'installer-artifact/Yadavarifork-Setup-0.1.0.exe'
           if (!(Test-Path $setup)) { throw "Windows installer artifact is missing." }
-          $installDir = Join-Path $PWD 'installed'
+          $installDir = Join-Path $PWD 'Installer With Spaces - آزمون فارسی'
           $installProcess = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/DIR=$installDir") -Wait -PassThru
           if ($installProcess.ExitCode -ne 0) { throw "Silent installer failed: $($installProcess.ExitCode)" }
           $installedExe = Join-Path $installDir 'yadavarifork.exe'
           if (!(Test-Path $installedExe)) { throw "Installed application executable is missing." }
           $env:QT_QPA_PLATFORM = 'windows'
-          $installedProcess = Start-Process -FilePath $installedExe -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru
+          $installedSmokeOutput = Join-Path $installDir 'Smoke Output - آزمون فارسی'
+          $env:YADAVARIFORK_SMOKE_OUTPUT_DIR = $installedSmokeOutput
+          $installedProcess = Start-Process -FilePath $installedExe -ArgumentList '--smoke-test' -WorkingDirectory $installDir -WindowStyle Hidden -PassThru
           if (!$installedProcess.WaitForExit(30000)) {
             $installedProcess.Kill()
             throw "Installed application smoke test timed out after 30 seconds."
           }
           $installedProcess.Refresh()
           if ($installedProcess.ExitCode -ne 0) { throw "Installed application smoke test failed: $($installedProcess.ExitCode)" }
+          Remove-Item Env:YADAVARIFORK_SMOKE_OUTPUT_DIR -ErrorAction SilentlyContinue
+          foreach ($output in @('proposal.pdf', 'proposal.docx')) {
+            if (!(Test-Path -LiteralPath (Join-Path $installedSmokeOutput $output))) {
+              throw "Installer Unicode-path smoke output is missing: $output"
+            }
+          }
           $dataDir = Join-Path $installDir 'data'
           New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
           $sentinel = Join-Path $dataDir 'user-data-preservation-check.txt'
