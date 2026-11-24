@@ -1614,3 +1614,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Research Runtime runهای 45363463950 (شامل helper، Literature Agent، writerهای Batch و tests) و 45363452561 هر دو با conclusion=success به پایان رسیدند؛ Windows Python 3.12 bootstrap و Ubuntu LaTeX/BibTeX real PDF smoke موفق بودند.
 - به‌دلیل اینکه unit tests فعلی mock هستند، یک live smoke مستقل و بدون credentials اضافه شد: `scripts/crossref_live_smoke.py` یک DOI عمومی را از طریق کد واقعی `verify_doi_with_crossref` درخواست می‌کند؛ workflow `.github/workflows/crossref-live-smoke.yml` با push تغییرات مربوط یا manual dispatch اجرا می‌شود.
 - هدف DOI ثابت و عمومی: 10.1038/nature12373. نتیجهٔ live run پس از commit این دو فایل باید از Actions بررسی و در دفتر تکمیل شود؛ تا آن زمان فقط وجود workflow ثبت است و ادعای live PASS نمی‌شود.
+
+
+### 6.99.39 اصلاح خطای مسیر import در Crossref live smoke (2026-11-24)
+- نخستین live smoke workflow `45363737924` شکست خورد، زیرا اسکریپت مستقیم از مسیر `scripts/` اجرا می‌شد و repository root در `sys.path` نبود؛ خطا `ModuleNotFoundError: No module named 'utils'` بود، بنابراین هنوز هیچ درخواست HTTP به Crossref انجام نشده بود.
+- اسکریپت با افزودن صریح ریشهٔ مخزن به `sys.path` اصلاح شد. workflow همان یک DOI عمومی، بدون credential، را مجدداً آزمایش می‌کند.
+- نتیجهٔ درخواست مستقیم وب به Crossref برای DOI `10.1038/nature12373` در همان تاریخ پاسخ `status=ok` و DOI مطابق بازگرداند؛ این صرفاً تأیید endpoint از منبع مستقل web است و جای اجرای helper در GitHub Actions را نمی‌گیرد.
+- live workflow جدید پس از commit اصلاح باید دوباره ارزیابی شود؛ تا آن زمان هیچ PASS از helper زنده اعلام نمی‌شود.
