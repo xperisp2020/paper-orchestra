@@ -25,7 +25,7 @@ set(YADAVARIFORK_SOURCES
 
 if(WIN32)
     enable_language(RC)
-    file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets/shiraztipsy.ico" APP_ICON_ICO_PATH)
+    file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets/shiraztipsy.ico" APP_ICON_ICO_PATH)
     configure_file(app_icon.rc.in app_icon.rc @ONLY)
     list(APPEND YADAVARIFORK_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/app_icon.rc")
 endif()
