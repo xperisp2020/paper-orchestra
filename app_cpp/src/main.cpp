@@ -545,6 +545,26 @@ public:
         if (pages_->currentIndex() != 4 || !projectId_)
             return 27;
 
+        QMap<QString, QString> atomicProposalSections;
+        atomicProposalSections.insert(QStringLiteral("main_question"),
+                                      QStringLiteral("Batch persistence smoke question."));
+        atomicProposalSections.insert(QStringLiteral("problem_statement"),
+                                      QStringLiteral("Batch persistence smoke problem statement."));
+        if (!store_.saveSections(*projectId_, atomicProposalSections, &storageError))
+            return 87;
+        const auto batchReload = store_.loadSections(*projectId_, &storageError);
+        if (!storageError.isEmpty() ||
+            batchReload.value(QStringLiteral("main_question")) != atomicProposalSections.value(QStringLiteral("main_question")) ||
+            batchReload.value(QStringLiteral("problem_statement")) != atomicProposalSections.value(QStringLiteral("problem_statement")))
+            return 88;
+        QMap<QString, QString> invalidBatch;
+        invalidBatch.insert(QStringLiteral("not_a_proposal_section"), QStringLiteral("must not persist"));
+        if (store_.saveSections(*projectId_, invalidBatch, nullptr))
+            return 89;
+        if (store_.loadSections(*projectId_).value(QStringLiteral("main_question")) !=
+            atomicProposalSections.value(QStringLiteral("main_question")))
+            return 90;
+
         int problemRow = -1;
         for (int row = 0; row < sectionList_->count(); ++row) {
             if (sectionList_->item(row)->data(Qt::UserRole).toString() ==
@@ -1151,7 +1171,7 @@ private:
         applyButtonIcon(exportDocx_, QStyle::SP_FileDialogContentsView);
         applyButtonIcon(exportPng_, QStyle::SP_FileDialogListView);
         applyButtonIcon(printDocument_, QStyle::SP_DialogSaveButton);
-        applyButtonIcon(importScholarCitations_, QStyle::SP_FileDialogStart);
+        applyButtonIcon(importScholarCitations_, QStyle::SP_FileDialogInfoView);
         applyButtonIcon(runResearchEngine_, QStyle::SP_MediaPlay);
         applyButtonIcon(cancelResearchEngine_, QStyle::SP_MediaStop);
         applyButtonIcon(researchRunHistory_, QStyle::SP_BrowserReload);
