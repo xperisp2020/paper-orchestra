@@ -4,7 +4,7 @@ import unittest
 from urllib.error import HTTPError, URLError
 from unittest.mock import patch
 
-from utils.crossref_utils import verify_doi_with_crossref
+from utils.crossref_utils import verify_doi_with_crossref, safe_crossref_verification_status
 
 
 class FakeResponse:
@@ -59,6 +59,46 @@ class CrossrefVerificationTests(unittest.TestCase):
         with patch("utils.crossref_utils.urlopen") as get:
             self.assertEqual(verify_doi_with_crossref("not-a-doi")["status"], "invalid")
             get.assert_not_called()
+
+    @patch("utils.crossref_utils.verify_doi_with_crossref")
+    def test_safe_status_is_disabled_without_explicit_opt_in(self, verify):
+        self.assertIsNone(safe_crossref_verification_status("10.1000/disabled"))
+        self.assertIsNone(safe_crossref_verification_status("10.1000/disabled", enabled=False))
+        verify.assert_not_called()
+
+    @patch("utils.crossref_utils.verify_doi_with_crossref", return_value={"status": "verified"})
+    def test_safe_status_passes_through_verified(self, verify):
+        self.assertEqual(
+            safe_crossref_verification_status("https://doi.org/10.1000/checked", enabled=True),
+            "verified",
+        )
+        verify.assert_called_once_with("10.1000/checked")
+
+    @patch("utils.crossref_utils.verify_doi_with_crossref", return_value={"status": "not_found"})
+    def test_safe_status_preserves_crossref_specific_not_found(self, verify):
+        self.assertEqual(
+            safe_crossref_verification_status("10.9999/other-registry", enabled=True),
+            "not_found",
+        )
+
+    @patch("utils.crossref_utils.verify_doi_with_crossref", return_value={"status": "unexpected"})
+    def test_safe_status_maps_unrecognized_response_to_unavailable(self, verify):
+        self.assertEqual(
+            safe_crossref_verification_status("10.1000/unexpected", enabled=True),
+            "unavailable",
+        )
+
+    @patch("utils.crossref_utils.verify_doi_with_crossref", side_effect=RuntimeError("offline"))
+    def test_safe_status_swallows_unexpected_failure(self, verify):
+        self.assertEqual(
+            safe_crossref_verification_status("10.1000/offline", enabled=True),
+            "unavailable",
+        )
+
+    @patch("utils.crossref_utils.verify_doi_with_crossref")
+    def test_safe_status_rejects_malformed_doi_without_network(self, verify):
+        self.assertIsNone(safe_crossref_verification_status("not-a-doi", enabled=True))
+        verify.assert_not_called()
 
 
 if __name__ == "__main__":
