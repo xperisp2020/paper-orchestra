@@ -31,3 +31,9 @@ python paper_writing_cli.py --help
 برای اینکه Python Safety بدون نصب وابستگی‌های runtime اجرا شود، منطق non-blocking در `safe_crossref_verification_status` داخل `utils/crossref_utils.py` متمرکز است؛ تست‌های رفتاری آن در `tests/test_crossref_utils.py` هستند. فایل `tests/test_literature_crossref.py` اتصال pipeline را با AST و بررسی متن می‌سنجد و Literature Agent وابسته به Pydantic را import نمی‌کند.
 
 - رابط C++/Qt نیز در `app_cpp/src/main.cpp` چک‌باکس اختیاری فارسی/انگلیسی دارد و در صورت انتخاب، همان گزینهٔ CLI را ارسال می‌کند؛ این گزینه به‌صورت پیش‌فرض خاموش است.
+
+### اعتبارسنجی UI و بسته‌بندی بعد از اتصال
+- رابط Qt یک چک‌باکس اختیاری فارسی/انگلیسی برای Crossref دارد و فقط در صورت انتخاب، گزینهٔ CLI را ارسال می‌کند.
+- Python Safety run 45356267071 روی Ubuntu و Windows موفق بود (86 تست). C++/Windows run 45356339161 نیز ساخت، smoke test، Portable/Installer و clean-runner verification را با موفقیت گذراند.
+- run 45356257643 ابتدا در نصب Installer شکست خورد؛ علت، quoting مسیر فارسی/دارای فاصله در آرگومان /DIR بود و در commit f1d5cb39d90afb645d3820ab83c887eb5cbbcba2 اصلاح شد. اجرای مجدد موفق run 45356339161 بود.
+- دستگاه واقعی کاربر، Microsoft Word 2010 واقعی، provider live و Crossref live هنوز تأیید نشده‌اند.
