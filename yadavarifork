@@ -1537,3 +1537,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - مسیر B هوش مصنوعی دوم: provider smoke زنده (Gemini/OpenAI/OpenRouter Free) و آزمون‌های mock برای 429/timeout/cancellation/redaction؛ تست Portable/Installer روی Windows واقعی/VM و سازگاری DOCX در Word 2010. دستور کامل: docs/AI_HANDOFF_PROVIDER_WINDOWS_WORD2010_FA.md؛ نقشهٔ تقسیم: docs/PARALLEL_REMAINING_WORK_SPLIT_FA.md.
 - مسیر B نباید در جریان مسیر A فایل‌های اصلی آن را تغییر دهد؛ تعارض احتمالی باید با بررسی diff/HEAD گزارش شود.
 - وضعیت ثبت: پیاده‌سازی مسیر A در این دور آمادهٔ commit می‌شود؛ تا پایان آزمون‌ها هیچ نتیجهٔ CI جدید PASS اعلام نشده است.
+
+
+### 6.99.30 عیب‌یابی شکست نخستین تست‌های ادغام Crossref (2026-11-24)
+- اجرای Python Safety run `45355798918` روی Ubuntu و Windows شکست خورد. بررسی log علت‌ها را مشخص کرد: workflow فقط standard library نصب می‌کند و تست جدید با import مستقیم Literature Agent به Pydantic وابسته شد؛ همچنین تست static موجود `test_literature_doi.py` عبارت قدیمی ساخت DOI را انتظار داشت.
+- این شکست از ساختار تست‌ها ناشی شد و به‌تنهایی regression در منطق محصول را ثابت نمی‌کند؛ تست‌های integration جدید اجرا نشده بودند.
+- منطق non-blocking به helper استاندارد-library `safe_crossref_verification_status` منتقل شد؛ تست رفتار opt-in، وضعیت‌ها، DOI malformed و exception در `tests/test_crossref_utils.py` انجام می‌شود. `tests/test_literature_crossref.py` اکنون فقط wiring را با AST بررسی می‌کند و وابستگی Pydantic ندارد. انتظار تست DOI قبلی نیز اصلاح شد.
+- نتیجهٔ اجرای مجدد هنوز pending است؛ تا دریافت conclusion موفق ادعای PASS نمی‌شود.
