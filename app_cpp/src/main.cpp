@@ -2615,8 +2615,8 @@ private:
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
-    QCoreApplication::setApplicationName(QStringLiteral("ShirazTipsy Research Institute"));
-    QCoreApplication::setOrganizationName(QStringLiteral("ShirazTipsy"));
+    // Keep the legacy application-data namespace so existing projects remain discoverable.
+    QCoreApplication::setApplicationName(QStringLiteral("yadavarifork"));
     app.setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.svg")));
     app.setStyleSheet(QStringLiteral(
         "QWidget { background-color:#091a35; color:#eaf2ff; font-size:13px; }"
