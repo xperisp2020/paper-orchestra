@@ -36,3 +36,11 @@
 - در ممیزی GitHub با HEAD `743d19e11805e4e33f02c8133acde826187a0a31` commit تازه/PR جدید قابل انتساب به AI دوم پیدا نشد؛ ممکن است تغییرات در محیط محلی و pushنشده باشند.
 - برای ادامه، از `docs/AI_HANDOFF_PROVIDER_WORD2010_V2_FA.md` و `docs/AI_SECOND_PASS_RESULT_TEMPLATE_FA.md` استفاده شود.
 - گزارش ممیزی: `docs/AI_SECOND_PASS_AUDIT_FA.md`.
+
+
+## سند فعال مسیر B
+- handoff قبلی V1 و V2 فقط برای سابقه‌اند و superseded هستند.
+- سند فعال و نهایی: `docs/AI_HANDOFF_PROVIDER_WORD2010_V3_FA.md`.
+- پیش از شروع هر آزمون جدید، AI دوم باید `docs/AI_CHANGE_INVENTORY_AND_PATCH_REQUEST_FA.md` را اجرا کند و patch/commit تغییرات قبلی ادعاشده را تحویل بدهد.
+- قالب گزارش: `docs/AI_SECOND_PASS_RESULT_TEMPLATE_FA.md`.
+- ممیزی جدید شش commit مستنداتی را بررسی کرده؛ هیچ source/test/workflow در آن شش commit تغییر نکرده است.
