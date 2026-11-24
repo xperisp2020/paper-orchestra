@@ -589,6 +589,25 @@ public:
             qCritical() << "PNG page output is empty:" << pngDirectory;
             return 37;
         }
+
+        const QString jpgBase = QDir(exportRoot).filePath(QStringLiteral("proposal_jpg.jpg"));
+        if (!DocumentExport::toImagePages(detailsSaved, labels, projectTitle_->text(),
+                                          QStringLiteral("fa"), jpgBase, QStringLiteral("jpg"),
+                                          &storageError))
+            return 81;
+        QFile jpgPage(QDir(exportRoot).filePath(QStringLiteral("proposal_jpg_page_001.jpg")));
+        if (!jpgPage.open(QIODevice::ReadOnly) ||
+            !jpgPage.read(3).startsWith(QByteArray::fromHex("ffd8ff")))
+            return 82;
+
+        const QString bmpBase = QDir(exportRoot).filePath(QStringLiteral("proposal_bmp.bmp"));
+        if (!DocumentExport::toImagePages(detailsSaved, labels, projectTitle_->text(),
+                                          QStringLiteral("fa"), bmpBase, QStringLiteral("bmp"),
+                                          &storageError))
+            return 83;
+        QFile bmpPage(QDir(exportRoot).filePath(QStringLiteral("proposal_bmp_page_001.bmp")));
+        if (!bmpPage.open(QIODevice::ReadOnly) || !bmpPage.read(2).startsWith("BM"))
+            return 84;
         if (DocumentExport::toPdf(saved, labels, projectTitle_->text(), QStringLiteral("fa"),
                                   pdfPath, &storageError))
             return 38;
@@ -925,7 +944,7 @@ private:
         saveSection_->setText(persian ? QStringLiteral("ذخیره بخش") : QStringLiteral("Save section"));
         exportPdf_->setText(persian ? QStringLiteral("خروجی PDF") : QStringLiteral("Export PDF"));
         exportDocx_->setText(persian ? QStringLiteral("خروجی Word") : QStringLiteral("Export Word"));
-        exportPng_->setText(persian ? QStringLiteral("خروجی تصویر") : QStringLiteral("Export PNG"));
+        exportPng_->setText(persian ? QStringLiteral("خروجی تصویر") : QStringLiteral("Export images"));
         printDocument_->setText(persian ? QStringLiteral("چاپ") : QStringLiteral("Print"));
         openExistingProject_->setText(persian ? QStringLiteral("بازکردن پروژه ذخیره‌شده") : QStringLiteral("Open saved project"));
         newProject_->setText(persian ? QStringLiteral("پروژه جدید") : QStringLiteral("New project"));
@@ -1934,17 +1953,50 @@ private:
         QString error;
         const auto sections = currentSections(&error);
         if (!error.isEmpty()) { editorStatus_->setText(error); return; }
-        const QString path = QFileDialog::getSaveFileName(
-            this, QStringLiteral("Export PNG pages"), QStringLiteral("proposal_pages"),
-            QStringLiteral("New PNG page folder (*)"));
-        if (path.isEmpty()) return;
-        if (DocumentExport::toPngPages(sections, currentSectionLabels(), projectTitle_->text(),
-                                       language_->currentData().toString(), path, &error))
-            editorStatus_->setText(language_->currentData().toString() == "fa"
-                ? QStringLiteral("تصاویر صفحات ذخیره شدند: %1").arg(path)
-                : QStringLiteral("PNG pages saved: %1").arg(path));
-        else
+
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        QString selectedFilter = persian
+            ? QStringLiteral("تصویر JPEG (*.jpg *.jpeg)")
+            : QStringLiteral("JPEG images (*.jpg *.jpeg)");
+        const QString filters = persian
+            ? QStringLiteral("تصویر JPEG (*.jpg *.jpeg);;تصویر PNG (*.png);;تصویر BMP (*.bmp)")
+            : QStringLiteral("JPEG images (*.jpg *.jpeg);;PNG images (*.png);;BMP images (*.bmp)");
+        QString path = QFileDialog::getSaveFileName(
+            this,
+            persian ? QStringLiteral("ذخیره صفحات به‌صورت تصویر") : QStringLiteral("Export proposal pages as images"),
+            QStringLiteral("proposal.jpg"), filters, &selectedFilter);
+        if (path.isEmpty())
+            return;
+
+        QString format;
+        QString extension;
+        if (selectedFilter.contains(QStringLiteral("PNG"), Qt::CaseInsensitive)) {
+            format = QStringLiteral("png");
+            extension = QStringLiteral("png");
+        } else if (selectedFilter.contains(QStringLiteral("BMP"), Qt::CaseInsensitive)) {
+            format = QStringLiteral("bmp");
+            extension = QStringLiteral("bmp");
+        } else {
+            format = QStringLiteral("jpg");
+            extension = QStringLiteral("jpg");
+        }
+
+        QFileInfo selectedInfo(path);
+        QString baseName = selectedInfo.completeBaseName().trimmed();
+        if (baseName.isEmpty())
+            baseName = QStringLiteral("proposal");
+        path = QDir(selectedInfo.absolutePath()).filePath(baseName + QLatin1Char('.') + extension);
+
+        if (DocumentExport::toImagePages(sections, currentSectionLabels(), projectTitle_->text(),
+                                         language_->currentData().toString(), path, format, &error)) {
+            editorStatus_->setText(persian
+                ? QStringLiteral("تصاویر صفحات با قالب %1 ذخیره شدند: %2")
+                      .arg(format.toUpper(), QFileInfo(path).absolutePath())
+                : QStringLiteral("%1 page images saved in: %2")
+                      .arg(format.toUpper(), QFileInfo(path).absolutePath()));
+        } else {
             editorStatus_->setText(error);
+        }
     }
 
     void printDocument() {
