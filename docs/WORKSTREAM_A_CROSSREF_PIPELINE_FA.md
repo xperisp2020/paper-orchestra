@@ -37,3 +37,10 @@ python paper_writing_cli.py --help
 - Python Safety run 45356267071 روی Ubuntu و Windows موفق بود (86 تست). C++/Windows run 45356339161 نیز ساخت، smoke test، Portable/Installer و clean-runner verification را با موفقیت گذراند.
 - run 45356257643 ابتدا در نصب Installer شکست خورد؛ علت، quoting مسیر فارسی/دارای فاصله در آرگومان /DIR بود و در commit f1d5cb39d90afb645d3820ab83c887eb5cbbcba2 اصلاح شد. اجرای مجدد موفق run 45356339161 بود.
 - دستگاه واقعی کاربر، Microsoft Word 2010 واقعی، provider live و Crossref live هنوز تأیید نشده‌اند.
+
+### تکمیل مسیر Batch و cache خطاهای موقت
+- گزینهٔ Crossref اکنون از `run_batch_writeup` در هر دو writer به workerهای `ProcessPoolExecutor` منتقل می‌شود؛ پیش‌فرض همچنان خاموش است.
+- پاسخ‌های قطعی `verified` و `not_found` در LRU process-local cache می‌شوند؛ خطاهای موقت `unavailable` (timeout/429/5xx/پاسخ نامعتبر) از طریق exception داخلی از cache عبور نمی‌کنند و در فراخوانی بعدی دوباره قابل تلاش‌اند.
+- timeout نامعتبر/غیرمثبت به `unavailable` تبدیل می‌شود و درخواست شبکه نمی‌فرستد.
+- README مثال و محدودیت Crossref را مستند می‌کند؛ status در citation_map، DOI اصلی را تغییر نمی‌دهد.
+- تست‌های جدید: بازیابی پس از HTTP 503 و propagation گزینه به هر دو batch worker.
