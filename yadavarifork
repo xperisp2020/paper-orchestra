@@ -1508,3 +1508,14 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - مرزهای واقعی تکمیل: تست زنده Gemini/OpenAI/OpenRouter نیازمند کلیدهای امن در runtime متعلق به کاربر است؛ تست GUI و سازگاری Word 2010 نیازمند دستگاه واقعی/نسخه Word است. این موارد را نمی‌توان با ادعای موفقیت CI بست و هیچ کلید یا داده محرمانه‌ای در چت درخواست نمی‌شود.
 - artifactهای قابل تحویل فعلی از run `45347795650`: Portable `14899086663` با SHA-256 `64aa03a87db853c86864434f7c603d9af7d6a3eee7c4952d4024be90e04e1351`؛ Installer `14898493121` با SHA-256 `902aae9a5bb479ae762bff648642288481b21346f9ba010f1ca5edbbdcc9a3c3`. لینک‌ها و تاریخ انقضا در رکورد 6.99.24 ثبت شده‌اند.
 - نتیجه: گیت‌های قابل اجرای CI سبز هستند؛ پروژه از نظر خودکارسازی/ساخت قابل تحویل است، اما «تکمیل مطلق» تا اعتبارسنجی Crossref (در صورت نیاز)، اجرای provider زنده و تست دستگاه/Word قابل ادعا نیست.
+
+
+### 6.99.27 تقسیم کارهای باقیمانده و تحویل مأموریت به AI دوم (2026-11-24)
+- مخزن/شاخه مجدداً تأیید شد: `xperisp2020/paper-orchestra`، repo id `1467327081`، `work/yadavarifork`. head هنگام ثبت این رکورد `28d40763b99c782cca5e695aadd6502290f53004`.
+- کار به دو مسیر مستقل تقسیم شد:
+  1. مسیر دستیار اصلی: پیاده‌سازی helper مستقل Crossref برای بررسی DOI، وضعیت‌های verified/not_found/unavailable/invalid، timeout، User-Agent، URL encoding، cache و رفتار غیرمخرب. فایل‌ها: `utils/crossref_utils.py` و `tests/test_crossref_utils.py`. 404 فقط «در Crossref یافت نشد» است و به معنی نامعتبر بودن جهانی DOI نیست. helper هنوز به pipeline خودکار enrichment متصل نشده تا پژوهش‌ها را به شبکه/تاخیر اجباری Crossref وابسته نکند؛ اتصال pipeline در صورت نیاز کار جداگانه‌ای است.
+  2. مسیر واگذارشده به هوش مصنوعی دوم: آزمون زندهٔ Gemini/OpenAI/OpenRouter با secrets امن، و آزمون واقعی Portable/Installer روی Windows و Word 2010. دستورالعمل کامل، مقصد، محدودیت‌ها، مراحل، معیار پذیرش و نحوه ثبت شواهد در `docs/AI_HANDOFF_PROVIDER_WINDOWS_WORD2010_FA.md` نوشته شده است.
+- راهنمای مأموریت تکمیل‌شدهٔ Crossref در `docs/COMPLETED_CROSSREF_DOI_WORK_FA.md` قرار دارد.
+- CI اولیهٔ Crossref run `45353989519` به علت import مستقیم `requests` در workflow استاندارد-library-only شکست خورد؛ علت از log واقعی شناسایی شد. helper و تست‌ها اصلاح شدند تا فقط از Python standard library استفاده کنند. این اصلاح در commit `e6358a191e30c91b013bacf4dc0491a52651f320` و تست dependency-free در `28d40763b99c782cca5e695aadd6502290f53004` ثبت شد.
+- اجرای مجدد Python Safety پس از اصلاح در زمان ثبت در وضعیت queued بود: run `45354109040`. تا دریافت conclusion موفق، تست Crossref را پاس‌شده اعلام نکن.
+- هیچ provider زنده یا دستگاه فیزیکی/Word 2010 در این دور آزمایش نشده است. کار واگذارشده نیازمند دسترسی مجاز و دستگاه واقعی است.
