@@ -58,3 +58,6 @@
 - اصلاح در commit f1d5cb39d90afb645d3820ab83c887eb5cbbcba2 نقل‌قول کامل مسیر نصب را در PowerShell اعمال کرد.
 - run بعدی 45356339161 با conclusion=success تمام شد: ساخت و smoke برنامه، ساخت هر دو artifact، clean-runner Portable smoke/export، نصب silent، اجرای نصب‌شده، uninstall و حفظ داده sentinel همگی پاس شدند.
 - این نتیجهٔ CI روی Windows Server 2022 است و جای تست فیزیکی user device/Word 2010 را نمی‌گیرد.
+
+
+> **این نسخه قدیمی شده است.** وضعیت CI، artifactها و مأموریت‌های باز به‌روزرسانی شده‌اند. از نسخهٔ جدید `docs/AI_HANDOFF_PROVIDER_WORD2010_V2_FA.md` و قالب `docs/AI_SECOND_PASS_RESULT_TEMPLATE_FA.md` استفاده کن.
