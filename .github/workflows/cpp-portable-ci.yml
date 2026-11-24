@@ -42,7 +42,7 @@ jobs:
       - name: Validate keyless scholarly discovery script
         run: python -m py_compile scripts/no_api_scholarly_research.py
       - name: Test keyless scholarly discovery helpers
-        run: python -m unittest tests.test_no_api_scholarly_research -v
+        run: python -m unittest discover -s tests -p "test_no_api_scholarly_research.py" -v
       - name: Validate research runtime bootstrap syntax
         shell: pwsh
         run: |
