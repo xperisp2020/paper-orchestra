@@ -23,6 +23,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QStackedWidget>
+#include <QSet>
 #include <QSignalBlocker>
 #include <QStringList>
 #include <QTemporaryDir>
@@ -41,6 +42,7 @@
 #include <QFileInfo>
 #include <QProcessEnvironment>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QStandardPaths>
 #include <QTimer>
@@ -240,7 +242,10 @@ public:
         connect(engineRunner_, &ResearchEngineRunner::finished, this, [this](int exitCode, bool normalExit) {
             runResearchEngine_->setEnabled(true);
             cancelResearchEngine_->setEnabled(false);
-            const bool success = normalExit && exitCode == 0;
+            bool success = normalExit && exitCode == 0;
+            if (success && noApiResearchRun_) success = importNoApiResearchResult();
+            const bool wasNoApiRun = noApiResearchRun_;
+            noApiResearchRun_ = false;
             const QString finalRunStatus = success ? QStringLiteral("completed") :
                 (researchRunCancellationRequested_ ? QStringLiteral("cancelled") : QStringLiteral("failed"));
             const bool manifestRecorded = writeResearchRunManifest(
@@ -256,7 +261,11 @@ public:
             currentResearchRunProjectId_.reset();
             researchRunCancellationRequested_ = false;
             const QString resultMessage = success
-                ? (outputRecorded
+                ? (wasNoApiRun
+                    ? (language_->currentData().toString() == QStringLiteral("fa")
+                        ? QStringLiteral("جست‌وجوی علمی رایگان تکمیل شد؛ %1 منبع یکتا و بخش‌های پژوهش ذخیره شدند.").arg(noApiImportedSourceCount_)
+                        : QStringLiteral("Free scholarly discovery completed; %1 unique sources and research sections were saved.").arg(noApiImportedSourceCount_))
+                    : (outputRecorded
                     ? (language_->currentData().toString() == QStringLiteral("fa")
                         ? QStringLiteral("موتور با موفقیت پایان یافت؛ مسیر خروجی در پروژه ثبت شد.")
                         : QStringLiteral("Engine completed successfully; output path saved in the project."))
@@ -1387,6 +1396,69 @@ private:
         layout->addWidget(buttons);
         dialog.resize(760, 420);
         dialog.exec();
+    }
+
+    bool importNoApiResearchResult() {
+        if (!projectId_ || currentResearchRunOutput_.isEmpty()) return false;
+        QFile file(QDir(currentResearchRunOutput_).filePath(QStringLiteral("result.json")));
+        if (!file.open(QIODevice::ReadOnly)) return false;
+        QJsonParseError parseError;
+        const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
+        if (parseError.error != QJsonParseError::NoError || !document.isObject()) return false;
+        const QJsonObject root = document.object();
+        if (!root.value(QStringLiteral("ok")).toBool() || root.value(QStringLiteral("count")).toInt() < 10) {
+            researchStatus_->setText(root.value(QStringLiteral("message")).toString(
+                QStringLiteral("کمتر از ۱۰ منبع علمی یکتا بازیابی شد؛ منبع ساختگی اضافه نشد.")));
+            return false;
+        }
+        const QJsonObject sections = root.value(QStringLiteral("sections")).toObject();
+        for (const QString &key : ProjectStore::researchSectionKeys()) {
+            const QString value = sections.value(key).toString();
+            if (value.trimmed().isEmpty()) continue;
+            QString error;
+            if (!store_.saveResearchSection(*projectId_, key, value, &error)) {
+                researchStatus_->setText(error);
+                return false;
+            }
+        }
+        QSet<QString> existing;
+        QString error;
+        const auto previous = store_.loadResearchSources(*projectId_, &error);
+        if (!error.isEmpty()) return false;
+        for (const ResearchSource &source : previous) {
+            if (!source.doi.trimmed().isEmpty()) existing.insert(source.doi.trimmed().toLower());
+            existing.insert(source.title.trimmed().toLower());
+        }
+        noApiImportedSourceCount_ = 0;
+        for (const QJsonValue &value : root.value(QStringLiteral("records")).toArray()) {
+            if (!value.isObject()) continue;
+            const QJsonObject record = value.toObject();
+            ResearchSource source;
+            source.title = record.value(QStringLiteral("title")).toString();
+            source.authors = record.value(QStringLiteral("authors")).toString();
+            source.publicationYear = record.value(QStringLiteral("year")).toString();
+            source.doi = record.value(QStringLiteral("doi")).toString();
+            source.url = record.value(QStringLiteral("url")).toString();
+            source.notes = QStringLiteral("Provider: %1; venue: %2; type: %3; open access: %4")
+                .arg(record.value(QStringLiteral("provider")).toString(),
+                     record.value(QStringLiteral("venue")).toString(),
+                     record.value(QStringLiteral("type")).toString(),
+                     record.value(QStringLiteral("is_oa")).toString());
+            const QString doiKey = source.doi.trimmed().toLower();
+            const QString titleKey = source.title.trimmed().toLower();
+            if (titleKey.isEmpty() || (!doiKey.isEmpty() && existing.contains(doiKey)) ||
+                existing.contains(titleKey)) continue;
+            if (!store_.addResearchSource(*projectId_, source, &error)) {
+                researchStatus_->setText(error);
+                return false;
+            }
+            if (!doiKey.isEmpty()) existing.insert(doiKey);
+            existing.insert(titleKey);
+            ++noApiImportedSourceCount_;
+        }
+        populateResearchSectionList();
+        refreshResearchSources();
+        return true;
     }
 
     void startNoApiScholarlyResearch() {
