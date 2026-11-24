@@ -1580,12 +1580,12 @@ private:
             return;
         }
         researchStatus_->setText(persian
-            ? QStringLiteral("جست‌وجوی رایگان در OpenAlex، Crossref و Semantic Scholar آغاز شد؛ هدف ۲۰ منبع یکتا است و کلید API لازم نیست.")
-            : QStringLiteral("Free OpenAlex, Crossref, and Semantic Scholar discovery started; target is 20 unique records, no API key required."));
+            ? QStringLiteral("جست‌وجوی رایگان در OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite و arXiv آغاز شد؛ هدف ۵۰ منبع یکتا است و کلید API لازم نیست.")
+            : QStringLiteral("Free OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, and arXiv discovery started; target is 50 unique records, no API key required."));
         const QStringList arguments{
             script, QStringLiteral("--query"), projectTitle_->text().trimmed(),
             QStringLiteral("--language"), language_->currentData().toString(),
-            QStringLiteral("--target"), QStringLiteral("20"),
+            QStringLiteral("--target"), QStringLiteral("50"),
             QStringLiteral("--output"), QDir(output).filePath(QStringLiteral("result.json"))
         };
         const QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
@@ -1975,14 +1975,14 @@ private:
                 "۱) در مرورگر وارد Google Scholar شوید و موضوع پژوهش را جست‌وجو کنید.\n"
                 "۲) برای هر مقاله واجد شرایط، روی گزینهٔ Cite / نقل‌قول زیر همان نتیجه بزنید.\n"
                 "۳) در پنجرهٔ بازشده، BibTeX را انتخاب کنید؛ در صورت نیاز خروجی EndNote یا RefMan (RIS) را نیز می‌توانید کپی کنید.\n"
-                "۴) متن هر رکورد را کپی کنید و در کادر پایین بچسبانید؛ رکوردهای BibTeX یا RIS را پشت سر هم قرار دهید. برای متن ساده، هر استناد را در یک خط جداگانه بگذارید.\n"
+                "۴) متن هر رکورد را کپی کنید و در کادر پایین بچسبانید؛ رکوردهای BibTeX یا RIS را پشت سر هم قرار دهید. همچنین CSV کتابخانهٔ Scholar قابل ورود است؛ برای متن ساده، هر استناد را در یک خط جداگانه بگذارید.\n"
                 "۵) دکمهٔ «بررسی و ورود» را بزنید. می‌توانید ۲۰، ۵۰ یا تعداد بیشتری رکورد را در یک نوبت وارد کنید. موارد تکراری و رکوردهای بدون عنوان معتبر کنار گذاشته می‌شوند.\n\n"
                 "نکته: Google Scholar API عمومی برای ورود انبوه خودکار ارائه نمی‌کند؛ این روش بر خروجی‌ای تکیه دارد که خودتان از رابط Scholar می‌گیرید. منابع پس از ورود همچنان «تأییدنشده» هستند و DOI/فراداده باید بازبینی شود.")
             : QStringLiteral("Step-by-step guide:\\n"
                 "1) Open Google Scholar in your browser and search for your research topic.\\n"
                 "2) For each relevant result, click Cite below the article.\\n"
                 "3) Choose BibTeX; you may also copy EndNote or RefMan (RIS) exports.\\n"
-                "4) Paste each record below. Multiple BibTeX/RIS records may be pasted together; for plain citations, put one citation on each line.\\n"
+                "4) Paste each record below. Multiple BibTeX/RIS records may be pasted together. Scholar Library CSV exports are also accepted; for plain citations, put one citation on each line.\\n"
                 "5) Select Review and import. You can import 20, 50, or more records in one batch. Duplicates and records without a valid title are skipped.\\n\\n"
                 "Google Scholar does not provide a public bulk API. This workflow imports exports you obtain manually; imported records remain unverified until their DOI and metadata are checked."));
         layout->addWidget(guide);
@@ -2059,7 +2059,49 @@ private:
                           ris(QStringLiteral("PY")).isEmpty() ? ris(QStringLiteral("Y1")) : ris(QStringLiteral("PY")),
                           ris(QStringLiteral("DO")), ris(QStringLiteral("UR")), ris(QStringLiteral("JO")).isEmpty() ? ris(QStringLiteral("JF")) : ris(QStringLiteral("JO")));
             }
-        } else if (raw.contains(QRegularExpression(QStringLiteral("(?im)^%0\\s+")))) {
+        } else if (raw.contains(QRegularExpression(QStringLiteral("(?i)(^|[,\\\\])\\\\s*title\\\\s*[,\\\\]")))) {
+            auto csvCells = [](const QString &line) {
+                QStringList cells;
+                QString cell;
+                bool quoted = false;
+                for (int i = 0; i < line.size(); ++i) {
+                    const QChar ch = line[i];
+                    if (ch == QLatin1Char('"')) {
+                        if (quoted && i + 1 < line.size() && line[i + 1] == QLatin1Char('"')) {
+                            cell += QLatin1Char('"');
+                            ++i;
+                        } else quoted = !quoted;
+                    } else if (ch == QLatin1Char(',') && !quoted) {
+                        cells << cell.trimmed();
+                        cell.clear();
+                    } else cell += ch;
+                }
+                cells << cell.trimmed();
+                return cells;
+            };
+            const QStringList lines = raw.split(QRegularExpression(QStringLiteral("[\\\\r\\\\n]+")), Qt::SkipEmptyParts);
+            if (!lines.isEmpty()) {
+                QStringList headers = csvCells(lines.first());
+                for (QString &header : headers) header = header.toLower().remove(QRegularExpression(QStringLiteral("[^a-z]")));
+                auto column = [&](const QStringList &names) {
+                    for (int i = 0; i < headers.size(); ++i)
+                        if (names.contains(headers[i])) return i;
+                    return -1;
+                };
+                const int titleCol = column({QStringLiteral("title"), QStringLiteral("articletitle")});
+                const int authorCol = column({QStringLiteral("authors"), QStringLiteral("author")});
+                const int yearCol = column({QStringLiteral("year"), QStringLiteral("publicationyear")});
+                const int doiCol = column({QStringLiteral("doi")});
+                const int urlCol = column({QStringLiteral("url"), QStringLiteral("link")});
+                const int venueCol = column({QStringLiteral("publication"), QStringLiteral("journal"), QStringLiteral("venue")});
+                for (int row = 1; row < lines.size(); ++row) {
+                    const QStringList cells = csvCells(lines[row]);
+                    auto valueAt = [&](int index) { return index >= 0 && index < cells.size() ? cells[index] : QString(); };
+                    addParsed(valueAt(titleCol), valueAt(authorCol), valueAt(yearCol),
+                              valueAt(doiCol), valueAt(urlCol), valueAt(venueCol));
+                }
+            }
+        } else if (raw.contains(QRegularExpression(QStringLiteral("(?im)^%0\\\\s+")))) {
             const QStringList entries = raw.split(QRegularExpression(QStringLiteral("(?im)^%0\\s+")), Qt::SkipEmptyParts);
             for (const QString &entry : entries) {
                 auto endnote = [&](const QString &tag) {
