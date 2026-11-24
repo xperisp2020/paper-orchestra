@@ -1588,3 +1588,14 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - موارد واقعی باز: provider live (Gemini/OpenAI/OpenRouter)، Microsoft Word 2010 واقعی، اجرای روی دستگاه واقعی کاربر، و Crossref live. Mock و clean-runner به‌جای این تست‌ها پذیرفته نیستند.
 - فایل‌های جدید ساخته شدند: docs/AI_SECOND_PASS_AUDIT_FA.md، docs/AI_HANDOFF_PROVIDER_WORD2010_V2_FA.md، docs/AI_SECOND_PASS_RESULT_TEMPLATE_FA.md. نسخهٔ قبلی handoff به‌عنوان superseded علامت‌گذاری و split document نیز به‌روز شد.
 - هوش مصنوعی دوم باید قبل از هر کار تازه، تغییرات قبلی خود را با commit SHA/diff/patch قابل بررسی ارائه کند؛ اگر تغییرات فقط local هستند باید patch تحویل دهد یا پس از بررسی مقصد مجاز آن‌ها را بدون force-push منتقل کند.
+
+
+### 6.99.36 ممیزی تغییرات جدید AI دوم/مستندات و انتشار handoff نسخهٔ 3 (2026-11-24)
+- مقصد پیش از write تأیید شد: repo id 1467327081، owner xperisp2020، branch work/yadavarifork، HEAD پیش از این دور b08be9a11edabdc5c1e53878082de24bdd44aec9.
+- Git compare از checkpoint قبلی `743d19e11805e4e33f02c8133acde826187a0a31` تا HEAD جدید، 6 commit جدید و 6 فایل تغییرکرده را نشان داد. تمام تغییرات فقط در مستندات/دفتر هستند: V2 handoff، audit report، result template، نسخه‌بندی handoff قبلی، update تقسیم موازی و notebook. هیچ source code، test یا workflow محصول در آن شش commit تغییر نکرده است.
+- Git metadata حساب `xperisp2020` را به‌عنوان author/committer نشان می‌دهد، ولی هویت نویسندهٔ واقعی را اثبات نمی‌کند؛ نسبت‌دادن قطعی شش commit به AI دوم ممکن نیست.
+- branches فقط main و work/yadavarifork هستند؛ Pull Request باز/بسته‌ای در repository دیده نشد.
+- V2 handoff و audit مفیدند اما گزارش آن‌ها در زمان HEAD اولیهٔ `743d19e` نوشته شده؛ برای جلوگیری از تناقض، audit با addendum شش commit به‌روز و V2 superseded شد. split document اکنون به V3 ارجاع می‌دهد.
+- وضعیت CI مجدداً بررسی شد: Python Safety run `45356267071` هر دو job Ubuntu/Windows success (86 تست هرکدام)؛ Research Runtime `45356069474` هر دو job success؛ Windows build+clean-runner `45356339161` هر دو job success.
+- موارد هنوز حل‌نشده: اثبات/دریافت patch تغییرات محلی AI دوم؛ provider live Gemini/OpenAI/OpenRouter؛ Microsoft Word 2010 واقعی؛ Windows دستگاه اصلی کاربر؛ Crossref live.
+- دو فایل جدید ساخته می‌شود: `docs/AI_HANDOFF_PROVIDER_WORD2010_V3_FA.md` و `docs/AI_CHANGE_INVENTORY_AND_PATCH_REQUEST_FA.md`. گزارش قالب و audit و split و handoff قدیمی/ V2 به‌روزرسانی می‌شوند.
