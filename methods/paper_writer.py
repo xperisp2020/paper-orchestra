@@ -43,6 +43,7 @@ def write_single_paper(
     reflection_model_name: str = None,
     research_cutoff: str = "2024-11",
     resume: bool = False,
+    verify_dois_with_crossref: bool = False,
 ):
     if reflection_model_name is None:
         reflection_model_name = writer_model_name
@@ -79,6 +80,7 @@ def write_single_paper(
         "writer_model": writer_model_name,
         "reflection_model": reflection_model_name,
         "research_cutoff": research_cutoff,
+        "verify_dois_with_crossref": bool(verify_dois_with_crossref),
         "agent_sources": {
             "outline": fingerprint_path(inspect.getsourcefile(OutlineAgent)),
             "literature": fingerprint_path(inspect.getsourcefile(HybridLiteratureAgent)),
@@ -214,6 +216,7 @@ def write_single_paper(
                     output_dir=literature_agent_output_dir,
                     model_name=writer_model_name,
                     max_workers=3,
+                    verify_dois_with_crossref=verify_dois_with_crossref,
                 )
                 literature_agent.run(
                     outline_path=outline_file_path,
@@ -322,6 +325,7 @@ def process_paper_task(
     experimental_log_filename,
     writer_model_name,
     research_cutoff,
+    verify_dois_with_crossref: bool = False,
 ):
     """
     Worker function to process a single paper.
@@ -371,6 +375,7 @@ def process_paper_task(
                 writer_model_name=writer_model_name,
                 research_cutoff=research_cutoff,
                 resume=resume_existing,
+                verify_dois_with_crossref=verify_dois_with_crossref,
             )
 
             if success:
