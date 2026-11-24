@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07152d"/><stop offset=".55" stop-color="#123d70"/><stop offset="1" stop-color="#050d1c"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0ae"/><stop offset=".32" stop-color="#e8b84f"/><stop offset=".68" stop-color="#a96919"/><stop offset="1" stop-color="#ffe5a0"/></linearGradient>
+ <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#83e5ff"/><stop offset=".35" stop-color="#1686d8"/><stop offset=".7" stop-color="#12427d"/><stop offset="1" stop-color="#071c3a"/></linearGradient>
+ <linearGradient id="page" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff9e8"/><stop offset="1" stop-color="#c6d7ed"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feGaussianBlur stdDeviation="10"/></filter>
+ <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect x="18" y="18" width="476" height="476" rx="104" fill="#020916" opacity=".65" filter="url(#shadow)"/>
+<rect x="20" y="20" width="472" height="472" rx="100" fill="url(#bg)" stroke="url(#gold)" stroke-width="8"/>
+<circle cx="256" cy="220" r="164" fill="none" stroke="#4aa9ef" stroke-opacity=".24" stroke-width="3"/>
+<circle cx="256" cy="220" r="143" fill="none" stroke="url(#gold)" stroke-opacity=".5" stroke-width="3" stroke-dasharray="5 13"/>
+<path d="M110 335 Q180 305 256 350 Q332 305 402 335 L392 390 Q322 360 256 402 Q190 360 120 390Z" fill="#020b1a" opacity=".6"/>
+<path d="M112 318 Q184 288 256 333 Q328 288 400 318 L390 372 Q322 344 256 386 Q190 344 122 372Z" fill="url(#page)" stroke="url(#gold)" stroke-width="7" stroke-linejoin="round"/>
+<path d="M256 333 Q184 288 112 318 L122 372 Q190 344 256 386Z" fill="url(#page)" stroke="#9bb8d7" stroke-width="2"/>
+<path d="M256 333 Q328 288 400 318 L390 372 Q322 344 256 386Z" fill="url(#page)" stroke="#9bb8d7" stroke-width="2"/>
+<path d="M256 335 V383" stroke="#b27a2c" stroke-width="5"/>
+<path d="M147 326 Q193 316 230 343 M365 326 Q319 316 282 343" fill="none" stroke="#9cb4d2" stroke-width="4" stroke-linecap="round"/>
+<path d="M164 280 C134 224 165 151 229 123 C280 100 344 117 367 162 C390 207 360 255 319 274" fill="none" stroke="url(#gold)" stroke-width="12" stroke-linecap="round" filter="url(#glow)"/>
+<path d="M188 244 C170 198 193 158 232 147 C267 137 306 153 319 184 C334 219 312 250 285 263" fill="none" stroke="url(#blue)" stroke-width="19" stroke-linecap="round"/>
+<path d="M250 109 L277 109 L295 140 L232 140Z" fill="url(#gold)" stroke="#fff0b7" stroke-width="3"/>
+<path d="M222 140 L306 140 L285 161 L243 161Z" fill="url(#gold)" stroke="#9d671e" stroke-width="3"/>
+<path d="M263 157 L263 254" stroke="url(#gold)" stroke-width="13" stroke-linecap="round"/>
+<path d="M263 157 L244 201 L263 190 L281 201Z" fill="#fff0b5" stroke="#a56b20" stroke-width="3"/>
+<path d="M203 224 L230 210 L263 228 L296 210 L323 224" fill="none" stroke="url(#gold)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M203 224 L203 255 L263 277 L323 255 L323 224" fill="none" stroke="url(#gold)" stroke-width="8" stroke-linejoin="round"/>
+<path d="M229 293 L229 263 L263 276 L297 263 L297 293" fill="none" stroke="#4fc7ff" stroke-width="7" stroke-linecap="round"/>
+<path d="M80 112 L113 80 L146 112 L113 143Z" fill="url(#blue)" stroke="url(#gold)" stroke-width="5"/>
+<path d="M366 112 L399 80 L432 112 L399 143Z" fill="url(#blue)" stroke="url(#gold)" stroke-width="5"/>
+<g fill="#fff0b4"><circle cx="113" cy="112" r="7"/><circle cx="399" cy="112" r="7"/><circle cx="256" cy="70" r="5"/><circle cx="80" cy="256" r="4"/><circle cx="432" cy="256" r="4"/></g>
+<path d="M153 425 Q256 448 359 425" fill="none" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+<text x="256" y="461" text-anchor="middle" font-family="Georgia,serif" font-size="23" font-weight="bold" fill="url(#gold)">ST</text>
+</svg>
