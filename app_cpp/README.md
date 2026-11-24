@@ -45,7 +45,7 @@ A successful CI build is not a substitute for clean-machine acceptance, Word 201
 
 
 ## Windows installer
-The CI pipeline produces both the portable ZIP and a per-user Inno Setup installer. The installer defaults to `%LOCALAPPDATA%\\Programs\\Yadavarifork`, so the application can write its local SQLite data without administrator rights. The `data` directory is explicitly preserved by uninstall; removing the application does not silently remove project databases.
+The CI pipeline produces both the portable ZIP and a per-user Inno Setup installer. The installer defaults to `%LOCALAPPDATA%\\Programs\\ShirazTipsy Research Institute`, so the application can write its local SQLite data without administrator rights. The `data` directory is explicitly preserved by uninstall; removing the application does not silently remove project databases.
 
 
 ## Preparing the Windows research runtime
