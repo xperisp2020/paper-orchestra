@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <QApplication>
 #include <QCloseEvent>
 #include <QComboBox>
