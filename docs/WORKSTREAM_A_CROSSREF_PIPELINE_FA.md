@@ -62,3 +62,12 @@ python paper_writing_cli.py --help
 
 ### آزمون runtime برای Batch
 - علاوه بر تست dependency-free مبتنی بر AST، `tests/runtime_provider_checks.py` هر دو تابع واقعی `run_batch_writeup` را با executor ساختگی اجرا می‌کند و assert می‌کند `verify_dois_with_crossref=True` به keywordهای `ProcessPoolExecutor.submit` منتقل شده است. هیچ provider یا شبکه‌ای در این آزمون فراخوانی نمی‌شود.
+
+### تکمیل و اعتبارسنجی نهایی این دور
+- Python Safety run `45364548308`: Ubuntu و Windows هر دو success.
+- Research Runtime run `45364548656`: هر دو job success. Windows Python 3.12 runtime اجرا شد و آزمون runtime جدید Batch در `tests/runtime_provider_checks.py` با پیام `test_crossref_opt_in_reaches_both_batch_process_pools ... ok` و در مجموع 18 تست با نتیجهٔ OK پایان یافت؛ Ubuntu LaTeX/BibTeX واقعی نیز success شد.
+- Crossref live run `45363848472`: success؛ درخواست واقعی helper با DOI عمومی `10.1038/nature12373` پاسخ `verified` دریافت کرد.
+- Windows build/clean-runner run `45364368515`: هر دو job success. Build و app smoke، ساخت Portable/Installer، استخراج و اجرای Portable، PDF/DOCX در مسیر دارای فاصله/فارسی، نصب silent، اجرای نسخهٔ نصب‌شده، uninstall و حفظ فایل sentinel موفق شدند.
+- آخرین HEAD کد محصول در run بسته‌بندی: `0fb187f3fe9a8a85e64cfcc7454b73053bee738a`. تغییرات بعدی در شاخه برای به‌روزرسانی مستندات/دفتر بوده‌اند؛ source code این بسته از همان کد تأییدشده ساخته شده است.
+- وضعیت این مسیر: PASS برای اتصال Crossref، مسیر single-run/Batch، retry پس از خطای موقت، Crossref live smoke و گیت‌های CI ذکرشده.
+- خارج از این مسیر و همچنان باز: providerهای live با credentials اختصاصی (Gemini/OpenAI/OpenRouter)، آزمایش Microsoft Word 2010 واقعی و اجرای روی دستگاه اصلی کاربر.
