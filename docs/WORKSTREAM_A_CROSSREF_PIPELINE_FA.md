@@ -44,3 +44,8 @@ python paper_writing_cli.py --help
 - timeout نامعتبر/غیرمثبت به `unavailable` تبدیل می‌شود و درخواست شبکه نمی‌فرستد.
 - README مثال و محدودیت Crossref را مستند می‌کند؛ status در citation_map، DOI اصلی را تغییر نمی‌دهد.
 - تست‌های جدید: بازیابی پس از HTTP 503 و propagation گزینه به هر دو batch worker.
+
+### آزمون زندهٔ مستقل Crossref
+- workflow جدید `.github/workflows/crossref-live-smoke.yml` فقط هنگام تغییر helper/normalizer/script یا اجرای دستی فعال می‌شود.
+- `scripts/crossref_live_smoke.py` یک درخواست عمومی با DOI شناخته‌شدهٔ `10.1038/nature12373` می‌فرستد؛ هیچ credential لازم نیست و فقط status و DOI عمومی در log چاپ می‌شود.
+- این workflow از تست‌های mock و Python Safety جداست؛ نتیجهٔ PASS آن به معنی دسترسی endpoint از GitHub runner است، نه تضمین دسترسی از تمام شبکه‌های کاربر.
