@@ -278,3 +278,18 @@
 - هیچ Secret یا Authorization header در log/commit/artifact چاپ نشد. پاسخ provider و متن exception خام ذخیره یا نمایش داده نشد.
 - هیچ Gemini/OpenAI پولی، Release، انتشار عمومی، merge به `main` یا تغییر مسیر A انجام نشد.
 - وضعیت پروژه هنوز **کامل نیست**؛ گیت‌های Word 2010 و Windows فیزیکی/VM و opt-in هزینه‌دار Gemini/OpenAI باز هستند.
+
+
+## 14) تکمیل آزمون‌های تغییرات RTL و artifactهای تازه (2026-11-24)
+
+- دو commit موازی RTL که در بخش 13 ثبت شدند، اکنون CI نهایی خود را نیز گذرانده‌اند:
+  - `45415689848` برای commit `2398f960066a9746d97eb55f0b1eb2a2cf5e1562`: Build و clean-runner هر دو success.
+  - `45415730486` برای commit `0e9cc4ae54860c479eb8fa0fb69ad5592310df3f`: Build و clean-runner هر دو success.
+- در commit دوم، smoke خروجی DOCX وجود متن فارسی/کاراکترهای escapeشده، ویژگی‌های RTL یعنی `bidi` و `rtl`، و خالی‌بودن فیلدهای اداری تعریف‌شده را assert کرد. CTest نیز `app_smoke` و `research_engine_runner_contract` را PASS کرد؛ نتیجه `100% tests passed, 0 tests failed out of 2`.
+- clean-runner run `45415730486` موفق شد Portable را در مسیر Unicode باز کند، proposal را ذخیره/بازگشایی کند و export بگیرد؛ Installer را نصب و اجرا و uninstall کرد و حفظ دادهٔ کاربر را تأیید کرد.
+- Artifactهای نهایی commit RTL:
+  - Portable id `14932431892`, size 27096778 bytes, ZIP SHA-256 `ed2f760dedd4aab2ff6c87663b2ee25219942f1853ac18dd85e9603e679d5807`.
+  - Installer id `14931477161`, size 19933308 bytes, ZIP SHA-256 `c7fcd0ec5d821fb6385ee89052080adfbd911f3d7b3f5599b70ce5cea6cc0819`.
+  - Expiry ثبت‌شده: `2027-02-22T14:35:08Z`; digestها متعلق به ZIP هستند.
+- بنابراین C++ Windows build و clean-runner در آخرین commit RTL نیز **PASS** است. این محیط Windows GitHub runner است و به معنی آزمون Windows فیزیکی/VM کاربر یا Word 2010 واقعی نیست.
+- آخرین HEAD شاخه هنگام تکمیل این گزارش: `4f2cceac4128cb6e2653d0f4185b4d1575c4aaf9` (ثبت افزایشی دفتر پروژه).
