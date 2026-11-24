@@ -36,6 +36,9 @@ class LiteratureCrossrefWiringTests(unittest.TestCase):
         ast.parse(source)
         self.assertIn('"--verify_dois_with_crossref"', source)
         self.assertEqual(source.count("verify_dois_with_crossref=args.verify_dois_with_crossref"), 2)
+        gui = self.read("app_cpp/src/main.cpp")
+        self.assertIn("crossrefCheck->isChecked()", gui)
+        self.assertIn('QStringLiteral("--verify_dois_with_crossref")', gui)
 
 
 if __name__ == "__main__":
