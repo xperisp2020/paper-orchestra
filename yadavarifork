@@ -1544,3 +1544,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - این شکست از ساختار تست‌ها ناشی شد و به‌تنهایی regression در منطق محصول را ثابت نمی‌کند؛ تست‌های integration جدید اجرا نشده بودند.
 - منطق non-blocking به helper استاندارد-library `safe_crossref_verification_status` منتقل شد؛ تست رفتار opt-in، وضعیت‌ها، DOI malformed و exception در `tests/test_crossref_utils.py` انجام می‌شود. `tests/test_literature_crossref.py` اکنون فقط wiring را با AST بررسی می‌کند و وابستگی Pydantic ندارد. انتظار تست DOI قبلی نیز اصلاح شد.
 - نتیجهٔ اجرای مجدد هنوز pending است؛ تا دریافت conclusion موفق ادعای PASS نمی‌شود.
+
+
+### 6.99.31 افزودن گزینهٔ Crossref به رابط Qt و بررسی آزمون‌های اولیه (2026-11-24)
+- Python Safety run `45356092546` روی commit `2bdc785d73c3c1c080f0b8c73f35b2e643e2ba71` هر دو job Ubuntu و Windows را با نتیجهٔ success گذراند؛ log اوبونتو `Ran 86 tests` و `OK` را ثبت کرد.
+- تست integration اولیه در run `45355798918` به‌دلیل import ناخواستهٔ Pydantic در workflow standard-library-only و یک assertion متنی قدیمی شکست خورد؛ این خطا با helper استاندارد-library `safe_crossref_verification_status`، تست wiring مبتنی بر AST و اصلاح assertion برطرف شد.
+- بازبینی مسیر کاربر نشان داد flag فقط از CLI قابل تنظیم است؛ برای دسترسی از برنامهٔ Qt، یک چک‌باکس اختیاری فارسی/انگلیسی به dialog اجرای پژوهش اضافه شد. در حالت پیش‌فرض خاموش است و فقط هنگام انتخاب، `--verify_dois_with_crossref` به CLI افزوده می‌شود. راهنما توضیح می‌دهد درخواست شبکه برای DOI عمومی انجام می‌شود و خطا/404 منبع را حذف یا اصلاح نمی‌کند.
+- آزمون build C++ و Python Safety پس از این تغییر UI باید از CI تأیید شود؛ در این لحظه هنوز conclusion آن‌ها ثبت نشده است.
