@@ -58,6 +58,13 @@ class NoApiScholarlyResearchTests(unittest.TestCase):
             "api.semanticscholar.org": {"data": [semantic_record(i) for i in range(4)]},
             "www.ebi.ac.uk": {"resultList": {"result": [europe_record(i) for i in range(4)]}},
             "api.datacite.org": {"data": [datacite_record(i) for i in range(4)]},
+            "api.openaire.eu": {"results": [{
+                "mainTitle": f"OpenAIRE scholarly publication number {i}",
+                "authors": [{"fullName": "O. Author"}], "publicationDate": "2024-02-01",
+                "pids": [{"scheme": "doi", "value": f"10.6666/openaire{i}"}],
+                "descriptions": ["OpenAIRE abstract text."],
+                "container": {"name": "OpenAIRE Journal"}, "instances": []
+            } for i in range(4)]},
         }
         requested = []
         def fake_request(url):
@@ -69,14 +76,30 @@ class NoApiScholarlyResearchTests(unittest.TestCase):
         <author><name>A. Researcher</name></author></entry>\n        <entry><id>https://arxiv.org/abs/2401.00002</id><title>arXiv scholarly paper number two</title>\n        <published>2024-01-02T00:00:00Z</published><summary>Second preprint abstract</summary></entry></feed>"""
         with patch.object(research, "request_json", side_effect=fake_request), \
              patch.object(research, "request_xml", return_value=atom):
-            records, errors = research.discover("research methods", target=12, sleeper=lambda _: None)
+            records, errors = research.discover("research methods", target=14, sleeper=lambda _: None)
         self.assertEqual(errors, [])
-        self.assertEqual(len(records), 12)
+        self.assertEqual(len(records), 14)
         self.assertEqual({r["provider"] for r in records},
-                         {"OpenAlex", "Crossref", "Semantic Scholar", "Europe PMC", "DataCite", "arXiv"})
+                         {"OpenAlex", "Crossref", "Semantic Scholar", "Europe PMC", "DataCite", "OpenAIRE", "arXiv"})
         self.assertEqual(len({r["doi"] or r["title"] for r in records}), 12)
-        self.assertEqual(len(requested), 5)
+        self.assertEqual(len(requested), 6)
         self.assertEqual(records[-1]["provider"], "arXiv")
+
+    def test_openaire_normalization_extracts_doi_authors_and_abstract(self):
+        record = research.normalize_openaire({
+            "mainTitle": "A research product from OpenAIRE",
+            "authors": [{"fullName": "O. Researcher"}],
+            "publicationDate": "2025-04-02",
+            "pids": [{"scheme": "doi", "value": "10.1234/openaire"}],
+            "descriptions": ["A useful abstract."],
+            "container": {"name": "OpenAIRE Journal"},
+            "instances": [],
+        })
+        self.assertEqual(record["provider"], "OpenAIRE")
+        self.assertEqual(record["doi"], "10.1234/openaire")
+        self.assertEqual(record["authors"], "O. Researcher")
+        self.assertEqual(record["year"], "2025")
+        self.assertIn("useful abstract", record["abstract"])
 
     def test_draft_discloses_metadata_only_limitations_and_citations(self):
         records = [{
