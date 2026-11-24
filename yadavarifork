@@ -1757,3 +1757,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - commitهای موازی RTL `2398f960066a9746d97eb55f0b1eb2a2cf5e1562` و `0e9cc4ae54860c479eb8fa0fb69ad5592310df3f` حفظ شدند؛ CIهایشان `45415689848` و `45415730486` هنگام آخرین بررسی pending بودند.
 - Windows فیزیکی/VM کاربر و Word 2010 واقعی همچنان BLOCKED؛ Gemini/OpenAI live نیز بدون opt-in هزینه‌دار عمداً فعال نشدند.
 - هیچ Secret/token/header در log یا artifact چاپ نشد؛ Release/merge/main/publication انجام نشد.
+
+
+### 6.99.44 تکمیل CI برای تغییرات RTL و artifactهای نهایی (2026-11-24)
+- RTL commit `2398f960066a9746d97eb55f0b1eb2a2cf5e1562` در run `45415689848` و commit بعدی `0e9cc4ae54860c479eb8fa0fb69ad5592310df3f` در run `45415730486` هر دو Build و clean-runner را PASS کردند.
+- run `45415730486`: تست DOCX متن فارسی/escaping، RTL bidi/run properties و خالی‌بودن فیلدهای اداری را بررسی کرد؛ CTest دو از دو PASS؛ clean-runner Portable/Installer و حفظ داده را PASS کرد.
+- Artifactهای نهایی: Portable `14932431892`, ZIP SHA-256 `ed2f760dedd4aab2ff6c87663b2ee25219942f1853ac18dd85e9603e679d5807`; Installer `14931477161`, ZIP SHA-256 `c7fcd0ec5d821fb6385ee89052080adfbd911f3d7b3f5599b70ce5cea6cc0819`; expiry `2027-02-22T14:35:08Z`.
+- نتیجهٔ نهایی تغییرات RTL در CI: **PASS**. این آزمون روی GitHub Windows runner انجام شده، نه دستگاه فیزیکی/VM کاربر و نه Microsoft Word 2010 واقعی.
+- آخرین HEAD پیش از ثبت این append: `ba58daf77f0ff72d31d34fdc874064f84a0dd8af`.
