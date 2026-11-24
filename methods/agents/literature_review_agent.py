@@ -29,7 +29,7 @@ from utils.gemini_utils import call_gemini_with_contents, parse_gemini_latex_res
 from utils.llm_backend_utils import call_llm_with_text_prompt, is_openai_model
 from utils.scholar_utils import s2_title_search, s2_keyword_search
 from utils.doi_utils import normalize_doi
-from utils.crossref_utils import verify_doi_with_crossref
+from utils.crossref_utils import safe_crossref_verification_status
 
 
 class CandidatePaper(BaseModel):
@@ -362,22 +362,10 @@ class HybridLiteratureAgent:
                     abstract_text = abstract_text[:1500] + "... [Truncated]"
 
                 normalized_doi = normalize_doi((s2_data.get("externalIds") or {}).get("DOI"))
-                doi_verification_status = None
-                if self.verify_dois_with_crossref and normalized_doi:
-                    try:
-                        verification = verify_doi_with_crossref(normalized_doi)
-                        reported_status = (
-                            verification.get("status")
-                            if isinstance(verification, dict) else None
-                        )
-                        allowed_statuses = {"verified", "not_found", "unavailable", "invalid"}
-                        doi_verification_status = (
-                            reported_status if reported_status in allowed_statuses else "unavailable"
-                        )
-                    except Exception:
-                        # Crossref is an optional, best-effort check. Never discard a paper
-                        # or alter its DOI because the registry is unavailable.
-                        doi_verification_status = "unavailable"
+                doi_verification_status = safe_crossref_verification_status(
+                    normalized_doi, enabled=self.verify_dois_with_crossref
+                )
+                if doi_verification_status:
                     self._safe_print(
                         f"      -> Crossref DOI check: {doi_verification_status}"
                     )
