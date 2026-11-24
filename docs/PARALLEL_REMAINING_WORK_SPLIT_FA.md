@@ -44,3 +44,8 @@
 - پیش از شروع هر آزمون جدید، AI دوم باید `docs/AI_CHANGE_INVENTORY_AND_PATCH_REQUEST_FA.md` را اجرا کند و patch/commit تغییرات قبلی ادعاشده را تحویل بدهد.
 - قالب گزارش: `docs/AI_SECOND_PASS_RESULT_TEMPLATE_FA.md`.
 - ممیزی جدید شش commit مستنداتی را بررسی کرده؛ هیچ source/test/workflow در آن شش commit تغییر نکرده است.
+
+
+### وضعیت تازهٔ مأموریت‌ها
+- مسیر A: اتصال opt-in، UI/CLI، Batch API، عدم cache کردن خطاهای موقت و Crossref live smoke انجام شده؛ Python Safety، Research Runtime و Windows clean-runner شواهد موفق دارند.
+- مسیر B: Crossref live از scope جاری خارج شده (run `45363848472` PASS)؛ تمرکز روی گزارش قابل ممیزی تغییرات قبلی AI دوم، providerهای واقعی، Windows دستگاه اصلی/VM و Word 2010 واقعی است.
