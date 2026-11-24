@@ -180,3 +180,52 @@
 - PASS بودن clean runner معادل اجرای روی دستگاه اصلی کاربر نیست. Word 2010 نیز با CI XML/PDF validation اثبات نمی‌شود.
 - نتیجهٔ کامل پروژه هنوز **BLOCKED** است تا گیت‌های محیط واقعی و provider زنده (در صورت فراهم بودن Secret مجاز) تعیین تکلیف شوند.
 - Secret/API key/token خوانده یا در log/commit/artifact چاپ نشده است.
+
+
+## 12) اجرای کامل موجودی V3 و ممیزی checkpoint تا HEAD فعلی (2026-11-24)
+
+### وضعیت workspace قبلی
+- فایل مأموریت `docs/AI_CHANGE_INVENTORY_AND_PATCH_REQUEST_FA.md` به‌طور کامل بررسی شد و همهٔ مراحل آن اعمال شد.
+- workspace/session محلی AI دوم در این نشست mount یا متصل نیست؛ بنابراین `git remote -v`، `git status --short`، staged/unstaged diff و untrackedهای آن workspace قابل اجرا/مشاهده نیستند.
+- نتیجهٔ دقیق: **NO LOCAL WORKSPACE ACCESS**؛ این نتیجه به معنی `NO PRIOR CHANGES` نیست.
+- هیچ patch محلی یا بستهٔ قابل ممیزی از workspace قبلی در دسترس نیست؛ بنابراین patch، تعداد فایل‌های محلی، SHA-256 patch و ادعای تغییرات commitنشده قابل ارائه نیست.
+- تغییرات commit‌شدهٔ قابل مشاهده در branch مجاز جداگانه با GitHub compare بررسی شدند و نباید با patch محلی/commitنشدهٔ workspace قبلی اشتباه گرفته شوند.
+
+### مقایسهٔ checkpoint و تاریخچه
+- Base/checkpoint مسیر A: `d68443e3d23cf9fcf435494dd9821f12e3e749d6`.
+- HEAD پیش از ثبت این inventory: `fcc508910de9c5e4e2c655d12cea642b40a06ce7`.
+- GitHub compare: **14 commits ahead, 0 behind**.
+- 14 commit قابل مشاهده:
+  - `b1e4649b6f897d3641e56565922c6ab8779fdcb5` — Add final Workstream A checkpoint to V3 handoff
+  - `de2f3f15c4eb6f7b36d06be615309ee94b0b074a` — Record final Workstream A checkpoint and remaining project gates
+  - `bb2b6520285684413f950a40911aa5fb96dc2b25` — Add route B inventory and initial verification report
+  - `6b651a052befe5bfa2a4c42fd5e4f9609b96b5a0` — Record initial route B inventory and blockers
+  - `f6489c24a51acf5af151005b0d1d137a9bb5df2e` — docs: append V3 route B verification addendum
+  - `77037c00247f6b06e4188777987321e3788cac36` — docs: append V3 route B audit checkpoint
+  - `778dbcb7370fee107edbed5b668958ab4a50eaec` — Add guarded provider live smoke workflow and tests
+  - `276746ecf149881da41f73aac5aea2f8d759a6b1` — Add QProcess cancellation and redaction regression tests
+  - `0b06ab88ae69ed29f846756b845b94227a2a7ca6` — Fix runner test target include directory
+  - `f483aacb4c224a7e7e2e13177a22b128c4a23a32` — Record provider smoke and QProcess test progress
+  - `691725d7a540a361b8de412240809051180a4f49` — Append provider smoke and QProcess test checkpoint
+  - `4534182b62ea6a83f468053c38a190554dfb47aa` — Record passing QProcess cancellation and Windows clean-runner CI
+  - `8faef4192db1a3edacc76ab66242d228df59e44c` — Append passing QProcess and Windows CI checkpoint
+  - `fcc508910de9c5e4e2c655d12cea642b40a06ce7` — ci: document branch-scoped provider smoke workflow
+- Diff نهایی این بازه 9 مسیر را نشان داد: 1 workflow موجود اصلاح‌شده، 1 workflow جدید، 1 فایل CMake اصلاح‌شده، 1 تست C++ جدید، 2 سند handoff/report، 1 اسکریپت provider smoke جدید، 1 فایل تست Python جدید و دفتر پروژه.
+- بنابراین این بازه صرفاً مستنداتی نیست: provider harness و تست‌های QProcess/C++ نیز در commitهای قابل مشاهده وجود دارند. این موارد در بخش‌های 10 و 11 گزارش با commit و CI ثبت شده‌اند.
+- هیچ تغییر حذف/rename در compare دیده نشد. فایل‌های تغییرکرده:
+  - `.github/workflows/cpp-portable-ci.yml`
+  - `.github/workflows/provider-live-smoke.yml`
+  - `app_cpp/CMakeLists.txt`
+  - `app_cpp/tests/research_engine_runner_test.cpp`
+  - `docs/AI_HANDOFF_PROVIDER_WORD2010_V3_FA.md`
+  - `docs/AI_SECOND_PASS_RESULT_2026-11-24_FA.md`
+  - `scripts/provider_live_smoke.py`
+  - `tests/test_provider_live_smoke.py`
+  - `yadavarifork`
+
+### نتیجهٔ inventory
+- وضعیت workspace قبلی: **NO LOCAL WORKSPACE ACCESS**.
+- وضعیت commitهای موجود در branch مجاز: **ALREADY PRESENT**؛ commitهای بالا در HEAD قابل مشاهده و به‌صورت تفکیک‌شده audit شدند.
+- patch محلی قابل انتقال: **NOT AVAILABLE**؛ هیچ patch ناشناخته‌ای اعمال یا overwrite نشد.
+- تغییرات مسیر A دست‌نخورده باقی ماندند.
+- این inventory پیش از شروع اصلاح تازهٔ Provider ثبت شد؛ secrets/credential در آن درج نشده است.
