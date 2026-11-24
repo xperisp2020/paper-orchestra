@@ -444,6 +444,12 @@ public:
         }
         if (problemRow < 0)
             return 28;
+        for (int row = 0; row < sectionList_->count(); ++row) {
+            const QString visibleKey = sectionList_->item(row)->data(Qt::UserRole).toString();
+            if (administrativeSectionKeys().contains(visibleKey) ||
+                finalDetailKeys().contains(visibleKey))
+                return 86;
+        }
         sectionList_->setCurrentRow(problemRow);
         sectionEditor_->setPlainText(QStringLiteral("Persisted by GUI smoke test"));
         sectionList_->setCurrentRow(problemRow == 0 ? 1 : 0);
@@ -492,6 +498,10 @@ public:
             QStringLiteral("Smoke test: student_information\nSecond line\nمتن فارسی & <بررسی>"));
         smokeFinalDetails.insert(QStringLiteral("supervisor_information"),
             QStringLiteral("Smoke test: supervisor_information\nSecond line\nمتن فارسی & <بررسی استاد>"));
+        smokeFinalDetails.insert(QStringLiteral("academic_records"),
+            QStringLiteral("Smoke test: academic_records\nAcademic record line"));
+        smokeFinalDetails.insert(QStringLiteral("previous_theses"),
+            QStringLiteral("Smoke test: previous_theses\nPrevious thesis line"));
         bool saveDialogHandled = false;
         QTimer::singleShot(0, [&saveDialogHandled, &smokeFinalDetails] {
             auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
@@ -1021,7 +1031,7 @@ private:
         sectionList_->clear();
         const QStringList keys = ProjectStore::proposalSectionKeys();
         for (const QString &key : keys) {
-            if (finalDetailKeys().contains(key))
+            if (finalDetailKeys().contains(key) || administrativeSectionKeys().contains(key))
                 continue;
             auto *item = new QListWidgetItem(sectionLabel(key, persian));
             item->setData(Qt::UserRole, key);
@@ -1945,7 +1955,8 @@ private:
             QStringLiteral("degree"), QStringLiteral("field"), QStringLiteral("specialization"),
             QStringLiteral("supervisor"), QStringLiteral("consultant"),
             QStringLiteral("student_name"), QStringLiteral("student_id"),
-            QStringLiteral("student_information"), QStringLiteral("supervisor_information")
+            QStringLiteral("student_information"), QStringLiteral("supervisor_information"),
+            QStringLiteral("academic_records"), QStringLiteral("previous_theses")
         };
     }
 
@@ -2011,7 +2022,9 @@ private:
         QMap<QString, QTextEdit *> multilineInputs;
         for (const QString &key : finalDetailKeys()) {
             if (key == QStringLiteral("student_information") ||
-                key == QStringLiteral("supervisor_information")) {
+                key == QStringLiteral("supervisor_information") ||
+                key == QStringLiteral("academic_records") ||
+                key == QStringLiteral("previous_theses")) {
                 auto *input = new QTextEdit(&dialog);
                 input->setObjectName(QStringLiteral("finalDetail_") + key);
                 input->setPlainText(current.value(key));
