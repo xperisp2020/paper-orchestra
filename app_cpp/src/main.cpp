@@ -1008,8 +1008,8 @@ private:
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
         if (mode == QStringLiteral("no_api")) {
             aiDescription_->setText(persian
-                ? QStringLiteral("جست‌وجوی رایگان منابع علمی از OpenAlex و Crossref و تکمیل ساختاریافته بخش‌های پژوهش؛ بدون کلید API و بدون مدل زبانی.")
-                : QStringLiteral("Free scholarly discovery from OpenAlex and Crossref with structured research drafting; no API key or language model."));
+                ? QStringLiteral("جست‌وجوی رایگان منابع علمی از OpenAlex، Crossref و Semantic Scholar و تکمیل ساختاریافته بخش‌های پژوهش؛ بدون کلید API و بدون مدل زبانی.")
+                : QStringLiteral("Free scholarly discovery from OpenAlex, Crossref, and Semantic Scholar with structured research drafting; no API key or language model."));
         } else if (mode == QStringLiteral("free_tier")) {
             aiDescription_->setText(persian
                 ? QStringLiteral("مسیر OpenRouter با مدل رایگان چندوجهی Nemotron؛ کلید OPENROUTER_API_KEY لازم است. سهمیه فعلی رایگان ۲۰ درخواست در دقیقه و ۵۰ درخواست در روز است و ارائه‌دهنده ثالث ممکن است داده‌ها را ثبت یا برای بهبود مدل استفاده کند.")
@@ -1569,8 +1569,8 @@ private:
             return;
         }
         researchStatus_->setText(persian
-            ? QStringLiteral("جست‌وجوی رایگان در OpenAlex و Crossref آغاز شد؛ هدف ۲۰ منبع یکتا است و کلید API لازم نیست.")
-            : QStringLiteral("Free OpenAlex and Crossref discovery started; target is 20 unique records, no API key required."));
+            ? QStringLiteral("جست‌وجوی رایگان در OpenAlex، Crossref و Semantic Scholar آغاز شد؛ هدف ۲۰ منبع یکتا است و کلید API لازم نیست.")
+            : QStringLiteral("Free OpenAlex, Crossref, and Semantic Scholar discovery started; target is 20 unique records, no API key required."));
         const QStringList arguments{
             script, QStringLiteral("--query"), projectTitle_->text().trimmed(),
             QStringLiteral("--language"), language_->currentData().toString(),
