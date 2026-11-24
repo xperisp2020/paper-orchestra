@@ -1,8 +1,6 @@
 <div align="center">
 
-<picture>
-  <img src="app_cpp/assets/shiraztipsy.svg" alt="نشان سه‌بعدی پژوهشکده سرخوش شیرازی" width="144" height="144" />
-</picture>
+<img src="docs/images/app-homepage-preview.png" alt="پیش‌نمایش صفحهٔ اصلی نرم‌افزار پژوهشکده سرخوش شیرازی" width="900" />
 
 # پژوهشکده سرخوش شیرازی
 
