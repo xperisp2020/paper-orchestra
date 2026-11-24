@@ -47,6 +47,8 @@ public:
     std::optional<ProjectInfo> loadProject(qint64 projectId, QString *error = nullptr);
     bool saveSection(qint64 projectId, const QString &sectionKey,
                      const QString &content, QString *error = nullptr);
+    bool saveSections(qint64 projectId, const QMap<QString, QString> &sections,
+                      QString *error = nullptr);
     QMap<QString, QString> loadSections(qint64 projectId,
                                         QString *error = nullptr);
     bool saveProjectMetadata(qint64 projectId, const QString &key,
