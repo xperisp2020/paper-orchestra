@@ -2059,7 +2059,7 @@ private:
                           ris(QStringLiteral("PY")).isEmpty() ? ris(QStringLiteral("Y1")) : ris(QStringLiteral("PY")),
                           ris(QStringLiteral("DO")), ris(QStringLiteral("UR")), ris(QStringLiteral("JO")).isEmpty() ? ris(QStringLiteral("JF")) : ris(QStringLiteral("JO")));
             }
-        } else if (raw.contains(QRegularExpression(QStringLiteral("(?i)(^|,)\\s*"?title"?\\s*(,|$)")))) {
+        } else if (raw.contains(QRegularExpression(QStringLiteral("(?i)(^|,)\\s*title\\s*(,|$)")))) {
             auto csvCells = [](const QString &line) {
                 QStringList cells;
                 QString cell;
