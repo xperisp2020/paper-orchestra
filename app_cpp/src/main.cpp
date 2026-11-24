@@ -21,6 +21,7 @@
 #include <iostream>
 #include <QHBoxLayout>
 #include <QIcon>
+#include <QFont>
 #include <QLabel>
 #include <QPixmap>
 #include <QStyle>
@@ -146,6 +147,7 @@ public:
         cancelProposalGeneration_->setEnabled(false);
         finalDetailsButton_ = new QPushButton;
         finalDetailsButton_->setObjectName(QStringLiteral("proposalFinalDetailsButton"));
+        finalDetailsButton_->setEnabled(false);
         saveSection_ = new QPushButton;
         saveSection_->setObjectName(QStringLiteral("saveSectionButton"));
         exportPdf_ = new QPushButton;
@@ -572,6 +574,7 @@ public:
         if (pages_->currentIndex() != 4 || !projectId_)
             return 27;
 
+        QString storageError;
         QMap<QString, QString> atomicProposalSections;
         atomicProposalSections.insert(QStringLiteral("main_question"),
                                       QStringLiteral("Batch persistence smoke question."));
@@ -614,7 +617,6 @@ public:
         sectionList_->setCurrentRow(problemRow);
         if (sectionEditor_->toPlainText() != QStringLiteral("Persisted by GUI smoke test"))
             return 29;
-        QString storageError;
         const auto saved = store_.loadSections(*projectId_, &storageError);
         if (saved.value(QStringLiteral("problem_statement")) !=
                 QStringLiteral("Persisted by GUI smoke test") ||
@@ -628,6 +630,22 @@ public:
             if (!saved.value(key).isEmpty())
                 return 61;
         }
+        QMap<QString, QString> smokeScientificSections;
+        for (const QString &key : ProjectStore::proposalSectionKeys()) {
+            if (finalDetailKeys().contains(key) || administrativeSectionKeys().contains(key))
+                continue;
+            smokeScientificSections.insert(
+                key, key == QStringLiteral("title_fa")
+                    ? projectTitle_->text()
+                    : (key == QStringLiteral("title_en")
+                        ? QStringLiteral("SQLite proposal smoke test")
+                        : QStringLiteral("Smoke scientific draft for ") + key));
+        }
+        if (!store_.saveSections(*projectId_, smokeScientificSections, &storageError))
+            return 91;
+        populateSectionList();
+        if (!finalDetailsButton_->isEnabled())
+            return 92;
         bool skipDialogHandled = false;
         QTimer::singleShot(0, [&skipDialogHandled] {
             auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
@@ -1293,6 +1311,35 @@ private:
         }
         if (sectionList_->currentRow() < 0 && sectionList_->count() > 0)
             sectionList_->setCurrentRow(0);
+        updateFinalDetailsAvailability();
+    }
+
+    void updateFinalDetailsAvailability() {
+        if (!finalDetailsButton_ || !projectId_) {
+            if (finalDetailsButton_)
+                finalDetailsButton_->setEnabled(false);
+            return;
+        }
+        QString error;
+        const auto sections = store_.loadSections(*projectId_, &error);
+        bool complete = error.isEmpty();
+        if (complete) {
+            for (const QString &key : ProjectStore::proposalSectionKeys()) {
+                if (finalDetailKeys().contains(key) || administrativeSectionKeys().contains(key))
+                    continue;
+                if (sections.value(key).trimmed().isEmpty()) {
+                    complete = false;
+                    break;
+                }
+            }
+        }
+        finalDetailsButton_->setEnabled(complete);
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        finalDetailsButton_->setToolTip(complete
+            ? (persian ? QStringLiteral("بخش‌های علمی کامل شده‌اند؛ اکنون مشخصات پایانی را وارد کنید.")
+                       : QStringLiteral("Scientific sections are complete; enter final student and supervisor details now."))
+            : (persian ? QStringLiteral("ابتدا همه بخش‌های علمی پروپوزال را تکمیل کنید.")
+                       : QStringLiteral("Complete all scientific proposal sections before entering final details.")));
     }
 
     bool saveProposalSection(const QString &key, const QString &content) {
@@ -1307,6 +1354,7 @@ private:
         proposalSectionDirty_ = false;
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
         editorStatus_->setText(persian ? QStringLiteral("ذخیره شد") : QStringLiteral("Saved"));
+        updateFinalDetailsAvailability();
         return true;
     }
 
@@ -2854,6 +2902,13 @@ private:
     bool collectFinalDetails(bool forceDialog) {
         if (!projectId_)
             return false;
+        updateFinalDetailsAvailability();
+        if (!finalDetailsButton_->isEnabled()) {
+            editorStatus_->setText(language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("برای ورود مشخصات پایانی، ابتدا تمام بخش‌های علمی پروپوزال را تکمیل کنید.")
+                : QStringLiteral("Complete every scientific proposal section before entering final details."));
+            return false;
+        }
         if (finalDetailsReviewed_ && !forceDialog)
             return true;
         if (!saveActiveProposalSection())
