@@ -120,6 +120,16 @@ class CrossrefVerificationTests(unittest.TestCase):
         self.assertIsNone(safe_crossref_verification_status("not-a-doi", enabled=True))
         verify.assert_not_called()
 
+    @patch("utils.crossref_utils.urlopen")
+    def test_cached_result_is_returned_as_a_copy(self, get):
+        get.return_value = FakeResponse({"message": {"DOI": "10.1000/CACHE"}})
+        first = verify_doi_with_crossref("10.1000/CACHE")
+        first["status"] = "invalid"
+        second = verify_doi_with_crossref("10.1000/CACHE")
+        self.assertEqual(second["status"], "verified")
+        self.assertIsNot(first, second)
+        self.assertEqual(get.call_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
