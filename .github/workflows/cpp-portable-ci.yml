@@ -65,7 +65,7 @@ jobs:
       - name: Configure
         run: cmake -S app_cpp -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build
-        run: cmake --build build --config Release --parallel --target yadavarifork yadavarifork_smoke
+        run: cmake --build build --config Release --parallel --target yadavarifork yadavarifork_smoke research_engine_runner_tests
       - name: Smoke test
         shell: pwsh
         run: |
@@ -121,6 +121,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "windeployqt failed with exit code $LASTEXITCODE" }
           Remove-Item build/Release/yadavarifork_smoke.exe -ErrorAction SilentlyContinue
           Remove-Item build/Release/yadavarifork_smoke.pdb -ErrorAction SilentlyContinue
+          Remove-Item build/Release/research_engine_runner_tests.exe -ErrorAction SilentlyContinue
+          Remove-Item build/Release/research_engine_runner_tests.pdb -ErrorAction SilentlyContinue
           Copy-Item app_cpp/README.md build/Release/README.txt
           $engineDirectories = @('methods', 'utils', 'autoraters', 'templates', 'assets', 'scripts')
           foreach ($directory in $engineDirectories) {

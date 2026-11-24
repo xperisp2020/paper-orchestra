@@ -39,3 +39,17 @@ endif()
 add_test(NAME app_smoke COMMAND yadavarifork_smoke --smoke-test)
 set_tests_properties(app_smoke PROPERTIES TIMEOUT 15
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;YADAVARIFORK_SMOKE_OUTPUT_DIR=${CMAKE_BINARY_DIR}/smoke-output")
+
+# Exercise the QProcess research runner independently of the GUI. The test
+# executable also acts as its own child process to keep the harness portable.
+qt_add_executable(research_engine_runner_tests EXCLUDE_FROM_ALL
+    tests/research_engine_runner_test.cpp
+    src/research_engine_runner.cpp
+    src/research_engine_runner.h
+)
+target_link_libraries(research_engine_runner_tests PRIVATE Qt6::Core)
+if(WIN32)
+    set_target_properties(research_engine_runner_tests PROPERTIES WIN32_EXECUTABLE FALSE)
+endif()
+add_test(NAME research_engine_runner_contract COMMAND research_engine_runner_tests)
+set_tests_properties(research_engine_runner_contract PROPERTIES TIMEOUT 15)
