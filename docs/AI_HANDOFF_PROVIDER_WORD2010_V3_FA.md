@@ -147,3 +147,10 @@ DOCX تولیدشده را فقط در Microsoft Word 2010 واقعی باز ک�
 - Python Safety 94 تست Ubuntu/Windows و Research Runtime هر دو job موفق شدند؛ اجرای runtime جدید 19 تست را در Windows Python 3.12 اجرا کرد و مسیر Crossref هر دو Batch worker تا writer را PASS کرد.
 - Windows run `45367143582` روی HEAD workflow `dbe12e9d32a0dc0d060a64a3f7c8a3b32c636aec` build و clean-runner هر دو را PASS کرد. این run پس از اصلاح trigger `scripts/**` اجرا شد تا هر تغییر در فایل‌های bundled scripts، Portable/Installer را rebuild کند.
 - لاگ clean-runner به‌صراحت PASS بودن Portable Unicode-path smoke/PDF/DOCX و Installer install/app smoke/uninstall/user-data preservation را ثبت می‌کند.
+
+
+### Checkpoint نهایی مسیر A در مخزن (2026-11-24)
+- آخرین HEAD شاخه هنگام این checkpoint: `d68443e3d23cf9fcf435494dd9821f12e3e749d6`.
+- مسیر A در سند `docs/WORKSTREAM_A_CROSSREF_PIPELINE_FA.md` و دفتر `yadavarifork` با تست‌ها و شواهد latest ثبت شده است.
+- برای مسیر B فقط artifactهای جدید بخش 2 همین سند استفاده شوند؛ artifactهای قدیمی‌تر در تاریخچه صرفاً برای ممیزی باقی مانده‌اند.
+- تغییرات بعدی AI دوم باید روی HEAD واقعی جاری rebase/patch شوند؛ force-push یا overwrite ممنوع است.
