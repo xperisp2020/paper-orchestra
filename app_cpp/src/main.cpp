@@ -18,6 +18,7 @@
 #include <QFileDialog>
 #include <iostream>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -56,7 +57,8 @@ public:
     explicit WelcomeWindow(ProjectStore &store, QWidget *parent = nullptr)
         : QMainWindow(parent), store_(store) {
         setObjectName(QStringLiteral("welcomeWindow"));
-        setMinimumSize(860, 600);
+        setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.svg")));
+        setMinimumSize(920, 640);
         pages_ = new QStackedWidget;
         pages_->setObjectName(QStringLiteral("wizardPages"));
 
@@ -311,9 +313,12 @@ public:
         auto *buttons = new QHBoxLayout(navigation);
         back_ = new QPushButton;
         back_->setObjectName(QStringLiteral("backButton"));
+        about_ = new QPushButton;
+        about_->setObjectName(QStringLiteral("aboutInstituteButton"));
         next_ = new QPushButton;
         next_->setObjectName(QStringLiteral("nextButton"));
         buttons->addWidget(back_);
+        buttons->addWidget(about_);
         buttons->addStretch();
         buttons->addWidget(next_);
 
@@ -323,6 +328,7 @@ public:
         rootLayout->addWidget(navigation);
         setCentralWidget(root);
 
+        connect(about_, &QPushButton::clicked, this, [this] { showAboutInstitute(); });
         connect(back_, &QPushButton::clicked, this, [this] {
             const int index = pages_->currentIndex();
             if (index == 4 && !saveActiveProposalSection())
@@ -878,6 +884,46 @@ protected:
     }
 
 private:
+    void showAboutInstitute() {
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        QDialog dialog(this);
+        dialog.setObjectName(QStringLiteral("aboutInstituteDialog"));
+        dialog.setWindowTitle(persian ? QStringLiteral("درباره پژوهشکده سرخوش شیرازی")
+                                      : QStringLiteral("About ShirazTipsy Research Institute"));
+        dialog.setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.svg")));
+        dialog.setMinimumWidth(540);
+        auto *layout = new QVBoxLayout(&dialog);
+        auto *brand = new QLabel;
+        brand->setAlignment(Qt::AlignCenter);
+        brand->setTextFormat(Qt::RichText);
+        brand->setText(persian
+            ? QStringLiteral("<div style='font-size:23px;font-weight:700;color:#f4c56a'>پژوهشکده سرخوش شیرازی</div><div style='font-size:16px;color:#9bc9ff'>ShirazTipsy Research Institute</div>")
+            : QStringLiteral("<div style='font-size:23px;font-weight:700;color:#f4c56a'>ShirazTipsy Research Institute</div><div style='font-size:16px;color:#9bc9ff'>پژوهشکده سرخوش شیرازی</div>"));
+        layout->addWidget(brand);
+        auto *description = new QLabel(persian
+            ? QStringLiteral("پژوهشکده سرخوش شیرازی با هدف پشتیبانی از پژوهشگران و دانشجویان، تسهیل فرایند نگارش و مدیریت پژوهش و بهره‌گیری مسئولانه از فناوری‌های نوین و هوش مصنوعی فعالیت می‌کند. این نرم‌افزار ابزار پژوهشی است و مسئولیت بررسی علمی منابع و محتوای نهایی بر عهده پژوهشگر خواهد بود.")
+            : QStringLiteral("ShirazTipsy Research Institute supports researchers and students with research planning, academic writing, source management, and responsible use of modern technologies and AI. This application is a research aid; researchers remain responsible for verifying sources and final scholarly content."));
+        description->setWordWrap(true);
+        description->setAlignment(Qt::AlignCenter);
+        description->setMinimumHeight(100);
+        layout->addWidget(description);
+        auto *contactTitle = new QLabel(persian ? QStringLiteral("راه‌های ارتباطی") : QStringLiteral("Connect with us"));
+        contactTitle->setAlignment(Qt::AlignCenter);
+        contactTitle->setStyleSheet(QStringLiteral("font-weight:700;color:#f4c56a;padding-top:8px;"));
+        layout->addWidget(contactTitle);
+        auto *links = new QLabel(QStringLiteral("<div align='center'><a href='https://t.me/shiraztipsy'>Telegram: @shiraztipsy</a><br/><a href='https://www.instagram.com/shiraztipsy/'>Instagram: @shiraztipsy</a></div>"));
+        links->setTextFormat(Qt::RichText);
+        links->setTextInteractionFlags(Qt::TextBrowserInteraction);
+        links->setOpenExternalLinks(true);
+        links->setAlignment(Qt::AlignCenter);
+        layout->addWidget(links);
+        auto *close = new QPushButton(persian ? QStringLiteral("بستن") : QStringLiteral("Close"));
+        close->setObjectName(QStringLiteral("aboutCloseButton"));
+        connect(close, &QPushButton::clicked, &dialog, &QDialog::accept);
+        layout->addWidget(close);
+        dialog.exec();
+    }
+
     QWidget *makePage(const QString &name) {
         auto *page = new QWidget;
         page->setObjectName(name);
@@ -965,7 +1011,8 @@ private:
         const auto direction = persian ? Qt::RightToLeft : Qt::LeftToRight;
         setLayoutDirection(direction);
         qApp->setLayoutDirection(direction);
-        setWindowTitle(persian ? QStringLiteral("یادآور پژوهش") : QStringLiteral("Yadavarifork"));
+        setWindowTitle(persian ? QStringLiteral("پژوهشکده سرخوش شیرازی") : QStringLiteral("ShirazTipsy Research Institute"));
+        about_->setText(persian ? QStringLiteral("درباره ما") : QStringLiteral("About us"));
 
         headings_[0]->setText(persian ? QStringLiteral("زبان برنامه") : QStringLiteral("Application language"));
         headings_[1]->setText(persian ? QStringLiteral("حالت هوش مصنوعی") : QStringLiteral("AI mode"));
@@ -2527,6 +2574,7 @@ private:
     QLabel *editorStatus_{};
     QLabel *editorNotice_{};
     QPushButton *back_{};
+    QPushButton *about_{};
     QPushButton *next_{};
     QPushButton *saveSection_{};
     QPushButton *finalDetailsButton_{};
@@ -2567,6 +2615,28 @@ private:
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
+    QCoreApplication::setApplicationName(QStringLiteral("ShirazTipsy Research Institute"));
+    QCoreApplication::setOrganizationName(QStringLiteral("ShirazTipsy"));
+    app.setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.svg")));
+    app.setStyleSheet(QStringLiteral(
+        "QWidget { background-color:#091a35; color:#eaf2ff; font-size:13px; }"
+        "QMainWindow, QDialog { background-color:#07152d; }"
+        "QLabel { background:transparent; }"
+        "QPushButton { background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #244b7e,stop:1 #122b50); color:#f5f7ff; border:1px solid #527eb2; border-radius:9px; padding:8px 14px; }"
+        "QPushButton:hover { border:1px solid #f3c66b; background-color:#315b8d; }"
+        "QPushButton:pressed { background-color:#102443; }"
+        "QPushButton:disabled { color:#71839c; border-color:#263b58; }"
+        "QLineEdit, QTextEdit, QListWidget, QComboBox { background-color:#102746; color:#edf4ff; border:1px solid #385d88; border-radius:7px; padding:7px; selection-background-color:#b8873c; }"
+        "QComboBox QAbstractItemView { background:#102746; color:#edf4ff; selection-background-color:#315b8d; }"
+        "QGroupBox { border:1px solid #45688f; border-radius:10px; margin-top:12px; padding:10px; font-weight:600; }"
+        "QGroupBox::title { subcontrol-origin:margin; left:12px; padding:0 6px; color:#f2c56b; }"
+        "QScrollBar:vertical { background:#0a1b34; width:12px; margin:0; }"
+        "QScrollBar::handle:vertical { background:#42658c; border-radius:5px; min-height:24px; }"
+        "QCheckBox { spacing:8px; }"
+        "QLabel#proposalAdministrativeNotice { color:#f1c875; }"
+        "QPushButton#aboutInstituteButton, QPushButton#aboutCloseButton { border:1px solid #c99a4b; color:#ffe0a0; }"
+        "QMessageBox { background:#091a35; }"
+    ));
     if (app.arguments().contains(QStringLiteral("--bridge-child-test"))) {
         std::cout << "bridge-child-ok\n";
         std::cout << "GEMINI_API_KEY=" << qEnvironmentVariable("GEMINI_API_KEY").toStdString() << '\n';
@@ -2598,7 +2668,7 @@ int main(int argc, char *argv[]) {
         dataDirectory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
         if (dataDirectory.isEmpty() || !QDir().mkpath(dataDirectory) ||
             !QFileInfo(dataDirectory).isWritable()) {
-            QMessageBox::critical(nullptr, QStringLiteral("Yadavarifork"),
+            QMessageBox::critical(nullptr, QStringLiteral("ShirazTipsy Research Institute"),
                                   QStringLiteral("Cannot create a writable application data directory."));
             return 5;
         }
