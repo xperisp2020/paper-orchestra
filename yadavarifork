@@ -1519,3 +1519,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - CI اولیهٔ Crossref run `45353989519` به علت import مستقیم `requests` در workflow استاندارد-library-only شکست خورد؛ علت از log واقعی شناسایی شد. helper و تست‌ها اصلاح شدند تا فقط از Python standard library استفاده کنند. این اصلاح در commit `e6358a191e30c91b013bacf4dc0491a52651f320` و تست dependency-free در `28d40763b99c782cca5e695aadd6502290f53004` ثبت شد.
 - اجرای مجدد Python Safety پس از اصلاح در زمان ثبت در وضعیت queued بود: run `45354109040`. تا دریافت conclusion موفق، تست Crossref را پاس‌شده اعلام نکن.
 - هیچ provider زنده یا دستگاه فیزیکی/Word 2010 در این دور آزمایش نشده است. کار واگذارشده نیازمند دسترسی مجاز و دستگاه واقعی است.
+
+
+### 6.99.28 اصلاح Crossref و عبور موفق آزمون‌های دو سیستم‌عامل (2026-11-24)
+- علت شکست اولیهٔ Python Safety مشخص شد: workflow عمداً فقط standard library را نصب می‌کند؛ نسخهٔ نخست helper به `requests` وابسته بود. helper به `urllib.request` و `urllib.error` منتقل شد و تست‌ها نیز با fake response و mock استاندارد بازنویسی شدند؛ هیچ dependency جدیدی اضافه نشد.
+- اجرای نهایی معتبر روی commit `28d40763b99c782cca5e695aadd6502290f53004`: Python Safety run `45354114896` هر دو job Ubuntu و Windows را با conclusion=success گذراند. log اوبونتو `Ran 77 tests` را ثبت کرده است.
+- helper Crossref و تست‌ها در فایل‌های `utils/crossref_utils.py` و `tests/test_crossref_utils.py` هستند. وضعیت‌ها و محدودیت پوشش Crossref در مأموریت قبلی ثبت شده؛ helper هنوز intentionally به pipeline خودکار literature enrichment متصل نشده است.
+- فایل راهنمای AI دوم: `docs/AI_HANDOFF_PROVIDER_WINDOWS_WORD2010_FA.md`؛ فایل مستند مسیر تکمیل‌شدهٔ Crossref: `docs/COMPLETED_CROSSREF_DOI_WORK_FA.md`.
+- لینک آزمون موفق: https://github.com/xperisp2020/paper-orchestra/actions/runs/45354114896
+- آخرین commit ثبت دفتر پیش از این append: `cf63859c05c9a82f77c24ff804c47fcecaf9fc7e`. آزمون‌های زندهٔ provider، اجرای روی دستگاه فیزیکی و Word 2010 همچنان به credential/device واقعی نیاز دارند و به AI دوم واگذار شده‌اند.
