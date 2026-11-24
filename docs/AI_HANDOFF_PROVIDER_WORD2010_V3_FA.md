@@ -78,12 +78,12 @@ DOCX تولیدشده را فقط در Microsoft Word 2010 واقعی باز ک�
 - LibreOffice یا Word جدیدتر معادل Word 2010 نیست.
 - اگر Word روی VM نصب است، نتیجه را `Word 2010 on VM` بنویس؛ نه دستگاه اصلی کاربر.
 
-## 6) Crossref live — گیت جدا
-helper موجود است و Crossref در Literature Agent به‌صورت opt-in وصل شده. Mock tests وجود دارند؛ اما درخواست زندهٔ Crossref هنوز تأیید نشده.
-- اگر شبکه در دسترس است، یک DOI عمومی که از Semantic Scholar دریافت شده را از طریق helper بررسی کن.
-- فقط status، HTTP، زمان و خروجی غیرحساس ثبت شود.
-- `not_found` یعنی در Crossref یافت نشد، نه invalid globally؛ DOI را حذف/تغییر نده.
-- اگر شبکه در دسترس نیست، `BLOCKED` ثبت کن.
+## 6) Crossref live — انجام شده، فقط در صورت regression باز شود
+- helper واقعی پروژه با DOI عمومی `10.1038/nature12373` از داخل GitHub Actions به Crossref وصل شد و `verified` دریافت کرد.
+- run موفق: https://github.com/xperisp2020/paper-orchestra/actions/runs/45363848472
+- log: `Crossref live smoke PASS: status=verified doi=10.1038/nature12373`.
+- این بخش در حال حاضر PASS است؛ در مأموریت فعلی دوباره‌کاری لازم نیست.
+- اگر تغییر تازه‌ای در helper یا DOI normalization انجام دادی، workflow مربوطه پس از تغییر اجرا شود. خطای شبکه را invalid بودن DOI تلقی نکن و DOI را حذف/تغییر نده.
 
 ## 7) جلوگیری از تداخل با مسیر A
 فایل‌های مسیر A که تا پیش از این مأموریت تغییر کرده‌اند:
@@ -121,3 +121,8 @@ helper موجود است و Crossref در Literature Agent به‌صورت opt-i
 ### یادداشت وضعیت شاخه هنگام تحویل V3
 - HEAD شروع ممیزی و آماده‌سازی اسناد V3: `b08be9a11edabdc5c1e53878082de24bdd44aec9`.
 - این سند و فایل موجودی در commitهای مستنداتی بعدی ثبت شده‌اند؛ برای هر عملیات جدید، HEAD واقعی را دوباره از GitHub بخوان و به SHA ثابت این سند اکتفا نکن.
+
+
+### وضعیت جدید مسیر A در نسخهٔ بعدی (2026-11-24)
+- Crossref live، Batch propagation و cache transient در مسیر A تکمیل شده‌اند؛ جزئیات و CIها در `docs/WORKSTREAM_A_CROSSREF_PIPELINE_FA.md` و دفتر `yadavarifork` ثبت است.
+- مسیر B اکنون Crossref live را از scope عادی خود خارج می‌کند، مگر آنکه regression جدیدی رخ دهد.
