@@ -1974,15 +1974,15 @@ private:
             ? QStringLiteral("راهنمای مرحله‌به‌مرحله:\n"
                 "۱) در مرورگر وارد Google Scholar شوید و موضوع پژوهش را جست‌وجو کنید.\n"
                 "۲) برای هر مقاله واجد شرایط، روی گزینهٔ Cite / نقل‌قول زیر همان نتیجه بزنید.\n"
-                "۳) در پنجرهٔ بازشده، BibTeX را انتخاب کنید؛ در صورت نیاز خروجی EndNote یا RefMan (RIS) را نیز می‌توانید کپی کنید.\n"
-                "۴) متن هر رکورد را کپی کنید و در کادر پایین بچسبانید؛ رکوردهای BibTeX یا RIS را پشت سر هم قرار دهید. همچنین CSV کتابخانهٔ Scholar قابل ورود است؛ برای متن ساده، هر استناد را در یک خط جداگانه بگذارید.\n"
+                "۳) در پنجرهٔ بازشده، BibTeX را انتخاب کنید تا فایل .bib دانلود شود؛ برای هر مقاله می‌توانید Cite را تکرار کنید یا از خروجی گروهی My Library در صورت دسترس استفاده کنید.\n"
+                "۴) با دکمهٔ افزودن فایل، فایل‌های .bib، .ris، .enw یا .csv را انتخاب کنید؛ یا متن چند رکورد هم‌نوع را پشت سر هم در کادر بچسبانید.\n"
                 "۵) دکمهٔ «بررسی و ورود» را بزنید. می‌توانید ۲۰، ۵۰ یا تعداد بیشتری رکورد را در یک نوبت وارد کنید. موارد تکراری و رکوردهای بدون عنوان معتبر کنار گذاشته می‌شوند.\n\n"
                 "نکته: Google Scholar API عمومی برای ورود انبوه خودکار ارائه نمی‌کند؛ این روش بر خروجی‌ای تکیه دارد که خودتان از رابط Scholar می‌گیرید. منابع پس از ورود همچنان «تأییدنشده» هستند و DOI/فراداده باید بازبینی شود.")
             : QStringLiteral("Step-by-step guide:\\n"
                 "1) Open Google Scholar in your browser and search for your research topic.\\n"
                 "2) For each relevant result, click Cite below the article.\\n"
-                "3) Choose BibTeX; you may also copy EndNote or RefMan (RIS) exports.\\n"
-                "4) Paste each record below. Multiple BibTeX/RIS records may be pasted together. Scholar Library CSV exports are also accepted; for plain citations, put one citation on each line.\\n"
+                "3) Choose BibTeX to download a .bib file; repeat Cite for individual items or use a Scholar Library bulk export when available.\\n"
+                "4) Use Add citation files to load .bib, .ris, .enw, or .csv files, or paste multiple records of the same format below.\\n"
                 "5) Select Review and import. You can import 20, 50, or more records in one batch. Duplicates and records without a valid title are skipped.\\n\\n"
                 "Google Scholar does not provide a public bulk API. This workflow imports exports you obtain manually; imported records remain unverified until their DOI and metadata are checked."));
         layout->addWidget(guide);
