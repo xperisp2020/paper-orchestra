@@ -1615,19 +1615,29 @@ private:
 
         auto *privacyNotice = new QLabel(&dialog);
         privacyNotice->setWordWrap(true);
-        privacyNotice->setText(persian
-            ? QStringLiteral("در مسیر رایگان، عنوان و اطلاعات پژوهشی به ارائه‌دهنده ثالث OpenRouter ارسال می‌شود. اطلاعات محرمانه وارد نکنید.")
-            : QStringLiteral("The free route sends the project title and research context to the third-party OpenRouter provider. Do not submit confidential information."));
         form->addRow(privacyNotice);
         auto *privacyConsent = new QCheckBox(
             persian ? QStringLiteral("ارسال داده‌ها به ارائه‌دهنده ثالث را می‌پذیرم.")
                     : QStringLiteral("I acknowledge that data is sent to a third-party provider."), &dialog);
+        auto *paidConsent = new QCheckBox(
+            persian ? QStringLiteral("هزینه احتمالی مدل پولی و پردازش داده نزد ارائه‌دهنده را می‌پذیرم.")
+                    : QStringLiteral("I understand this paid route may incur provider charges and external data processing."), &dialog);
         form->addRow(privacyConsent);
-        auto updatePrivacy = [providerField, privacyNotice, privacyConsent] {
+        form->addRow(paidConsent);
+        auto updatePrivacy = [providerField, privacyNotice, privacyConsent, paidConsent, persian] {
             const bool free = providerField->currentData().toString() == QStringLiteral("free_tier");
-            privacyNotice->setVisible(free);
+            privacyNotice->setText(free
+                ? (persian
+                    ? QStringLiteral("در مسیر رایگان، عنوان و فراداده/یادداشت‌های منابع به ارائه‌دهنده ثالث OpenRouter ارسال می‌شود. اطلاعات محرمانه وارد نکنید.")
+                    : QStringLiteral("The free route sends the project title and source metadata/notes to third-party OpenRouter. Do not submit confidential information."))
+                : (persian
+                    ? QStringLiteral("مسیر پولی داده‌های پژوهش را به ارائه‌دهنده بیرونی می‌فرستد و ممکن است طبق تعرفه حساب شما هزینه داشته باشد. تا تأیید و شروع صریح شما هیچ درخواستی ارسال نمی‌شود.")
+                    : QStringLiteral("The paid route sends research data to an external provider and may incur charges under your provider account. No request is sent until you explicitly confirm and start."));
             privacyConsent->setVisible(free);
-            if (!free)
+            paidConsent->setVisible(!free);
+            if (free)
+                paidConsent->setChecked(false);
+            else
                 privacyConsent->setChecked(false);
         };
         connect(providerField, qOverload<int>(&QComboBox::currentIndexChanged),
@@ -1660,6 +1670,12 @@ private:
             showFailure(persian
                 ? QStringLiteral("برای استفاده از مدل رایگان، ابتدا رضایت ارسال داده به ارائه‌دهنده ثالث را تأیید کنید.")
                 : QStringLiteral("Acknowledge third-party data processing before using the free model."));
+            return;
+        }
+        if (route == QStringLiteral("paid") && !paidConsent->isChecked()) {
+            showFailure(persian
+                ? QStringLiteral("برای مسیر پولی، تأیید آگاهانهٔ احتمال هزینه و پردازش داده نزد ارائه‌دهنده لازم است.")
+                : QStringLiteral("Confirm potential provider charges and external data processing before using the paid route."));
             return;
         }
         if (!QFileInfo(python).isFile() || !QFileInfo(script).isFile()) {
