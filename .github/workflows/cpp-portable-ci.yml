@@ -66,6 +66,7 @@ jobs:
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
+          modules: 'qtsvg'
       - name: Configure
         run: cmake -S app_cpp -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build
@@ -185,7 +186,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: yadavarifork-windows-installer
-          path: build/installer/Yadavarifork-Setup-0.1.0.exe
+          path: build/installer/ShirazTipsyResearchInstitute-Setup-0.1.0.exe
           if-no-files-found: error
 
   verify-portable-artifact:
@@ -245,7 +246,7 @@ jobs:
             }
           }
           Write-Host "Clean-runner portable smoke, proposal save/reopen, and Unicode-path exports passed."
-          $setup = Join-Path $PWD 'installer-artifact/Yadavarifork-Setup-0.1.0.exe'
+          $setup = Join-Path $PWD 'installer-artifact/ShirazTipsyResearchInstitute-Setup-0.1.0.exe'
           if (!(Test-Path $setup)) { throw "Windows installer artifact is missing." }
           $installDir = Join-Path $PWD 'Installer With Spaces - آزمون فارسی'
           $installProcess = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',('/DIR="{0}"' -f $installDir)) -Wait -PassThru
