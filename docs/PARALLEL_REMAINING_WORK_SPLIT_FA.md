@@ -55,3 +55,10 @@
 - Python Safety `45364548308`، Research Runtime `45364548656`، Crossref live `45363848472` و Windows build/clean-runner `45364368515` همگی success هستند.
 - artifactهای جاری: Portable `14905488281` و Installer `14906087195`؛ لینک و digest در V3 و audit ثبت شده‌اند.
 - Crossref live دیگر جزو کارهای باز هوش مصنوعی دوم نیست؛ تمرکز آن روی providerهای واقعی، Word 2010 و دستگاه Windows واقعی باقی می‌ماند.
+
+
+## وضعیت نهایی مسیر A پس از بازآزمون (2026-11-24)
+- مسیر A از نظر CI بسته شد: Python Safety 94 tests Ubuntu/Windows، Research Runtime Windows Python 3.12 + Ubuntu LaTeX/BibTeX، Crossref live verified و Windows build/clean-runner همگی PASS.
+- artifactهای نهایی مسیر A برای تست دستی توسط AI دوم: Portable id 14906139648 و Installer id 14907232374؛ hash و لینک دقیق در handoff V3 درج شده است.
+- trigger Windows packaging اکنون scripts/** را هم پوشش می‌دهد؛ تغییرات پوشهٔ scripts که داخل Portable کپی می‌شود، بسته‌سازی را دوباره اجرا می‌کنند.
+- مسیر B فقط providerهای live، Windows دستگاه واقعی/VM و Word 2010 واقعی و ارائهٔ patch ادعاشدهٔ قبلی را ادامه دهد؛ تست‌های clean-runner را تکرار نکند مگر regression یا نیاز مشخص.
