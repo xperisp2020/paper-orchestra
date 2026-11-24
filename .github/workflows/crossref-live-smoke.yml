@@ -1,0 +1,28 @@
+name: Crossref live smoke
+
+on:
+  push:
+    branches: [work/yadavarifork]
+    paths:
+      - "utils/crossref_utils.py"
+      - "utils/doi_utils.py"
+      - "scripts/crossref_live_smoke.py"
+      - ".github/workflows/crossref-live-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  crossref-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify one public DOI against live Crossref
+        run: python scripts/crossref_live_smoke.py --doi 10.1038/nature12373 --timeout 8
