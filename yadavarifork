@@ -1731,3 +1731,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - سند گزارش مسیر B `docs/AI_SECOND_PASS_RESULT_2026-11-24_FA.md` با علت failure اولیه، fix، PASSها و BLOCKEDهای provider/Word/دستگاه به‌روزرسانی شد.
 - Provider live همچنان BLOCKED است: اجرای `45409723175` برای Gemini، OpenAI و OpenRouter هر سه `credential_missing` گزارش کرد؛ هیچ درخواست واقعی ارسال نشد. Python Safety `45409722980` هر دو محیط Ubuntu/Windows را با 102 تست PASS کرد.
 - موارد خارج از دسترسی همچنان BLOCKED: workspace محلی AI دوم، Windows فیزیکی/VM کاربر و Microsoft Word 2010 واقعی. هیچ secret/token چاپ یا commit نشده است.
+
+
+### 6.99.42 اجرای کامل inventory نسخه V3 و اصلاح خط مبنای تاریخچه (2026-11-24)
+- فایل `docs/AI_CHANGE_INVENTORY_AND_PATCH_REQUEST_FA.md` کامل خوانده و مراحل inventory اجرا شد.
+- workspace محلی AI دوم در نشست حاضر در دسترس نیست؛ وضعیت **NO LOCAL WORKSPACE ACCESS** باقی می‌ماند. این وضعیت به معنی NO PRIOR CHANGES نیست؛ patch محلی، git status، staged/unstaged diff و untrackedهای آن workspace قابل استخراج نیستند.
+- مقایسهٔ GitHub از checkpoint مسیر A یعنی `d68443e3d23cf9fcf435494dd9821f12e3e749d6` تا HEAD `fcc508910de9c5e4e2c655d12cea642b40a06ce7` برابر 14 commits ahead و 0 behind است.
+- diff این بازه 9 مسیر را تغییر داده: دو workflow، CMake، تست C++، اسناد handoff/report، اسکریپت و تست Provider، و همین دفتر. بنابراین توضیح قدیمی «فقط اسناد تغییر کرده‌اند» برای کل بازه دیگر دقیق نیست؛ provider harness و C++ QProcess regression در commitهای `778dbcb7370fee107edbed5b668958ab4a50eaec`، `276746ecf149881da41f73aac5aea2f8d759a6b1` و `0b06ab88ae69ed29f846756b845b94227a2a7ca6` قبلاً وارد تاریخچه شده‌اند.
+- هیچ patch ناشناخته‌ای اعمال نشد؛ هیچ مسیر A تغییر نکرد. جزئیات 14 commit و 9 فایل در بخش 12 گزارش مسیر B ثبت شد.
+- نتیجهٔ inventory: workspace قبلی **NO LOCAL WORKSPACE ACCESS**؛ تغییرات commitشدهٔ قابل مشاهده **ALREADY PRESENT**؛ patch محلی **NOT AVAILABLE**.
