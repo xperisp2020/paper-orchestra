@@ -271,7 +271,7 @@ public:
                         : QStringLiteral("Engine completed successfully; output path saved in the project."))
                     : (language_->currentData().toString() == QStringLiteral("fa")
                         ? QStringLiteral("فرایند با کد صفر پایان یافت، اما پوشه خروجی یا ثبت مسیر آن تأیید نشد.")
-                        : QStringLiteral("Process exited with code zero, but output folder or metadata persistence was not verified.")))
+                        : QStringLiteral("Process exited with code zero, but output folder or metadata persistence was not verified."))))
                 : (language_->currentData().toString() == QStringLiteral("fa")
                     ? QStringLiteral("اجرای موتور موفق نبود؛ کد خروج: %1").arg(exitCode)
                     : QStringLiteral("Engine run failed; exit code: %1").arg(exitCode));
