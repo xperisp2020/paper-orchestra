@@ -381,6 +381,14 @@ public:
         if (layoutDirection() != Qt::RightToLeft)
             return 22;
 
+        // The visible New Project button must advance from the welcome page.
+        newProject_->click();
+        if (pages_->currentIndex() != 1 || !projectTitle_->text().isEmpty())
+            return 79;
+        back_->click();
+        if (pages_->currentIndex() != 0)
+            return 80;
+
         const QStringList aiIds{QStringLiteral("no_api"), QStringLiteral("free_tier"), QStringLiteral("paid")};
         const QStringList taskIds{QStringLiteral("proposal"), QStringLiteral("research")};
         for (int aiIndex = 0; aiIndex < aiIds.size(); ++aiIndex) {
@@ -692,7 +700,7 @@ public:
             return 59;
         reopenedResearch.startNewProject();
         if (reopenedResearch.projectId_ || !reopenedResearch.language_->isEnabled() ||
-            !reopenedResearch.taskMode_->isEnabled() || reopenedResearch.pages_->currentIndex() != 0)
+            !reopenedResearch.taskMode_->isEnabled() || reopenedResearch.pages_->currentIndex() != 1)
             return 55;
 
         reopenedResearch.currentResearchRunOutput_ =
@@ -1165,7 +1173,9 @@ private:
         researchStatus_->clear();
         sectionEditor_->clear();
         researchEditor_->clear();
-        pages_->setCurrentIndex(0);
+        // Language is already selected on the welcome page; continue the
+        // new-project wizard at AI-mode selection instead of appearing inert.
+        pages_->setCurrentIndex(1);
         updateNavigation();
     }
 
