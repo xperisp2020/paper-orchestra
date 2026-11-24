@@ -1607,3 +1607,10 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - ممیزی cache نشان داد helper قبلی status موقت `unavailable` را با `lru_cache` ذخیره می‌کرد و retry پس از timeout/429/503 را در همان process مسدود می‌کرد. helper بازنویسی شد تا فقط status قطعی `verified` و `not_found` cache شود؛ transient errors با exception داخلی از LRU عبور می‌کنند و در فراخوانی مجدد بازیابی می‌شوند. timeout نامعتبر/غیرمثبت نیز بدون درخواست شبکه `unavailable` است.
 - تست‌های جدید: transient HTTP 503 سپس verified روی همان DOI، timeout نامعتبر بدون network، و Batch option propagation برای هر دو writer. README و راهنمای مسیر A همگام شدند.
 - نتیجهٔ CI برای این اصلاحات هنوز pending است؛ هیچ PASS جدیدی تا دریافت شواهد workflow ثبت نمی‌شود.
+
+
+### 6.99.38 افزودن smoke test زندهٔ Crossref به CI (2026-11-24)
+- مقصد پیش از write تأیید شد: repo id 1467327081، owner xperisp2020، branch work/yadavarifork، HEAD مبنا 57d0a844b0c7b025adf8b264b19146b10c6055b2.
+- Research Runtime runهای 45363463950 (شامل helper، Literature Agent، writerهای Batch و tests) و 45363452561 هر دو با conclusion=success به پایان رسیدند؛ Windows Python 3.12 bootstrap و Ubuntu LaTeX/BibTeX real PDF smoke موفق بودند.
+- به‌دلیل اینکه unit tests فعلی mock هستند، یک live smoke مستقل و بدون credentials اضافه شد: `scripts/crossref_live_smoke.py` یک DOI عمومی را از طریق کد واقعی `verify_doi_with_crossref` درخواست می‌کند؛ workflow `.github/workflows/crossref-live-smoke.yml` با push تغییرات مربوط یا manual dispatch اجرا می‌شود.
+- هدف DOI ثابت و عمومی: 10.1038/nature12373. نتیجهٔ live run پس از commit این دو فایل باید از Actions بررسی و در دفتر تکمیل شود؛ تا آن زمان فقط وجود workflow ثبت است و ادعای live PASS نمی‌شود.
