@@ -2,30 +2,28 @@
 from functools import lru_cache
 from urllib.parse import quote
 from urllib.request import Request, urlopen
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 import json
+import math
 import os
-import socket
+
 
 from utils.doi_utils import normalize_doi
 
 
-@lru_cache(maxsize=4096)
-def verify_doi_with_crossref(doi, timeout=6):
-    """Return verified/not_found/unavailable/invalid without destructive edits.
+class _TransientCrossrefResult(Exception):
+    """Internal signal that tells the LRU cache not to retain a transient failure."""
 
-    Crossref does not cover every DOI registrant. A 404 means only that Crossref
-    did not find this DOI; network errors and rate limits are unavailable.
-    """
-    normalized = normalize_doi(doi)
-    if not normalized:
-        return {"status": "invalid", "doi": None, "message": "Malformed DOI"}
+    def __init__(self, result):
+        super().__init__("Transient Crossref lookup failure")
+        self.result = result
 
+
+def _lookup_crossref(normalized, timeout, mailto):
     headers = {
         "User-Agent": "PaperOrchestra/1.0 (DOI metadata verification)",
         "Accept": "application/json",
     }
-    mailto = os.environ.get("CROSSREF_MAILTO", "").strip()
     if mailto:
         headers["User-Agent"] += " mailto:" + mailto
 
@@ -39,18 +37,81 @@ def verify_doi_with_crossref(doi, timeout=6):
         message = payload.get("message", {}) if isinstance(payload, dict) else {}
         returned = normalize_doi(message.get("DOI")) if isinstance(message, dict) else None
         if returned and returned.casefold() == normalized.casefold():
-            return {"status": "verified", "doi": normalized, "message": "DOI confirmed by Crossref"}
-        return {"status": "unavailable", "doi": normalized,
-                "message": "Crossref response did not contain a matching DOI"}
+            return {
+                "status": "verified",
+                "doi": normalized,
+                "message": "DOI confirmed as registered in Crossref",
+            }
+        return {
+            "status": "unavailable",
+            "doi": normalized,
+            "message": "Crossref response did not contain a matching DOI",
+        }
     except HTTPError as exc:
         if exc.code == 404:
-            return {"status": "not_found", "doi": normalized,
-                    "message": "DOI not found in Crossref; it may be registered elsewhere"}
-        return {"status": "unavailable", "doi": normalized,
-                "message": "Crossref returned HTTP {}".format(exc.code)}
-    except (URLError, socket.timeout, TimeoutError, OSError, ValueError, TypeError):
-        return {"status": "unavailable", "doi": normalized,
-                "message": "Crossref could not be reached or returned invalid metadata"}
+            return {
+                "status": "not_found",
+                "doi": normalized,
+                "message": "DOI not found in Crossref; it may be registered elsewhere",
+            }
+        return {
+            "status": "unavailable",
+            "doi": normalized,
+            "message": "Crossref returned HTTP {}".format(exc.code),
+        }
+    except Exception:
+        # A registry/network/decoder failure must never invalidate the source DOI.
+        return {
+            "status": "unavailable",
+            "doi": normalized,
+            "message": "Crossref could not be reached or returned invalid metadata",
+        }
+
+
+@lru_cache(maxsize=4096)
+def _cached_crossref_lookup(normalized, timeout, mailto):
+    result = _lookup_crossref(normalized, timeout, mailto)
+    if result["status"] == "unavailable":
+        # Raise instead of returning: functools.lru_cache never caches exceptions,
+        # so a later retry can recover after a transient timeout/429/5xx.
+        raise _TransientCrossrefResult(result)
+    return result
+
+
+def verify_doi_with_crossref(doi, timeout=6):
+    """Return verified/not_found/unavailable/invalid without destructive edits.
+
+    A 404 means only that Crossref did not find this DOI. Transient failures are
+    deliberately not cached; verified/not_found responses are cached per process.
+    """
+    normalized = normalize_doi(doi)
+    if not normalized:
+        return {"status": "invalid", "doi": None, "message": "Malformed DOI"}
+
+    try:
+        timeout_value = float(timeout)
+    except (TypeError, ValueError):
+        return {
+            "status": "unavailable",
+            "doi": normalized,
+            "message": "Invalid Crossref timeout configuration",
+        }
+    if not math.isfinite(timeout_value) or timeout_value <= 0:
+        return {
+            "status": "unavailable",
+            "doi": normalized,
+            "message": "Invalid Crossref timeout configuration",
+        }
+
+    mailto = os.environ.get("CROSSREF_MAILTO", "").strip()
+    try:
+        return _cached_crossref_lookup(normalized, timeout_value, mailto)
+    except _TransientCrossrefResult as transient:
+        return transient.result
+
+
+# Keep the small testing/diagnostic cache-reset interface on the public function.
+verify_doi_with_crossref.cache_clear = _cached_crossref_lookup.cache_clear
 
 
 def safe_crossref_verification_status(doi, enabled=False):
