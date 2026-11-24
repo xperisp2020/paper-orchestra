@@ -80,3 +80,12 @@
 5. تکمیل همین گزارش با run URL، commit SHA و نتیجهٔ واقعی پس از هر آزمون.
 
 **یادداشت:** این فایل گزارش مرحله‌ای است و پروژه را کامل‌شده اعلام نمی‌کند. مسیر A تأیید شده است؛ گیت‌های زندهٔ provider و آزمون‌های تعاملی Windows/Word همچنان باز هستند.
+
+
+## 9) بازبینی تکمیلی تاریخچه و CI در HEAD جدید (2026-11-24)
+- پیش از این ثبت، هویت مخزن با API کنترل شد: owner=`xperisp2020`, repository id=`1467327081`, نام=`paper-orchestra`؛ مقصد همچنان فقط branch `work/yadavarifork` است.
+- HEAD جاری پیش از این ثبت: `6b651a052befe5bfa2a4c42fd5e4f9609b96b5a0`.
+- مقایسه از checkpoint مسیر A `d68443e3d23cf9fcf435494dd9821f12e3e749d6` تا HEAD جاری: 4 commit جلوتر، 0 عقب‌تر؛ فقط این سه مسیر تغییر کرده‌اند: `docs/AI_HANDOFF_PROVIDER_WORD2010_V3_FA.md`، `docs/AI_SECOND_PASS_RESULT_2026-11-24_FA.md` و `yadavarifork`. هیچ source code، test یا workflow محصول در این بازه تغییر نکرده است.
+- جدیدترین CIهای مرتبط همچنان موفق‌اند: Python Safety `45366337200`، Research Runtime `45366337215`، Crossref live `45366313174` و Windows build/clean-runner `45367143582`. این‌ها گیت‌های CI/runner هستند و جایگزین provider live با credential، Windows دستگاه/VM تعاملی یا Microsoft Word 2010 واقعی نیستند.
+- وضعیت گیت‌های خارج از دسترسی تغییری نکرده است: موجودی workspace محلی AI دوم `NO LOCAL WORKSPACE ACCESS`؛ Gemini/OpenAI/OpenRouter `BLOCKED`؛ Windows واقعی/VM و Word 2010 `BLOCKED`؛ Crossref live `PASS`.
+- در این بازبینی هیچ Secretی خوانده یا چاپ نشد، هیچ درخواست provider اجرا نشد، و هیچ کد محصول یا مسیر A تغییر نکرد.
