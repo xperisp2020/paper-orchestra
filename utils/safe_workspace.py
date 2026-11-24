@@ -100,3 +100,79 @@ def create_next_workspace(parent_dir: str, workspace_name: str) -> str:
     raise FileExistsError(
         f"Could not allocate a unique workspace for {workspace_name!r}."
     )
+
+
+
+def find_resumable_workspace(parent_dir: str, workspace_name: str, content_folder: str, pdf_path: str):
+    """Find newest batch workspace with an exact, safe snapshot of current inputs."""
+    import hashlib
+    import re
+
+    if (
+        not workspace_name or workspace_name in {".", ".."}
+        or os.path.isabs(workspace_name) or PureWindowsPath(workspace_name).is_absolute()
+        or bool(PureWindowsPath(workspace_name).drive) or "/" in workspace_name
+        or chr(92) in workspace_name or os.path.basename(workspace_name) != workspace_name
+    ):
+        raise ValueError("Workspace name must be a single, non-empty path component.")
+
+    def digest(path):
+        if not os.path.isfile(path) or os.path.islink(path):
+            raise OSError("Expected a regular, non-symlink file.")
+        h = hashlib.sha256()
+        with open(path, "rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    def manifest(root):
+        if not os.path.isdir(root) or os.path.islink(root):
+            return None
+        result = {}
+        for current, dirs, files in os.walk(root, followlinks=False):
+            dirs.sort()
+            files.sort()
+            for name in list(dirs):
+                path = os.path.join(current, name)
+                if os.path.islink(path):
+                    return None
+                result["D:" + os.path.relpath(path, root).replace(os.sep, "/")] = None
+            for name in files:
+                path = os.path.join(current, name)
+                if os.path.islink(path):
+                    return None
+                result["F:" + os.path.relpath(path, root).replace(os.sep, "/")] = digest(path)
+        return result
+
+    source = manifest(content_folder)
+    if source is None:
+        return None
+    source_pdf = digest(pdf_path)
+    parent = os.path.realpath(parent_dir)
+    if not os.path.isdir(parent):
+        return None
+    pattern = re.compile(r"^" + re.escape(workspace_name) + r"_attempt_(\d+)$")
+    candidates = []
+    for entry in os.scandir(parent):
+        if entry.is_symlink() or not entry.is_dir(follow_symlinks=False):
+            continue
+        if entry.name == workspace_name:
+            order = 1
+        else:
+            match = pattern.fullmatch(entry.name)
+            if not match:
+                continue
+            order = int(match.group(1))
+        candidates.append((order, entry.path))
+    for _, candidate in sorted(candidates, key=lambda item: item[0], reverse=True):
+        raw = os.path.join(candidate, "raw_materials")
+        saved = manifest(raw)
+        if saved is None:
+            continue
+        saved.pop("F:original_paper.pdf", None)
+        try:
+            if saved == source and digest(os.path.join(raw, "original_paper.pdf")) == source_pdf:
+                return candidate
+        except OSError:
+            continue
+    return None

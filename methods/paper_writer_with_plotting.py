@@ -33,7 +33,7 @@ from methods.agents.plotting_agent import PlottingAgent
 from utils.common_utils import (
     create_log_folder,
 )
-from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, publish_file_no_overwrite
+from utils.safe_workspace import create_new_workspace, create_next_workspace, ensure_paths_absent, publish_file_no_overwrite, find_resumable_workspace
 from utils.run_checkpoints import (CheckpointStore, create_or_resume_attempt, fingerprint_inputs, fingerprint_path, fingerprint_source_tree, fingerprint_runtime)
 
 
@@ -432,7 +432,12 @@ def process_paper_task(
         paper_id = paper["paper_id"]
         print(f"Starting processing for paper '{paper_id}'...")
 
-        paper_dest_dir = create_next_workspace(output_dir, str(paper_id))
+        paper_dest_dir = find_resumable_workspace(
+            output_dir, str(paper_id), paper["content_folder"], paper["pdf_path"]
+        )
+        resume_existing = paper_dest_dir is not None
+        if not resume_existing:
+            paper_dest_dir = create_next_workspace(output_dir, str(paper_id))
         final_paper_path = osp.join(paper_dest_dir, "final_paper.pdf")
 
         result = {
@@ -443,18 +448,21 @@ def process_paper_task(
 
         if True:
             content_dest_dir = osp.join(paper_dest_dir, "raw_materials")
-            os.makedirs(content_dest_dir, exist_ok=True)
-            print(
-                f"Copying content_folder from {paper['content_folder']} to {content_dest_dir}..."
-            )
-            shutil.copytree(
-                src=paper["content_folder"], dst=content_dest_dir, dirs_exist_ok=True
-            )
-            print(f"Copying original paper to {content_dest_dir}...")
-            shutil.copy(
-                src=paper["pdf_path"],
-                dst=osp.join(content_dest_dir, "original_paper.pdf"),
-            )
+            if not resume_existing:
+                os.makedirs(content_dest_dir, exist_ok=True)
+                print(
+                    f"Copying content_folder from {paper['content_folder']} to {content_dest_dir}..."
+                )
+                shutil.copytree(
+                    src=paper["content_folder"], dst=content_dest_dir, dirs_exist_ok=True
+                )
+                print(f"Copying original paper to {content_dest_dir}...")
+                shutil.copy(
+                    src=paper["pdf_path"],
+                    dst=osp.join(content_dest_dir, "original_paper.pdf"),
+                )
+            else:
+                print(f"Resuming verified batch workspace for paper {paper_id}.")
 
             success = write_single_paper(
                 base_dir=paper_dest_dir,
@@ -466,6 +474,7 @@ def process_paper_task(
                 image_model_name=image_model_name,
                 plotting_max_critic_rounds=plotting_max_critic_rounds,
                 research_cutoff=research_cutoff,
+                resume=resume_existing,
             )
 
             if success:
