@@ -319,6 +319,62 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
             self.assertEqual(call.call_args.kwargs["model_name"], "gpt-4o")
             self.assertEqual(call.call_args.kwargs["images"], ["page.jpg"])
 
+
+    def test_crossref_opt_in_reaches_both_batch_process_pools(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        from methods import paper_writer, paper_writer_with_plotting
+
+        paper = {
+            "paper_id": "batch-smoke",
+            "content_folder": "unused-content",
+            "pdf_path": "unused.pdf",
+        }
+
+        for module in (paper_writer, paper_writer_with_plotting):
+            with self.subTest(module=module.__name__), tempfile.TemporaryDirectory() as temp:
+                output = Path(temp) / "batch-output"
+                future = SimpleNamespace(
+                    result=lambda: {"status": "success", "paper_path": "unused.pdf"}
+                )
+
+                class RecordingExecutor:
+                    def __init__(self, max_workers):
+                        self.max_workers = max_workers
+                        self.submitted_kwargs = None
+
+                    def __enter__(self):
+                        return self
+
+                    def __exit__(self, exc_type, exc_value, traceback):
+                        return False
+
+                    def submit(self, *args, **kwargs):
+                        self.submitted_kwargs = kwargs
+                        return future
+
+                executor = RecordingExecutor(max_workers=1)
+                with (
+                    patch.object(module, "_load_papers_from_config", return_value=[paper]),
+                    patch.object(module, "_load_logs", return_value={}),
+                    patch.object(module, "_filter_and_prepare_papers", return_value=[paper]),
+                    patch.object(module, "ProcessPoolExecutor", return_value=executor),
+                    patch.object(module, "as_completed", side_effect=lambda futures: list(futures)),
+                    patch.object(module.tqdm, "tqdm", side_effect=lambda iterable, **kwargs: iterable),
+                ):
+                    result_path = module.run_batch_writeup(
+                        latex_template_dir=temp,
+                        output_dir=str(output),
+                        n_papers=1,
+                        max_workers=1,
+                        verify_dois_with_crossref=True,
+                    )
+
+                self.assertTrue(Path(result_path).is_file())
+                self.assertIsNotNone(executor.submitted_kwargs)
+                self.assertIs(executor.submitted_kwargs.get("verify_dois_with_crossref"), True)
+
     def test_peer_review_routes_through_unified_backend(self):
         from autoraters import agent_review
 
