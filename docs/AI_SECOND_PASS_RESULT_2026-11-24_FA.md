@@ -89,3 +89,47 @@
 - جدیدترین CIهای مرتبط همچنان موفق‌اند: Python Safety `45366337200`، Research Runtime `45366337215`، Crossref live `45366313174` و Windows build/clean-runner `45367143582`. این‌ها گیت‌های CI/runner هستند و جایگزین provider live با credential، Windows دستگاه/VM تعاملی یا Microsoft Word 2010 واقعی نیستند.
 - وضعیت گیت‌های خارج از دسترسی تغییری نکرده است: موجودی workspace محلی AI دوم `NO LOCAL WORKSPACE ACCESS`؛ Gemini/OpenAI/OpenRouter `BLOCKED`؛ Windows واقعی/VM و Word 2010 `BLOCKED`؛ Crossref live `PASS`.
 - در این بازبینی هیچ Secretی خوانده یا چاپ نشد، هیچ درخواست provider اجرا نشد، و هیچ کد محصول یا مسیر A تغییر نکرد.
+
+
+## 10) پیاده‌سازی Provider Smoke و پوشش QProcess در CI (2026-11-24)
+
+### تغییرات Commit شده
+- Commit `778dbcb7370fee107edbed5b668958ab4a50eaec`:
+  - `scripts/provider_live_smoke.py`: ابزار استاندارد-library برای smoke واقعی Providerها؛ حداکثر یک درخواست برای هر provider، timeout برابر 20 ثانیه، سقف پاسخ 64 KiB، بدون retry، بدون قرار دادن credential در URL/body، و بدون چاپ متن خام exception/response.
+  - `tests/test_provider_live_smoke.py`: هشت تست برای نبود credential، نیاز به opt-in مدل‌های بالقوه پولی، غیرفعال‌بودن provider، رد مدل پولی OpenRouter، یک‌درخواستی بودن، 429، timeout، و عدم قرارگیری کلید در URL/body.
+  - `.github/workflows/provider-live-smoke.yml`: روی push فقط مسیر OpenRouter Free را فعال می‌کند؛ Gemini و OpenAI فقط با workflow_dispatch و دو opt-in مجزا (درخواست provider و مجوز billable smoke) قابل اجرا هستند.
+- Commit `276746ecf149881da41f73aac5aea2f8d759a6b1`:
+  - افزودن آزمون C++ اجرایی برای cancellation و redaction در `ResearchEngineRunner` و ادغام در CMake/CTest و Windows CI.
+  - اولین Build به دلیل include directory تعریف‌نشده برای target تست fail شد (run `45410733350`).
+- Commit `0b06ab88ae69ed29f846756b845b94227a2a7ca6`:
+  - علت Build failure اصلاح شد: include directory مسیر `app_cpp/src` به target تست افزوده شد.
+  - آزمون اصلاح‌شده در run `45411318052` در حال اجراست؛ تا مشاهدهٔ نتیجه، C++ cancellation/redaction test را PASS اعلام نمی‌کنیم.
+
+### نتایج آزمون تأییدشده
+- Python Safety run `45409722980`: Ubuntu و Windows هر دو success؛ هر job تعداد 102 تست را با پیام `OK` گذراند.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45409722980
+- Provider live smoke run `45409723175`: workflow/job موفق، اما هر سه provider صریحاً `BLOCKED reason=credential_missing` گزارش شدند:
+  - Gemini: BLOCKED
+  - OpenAI: BLOCKED
+  - OpenRouter Free: BLOCKED
+  هیچ درخواست provider ارسال نشد؛ نتیجهٔ workflow success به معنی Live PASS نیست.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45409723175
+- Windows build + clean-runner run `45409722860`: هر دو job success؛ C++ Build، Qt app smoke، Portable/Installer assembly و اجرای clean-runner؛ خروجی PDF/DOCX در مسیر Unicode، نصب silent، اجرای اپ نصب‌شده، uninstall و حفظ sentinel داده موفق شدند.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45409722860
+- artifactهای run بالا:
+  - Portable id `14928290345`, size `27096591` bytes, archive digest `sha256:d31d358c367118c0cad2ababa622549b672931b657b88ecccf6bfe0ca626d870`.
+  - Installer id `14926997868`, size `19933399` bytes, archive digest `sha256:374969cdaefd455635d82221a6d4d43a432d165282394f6f5e81e248ea8e0e30`.
+  - Expiry ثبت‌شده: `2027-02-22T14:02:39Z`.
+  - [Portable ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14928290345/zip)
+  - [Installer ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14926997868/zip)
+  - digestها برای آرشیو ZIP هستند، نه فایل اجرایی استخراج‌شده.
+
+### وضعیت فعلی گیت‌ها
+- Provider live: هر سه BLOCKED به علت credential نبودن در environment اجرای workflow؛ Gemini/OpenAI همچنین برای هر smoke نیازمند opt-in billable هستند.
+- Python Safety: PASS (102 تست Ubuntu و 102 تست Windows).
+- Windows GitHub clean-runner: PASS برای run `45409722860`؛ با این حال آزمون Windows دستگاه فیزیکی/VM کاربر هنوز BLOCKED است.
+- C++ runner cancellation/redaction: pending CI run `45411318052`؛ اولین failure ناشی از include path بود و در commit بعدی اصلاح شده است.
+- Microsoft Word 2010 واقعی: BLOCKED؛ CI ساختار Office Open XML/PDF/PNG را بررسی می‌کند ولی جایگزین بازکردن و ذخیره‌کردن در Word 2010 نیست.
+- Crossref live: PASS و تکمیل‌شده در مسیر A؛ اجراهای `45366306443` و `45366313174`.
+- workspace محلی AI دوم: NO LOCAL WORKSPACE ACCESS؛ patch یا فایل تغییرات محلی ارائه نشده است.
+- هیچ API key/token یا مقدار Secret در این تغییرات/گزارش‌ها چاپ یا commit نشده است.
