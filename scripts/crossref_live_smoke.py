@@ -7,6 +7,20 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from utils.crossref_utils import verify_doi_with_crossref
+from utils.doi_utils import normalize_doi
+
+
+def is_verified_result(requested_doi, result) -> bool:
+    """Match verified metadata against a normalized requested DOI."""
+    requested = normalize_doi(requested_doi)
+    returned = normalize_doi(result.get("doi")) if isinstance(result, dict) else None
+    return bool(
+        isinstance(result, dict)
+        and result.get("status") == "verified"
+        and requested
+        and returned
+        and returned.casefold() == requested.casefold()
+    )
 
 
 DEFAULT_DOI = "10.1038/nature12373"
@@ -24,7 +38,7 @@ def main() -> int:
     status = result.get("status")
     returned_doi = result.get("doi")
 
-    if status == "verified" and returned_doi and returned_doi.casefold() == args.doi.casefold():
+    if is_verified_result(args.doi, result):
         print("Crossref live smoke PASS: status=verified doi={}".format(returned_doi))
         return 0
 
