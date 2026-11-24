@@ -444,14 +444,24 @@ public:
             if (!saved.value(key).isEmpty())
                 return 61;
         }
-        if (!store_.saveProjectMetadata(*projectId_, QStringLiteral("final_details_status"),
-                                        QStringLiteral("skipped"), &storageError))
+        bool skipDialogHandled = false;
+        QTimer::singleShot(0, [&skipDialogHandled] {
+            auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+            auto *skip = dialog ? dialog->findChild<QPushButton *>(
+                QStringLiteral("skipFinalDetailsButton")) : nullptr;
+            if (skip) {
+                skipDialogHandled = true;
+                skip->click();
+            }
+        });
+        finalDetailsButton_->click();
+        if (!skipDialogHandled || !finalDetailsReviewed_ ||
+            store_.loadProjectMetadata(*projectId_, QStringLiteral("final_details_status"),
+                                       &storageError) != QStringLiteral("skipped"))
             return 66;
-        WelcomeWindow reopenedSkippedProposal(store_);
-        if (!reopenedSkippedProposal.openProjectById(*projectId_) ||
-            !reopenedSkippedProposal.finalDetailsReviewed_)
-            return 67;
         const auto stillEmpty = store_.loadSections(*projectId_, &storageError);
+        if (!storageError.isEmpty())
+            return 67;
         for (const QString &key : finalDetailKeys()) {
             if (!stillEmpty.value(key).isEmpty())
                 return 68;
@@ -463,7 +473,31 @@ public:
             QStringLiteral("Smoke test: student_information\nSecond line\nمتن فارسی & <بررسی>"));
         smokeFinalDetails.insert(QStringLiteral("supervisor_information"),
             QStringLiteral("Smoke test: supervisor_information\nSecond line\nمتن فارسی & <بررسی استاد>"));
-        if (!saveFinalDetails(smokeFinalDetails))
+        bool saveDialogHandled = false;
+        QTimer::singleShot(0, [&saveDialogHandled, &smokeFinalDetails] {
+            auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+            if (!dialog)
+                return;
+            bool fieldsFound = true;
+            for (auto it = smokeFinalDetails.cbegin(); it != smokeFinalDetails.cend(); ++it) {
+                const QString objectName = QStringLiteral("finalDetail_") + it.key();
+                if (auto *line = dialog->findChild<QLineEdit *>(objectName)) {
+                    line->setText(it.value());
+                } else if (auto *multi = dialog->findChild<QTextEdit *>(objectName)) {
+                    multi->setPlainText(it.value());
+                } else {
+                    fieldsFound = false;
+                    break;
+                }
+            }
+            auto *buttons = dialog->findChild<QDialogButtonBox *>();
+            if (fieldsFound && buttons && buttons->button(QDialogButtonBox::Save)) {
+                saveDialogHandled = true;
+                buttons->button(QDialogButtonBox::Save)->click();
+            }
+        });
+        finalDetailsButton_->click();
+        if (!saveDialogHandled)
             return 62;
         WelcomeWindow reopenedProposal(store_);
         if (!reopenedProposal.openProjectById(*projectId_) ||
@@ -1772,12 +1806,14 @@ private:
             if (key == QStringLiteral("student_information") ||
                 key == QStringLiteral("supervisor_information")) {
                 auto *input = new QTextEdit(&dialog);
+                input->setObjectName(QStringLiteral("finalDetail_") + key);
                 input->setPlainText(current.value(key));
                 input->setMinimumHeight(88);
                 multilineInputs.insert(key, input);
                 form->addRow(sectionLabel(key, persian), input);
             } else {
                 auto *input = new QLineEdit(&dialog);
+                input->setObjectName(QStringLiteral("finalDetail_") + key);
                 input->setText(current.value(key));
                 lineInputs.insert(key, input);
                 form->addRow(sectionLabel(key, persian), input);
@@ -1787,6 +1823,7 @@ private:
         auto *skipButton = new QPushButton(persian
             ? QStringLiteral("فعلاً رد شو؛ بعداً تکمیل می‌کنم")
             : QStringLiteral("Skip for now; complete later"), &dialog);
+        skipButton->setObjectName(QStringLiteral("skipFinalDetailsButton"));
         form->addRow(buttons);
         form->addRow(skipButton);
         bool skipped = false;
