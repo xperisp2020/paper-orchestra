@@ -1705,3 +1705,15 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - وضعیت واقعی گیت‌ها: موجودی workspace محلی AI دوم = `NO LOCAL WORKSPACE ACCESS`؛ Gemini/OpenAI/OpenRouter = `BLOCKED`؛ Windows واقعی/VM = `BLOCKED`؛ Microsoft Word 2010 = `BLOCKED`؛ Crossref live مسیر A = `PASS`.
 - ابزار این نشست امکان دسترسی امن به Secretهای GitHub Actions یا اجرای provider smoke با credential ازپیش‌مجاز را ارائه نمی‌کند؛ هیچ کلیدی درخواست/خوانده/چاپ نشد و هیچ درخواست provider ساخته نشد.
 - گزارش تکمیلی در `docs/AI_SECOND_PASS_RESULT_2026-11-24_FA.md` افزوده شد. هیچ تغییر کد محصول یا مسیر A انجام نشد؛ هیچ release یا انتشار عمومی انجام نشد.
+
+
+### 6.99.40 گیت Provider smoke و آزمون اجرایی QProcess (2026-11-24)
+- مقصد پیش از ثبت: repo id 1467327081، owner xperisp2020، branch work/yadavarifork؛ HEAD مبنا `0b06ab88ae69ed29f846756b845b94227a2a7ca6`.
+- ابزار Provider smoke در commit `778dbcb7370fee107edbed5b668958ab4a50eaec` اضافه شد؛ یک درخواست حداکثر، timeout 20 ثانیه، پاسخ حداکثر 64 KiB، بدون retry و بدون ثبت متن خام exception/response. OpenRouter فقط `:free` یا `openrouter/free` را می‌پذیرد؛ Gemini/OpenAI نیازمند opt-in مجزا هستند.
+- Python Safety run `45409722980`: Ubuntu و Windows هر دو success، هر job 102 tests / OK.
+- Provider live workflow run `45409723175`: job success؛ اما Gemini، OpenAI و OpenRouter هر سه `BLOCKED reason=credential_missing` بودند. هیچ درخواست live ارسال نشد؛ این success فقط به معنی اجرای صحیح harness است، نه provider LIVE PASS.
+- Windows build/clean-runner run `45409722860`: هر دو job success؛ Portable/Installer build و clean-runner Unicode-path smoke/PDF/DOCX، install/uninstall و حفظ sentinel موفق. Artifactها: Portable `14928290345` (ZIP SHA-256 `d31d358c367118c0cad2ababa622549b672931b657b88ecccf6bfe0ca626d870`)؛ Installer `14926997868` (ZIP SHA-256 `374969cdaefd455635d82221a6d4d43a432d165282394f6f5e81e248ea8e0e30`).
+- برای پوشش cancellation و redaction واقعی C++، آزمون `app_cpp/tests/research_engine_runner_test.cpp` و CMake/CTest اضافه شد؛ تست خودش نقش child process را اجرا می‌کند، شروع هم‌زمان را رد می‌کند، خروجی حاوی کلید محیطی/Bearer/x-api-key را از خروجی runner بررسی می‌کند و terminate/kill lifecycle را می‌سنجد.
+- نخستین run `45410733350` در Build به علت تعریف‌نشدن include directory target تست fail شد؛ علت از log دقیق GitHub تأیید و در commit `0b06ab88ae69ed29f846756b845b94227a2a7ca6` با افزودن `app_cpp/src` به include directories اصلاح شد.
+- CI اصلاح‌شده `45411318052` هنگام ثبت این checkpoint هنوز در حال اجرا بود؛ تا دریافت نتیجه، cancellation/redaction C++ PASS نیست.
+- هیچ Secretی چاپ یا ثبت نشد؛ هیچ live provider call انجام نشد. Windows فیزیکی/VM و Word 2010 واقعی همچنان BLOCKED هستند.
