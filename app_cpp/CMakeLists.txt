@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Sql PrintSupport Svg)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Sql PrintSupport)
 
 enable_testing()
 
@@ -23,8 +23,15 @@ set(YADAVARIFORK_SOURCES
     src/research_engine_runner.h
 )
 
+if(WIN32)
+    enable_language(RC)
+    file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets/shiraztipsy.ico" APP_ICON_ICO_PATH)
+    configure_file(app_icon.rc.in app_icon.rc @ONLY)
+    list(APPEND YADAVARIFORK_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/app_icon.rc")
+endif()
+
 qt_add_executable(yadavarifork ${YADAVARIFORK_SOURCES})
-target_link_libraries(yadavarifork PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport Qt6::Svg Qt6::Core)
+target_link_libraries(yadavarifork PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport Qt6::Core)
 
 # A console-subsystem test binary keeps diagnostics visible to CTest on Windows.
 qt_add_executable(yadavarifork_smoke EXCLUDE_FROM_ALL ${YADAVARIFORK_SOURCES})
