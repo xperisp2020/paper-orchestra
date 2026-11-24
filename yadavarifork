@@ -1675,3 +1675,15 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - scripts/crossref_live_smoke.py اکنون input و output را با normalize_doi مقایسه می‌کند؛ تست‌های بدون شبکه برای DOI خام، URL-prefixed، case-insensitive، mismatch و status ناموفق اضافه شدند.
 - در tests/runtime_provider_checks.py تست اجرایی جدید اضافه شد که هر دو تابع واقعی batch worker را اجرا می‌کند و assert می‌کند verify_dois_with_crossref=True تا فراخوانی write_single_paper منتقل می‌شود؛ تست قبلی فقط submit به executor را می‌سنجید.
 - این تغییرات هنوز منتظر Python Safety، Research Runtime و Crossref live workflow هستند؛ تا ثبت conclusion موفق، PASS جدید اعلام نمی‌شود.
+
+
+### 6.99.38 بستن مسیر A و ثبت checkpoint نهایی اسناد/Artifactها (2026-11-24)
+- مقصد نهایی ثبت: repo id 1467327081، owner xperisp2020، branch work/yadavarifork؛ HEAD پیش از این ثبت `d68443e3d23cf9fcf435494dd9821f12e3e749d6`.
+- کد مسیر A، مستند Crossref، V3 handoff و split document بازخوانی شدند؛ آخرین artifactها در V3 درج شده‌اند.
+- Python Safety `45366337200`: Ubuntu و Windows success، 94 تست در هر job.
+- Research Runtime `45366337215`: هر دو job success؛ Windows Python 3.12، 19 runtime tests incl. Crossref Batch worker-to-writer propagation؛ Ubuntu real LaTeX/BibTeX success.
+- Crossref Live `45366306443` و `45366313174`: هر دو success؛ status=verified برای DOI عمومی 10.1038/nature12373.
+- Windows packaging `45367143582`: Build و clean-runner verification success؛ Portable و Installer در مسیر فارسی/دارای فاصله اجرا شدند؛ PDF/DOCX export، install/uninstall و حفظ sentinel موفق شدند.
+- Windows artifacts: Portable `14906139648`, size 27093368, ZIP SHA-256 `dd4a8991fde4866163d545cf8339224c07739a920ebe6f2c8ab1b511399a45cb`; Installer `14907232374`, size 19931308, ZIP SHA-256 `57dd5238c287f47dd431676e1fa19537c80ef98c7b5851ce079860400b05b65a`; expiry `2027-02-22T09:38:40Z`.
+- workflow Windows اکنون `scripts/**` را monitor می‌کند تا تغییر هر فایل bundled script بسته‌بندی را trigger کند.
+- مسیر A در سطح کد، helper/live smoke، Single-run/Batch، CLI/Qt، Python Safety، Research Runtime و Windows clean-runner بسته شد. باقی‌مانده‌های کل پروژه مربوط به مسیر B هستند: provider live با credentials امن، Word 2010 واقعی، دستگاه اصلی کاربر، و موجودی/patch تغییرات قبلی AI دوم.
