@@ -1019,8 +1019,8 @@ private:
         const bool persian = language_->currentData().toString() == QStringLiteral("fa");
         if (mode == QStringLiteral("no_api")) {
             aiDescription_->setText(persian
-                ? QStringLiteral("جست‌وجوی رایگان منابع علمی از OpenAlex، Crossref و Semantic Scholar و تکمیل ساختاریافته بخش‌های پژوهش؛ بدون کلید API و بدون مدل زبانی.")
-                : QStringLiteral("Free scholarly discovery from OpenAlex, Crossref, and Semantic Scholar with structured research drafting; no API key or language model."));
+                ? QStringLiteral("جست‌وجوی رایگان منابع علمی از OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite و arXiv و تکمیل ساختاریافته بخش‌های پژوهش؛ بدون کلید API و بدون مدل زبانی.")
+                : QStringLiteral("Free scholarly discovery from OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, and arXiv with structured research drafting; no API key or language model."));
         } else if (mode == QStringLiteral("free_tier")) {
             aiDescription_->setText(persian
                 ? QStringLiteral("مسیر OpenRouter با مدل رایگان چندوجهی Nemotron؛ کلید OPENROUTER_API_KEY لازم است. سهمیه فعلی رایگان ۲۰ درخواست در دقیقه و ۵۰ درخواست در روز است و ارائه‌دهنده ثالث ممکن است داده‌ها را ثبت یا برای بهبود مدل استفاده کند.")
