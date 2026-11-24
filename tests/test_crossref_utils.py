@@ -55,6 +55,26 @@ class CrossrefVerificationTests(unittest.TestCase):
         get.return_value = FakeResponse({"message": {"DOI": "10.1000/other"}})
         self.assertEqual(verify_doi_with_crossref("10.1000/requested")["status"], "unavailable")
 
+    @patch("utils.crossref_utils.urlopen")
+    def test_transient_failure_is_not_cached_and_can_recover(self, get):
+        get.side_effect = [
+            HTTPError("url", 503, "server", {}, None),
+            FakeResponse({"message": {"DOI": "10.1000/RETRY"}}),
+        ]
+        first = verify_doi_with_crossref("10.1000/RETRY")
+        second = verify_doi_with_crossref("10.1000/RETRY")
+        self.assertEqual(first["status"], "unavailable")
+        self.assertEqual(second["status"], "verified")
+        self.assertEqual(get.call_count, 2)
+
+    def test_invalid_timeout_is_unavailable_without_network(self):
+        with patch("utils.crossref_utils.urlopen") as get:
+            self.assertEqual(
+                verify_doi_with_crossref("10.1000/TIMEOUT", timeout=0)["status"],
+                "unavailable",
+            )
+            get.assert_not_called()
+
     def test_malformed_doi_is_invalid_without_network(self):
         with patch("utils.crossref_utils.urlopen") as get:
             self.assertEqual(verify_doi_with_crossref("not-a-doi")["status"], "invalid")
