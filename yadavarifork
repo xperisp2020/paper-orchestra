@@ -1833,3 +1833,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - commit `4ee3e71398e30ff67a3e9b2e3a1614cb115d308b`: مسیر پایگاه داده برای نصب‌های غیرقابل‌نوشتن اصلاح شد؛ برنامه ابتدا از مسیر portable یا `YADAVARIFORK_DATA_DIR` استفاده می‌کند و اگر آن مسیر قابل‌نوشتن نباشد به `QStandardPaths::AppDataLocation` منتقل می‌شود تا نصب زیر `Program Files` به‌علت مجوز نوشتن متوقف نشود.
 - run `45427704966` برای commit `0cd49a6...` و run `45427957011` برای commit `4ee3e71...` هنگام ثبت هنوز در حال اجرا بودند؛ هیچ‌کدام هنوز PASS اعلام نمی‌شوند.
 - اصلاحات فقط در مخزن و شاخهٔ مجاز انجام شدند؛ main و سایر forkها دست‌نخورده‌اند.
+
+
+### 6.99.51 بستن آزمون smoke پس از اصلاح فهرست بخش‌ها (2026-11-24)
+- مقصد: repo `xperisp2020/paper-orchestra`، branch `work/yadavarifork`؛ HEAD پیش از ثبت `3e5a36a486cd03f5ef8ef350c0e6bb64ae022c27`.
+- run `45427704966` روی commit `0cd49a6d9ef81de0dd1d423790a0232c81077ee2`: اسکریپت Python و unit tests بدون API **PASS**؛ Configure **PASS**؛ C++ Build **PASS**؛ CTest شامل `app_smoke` و `research_engine_runner_contract` **PASS**؛ تولید PDF/DOCX و خروجی PNG/JPG/BMP در smoke **PASS**؛ Portable و Installer assemble/upload شدند.
+- job دوم `verify-portable-artifact` در زمان ثبت هنوز روی clean runner در مرحلهٔ استخراج/بررسی Portable و Installer بود؛ بنابراین clean-runner هنوز PASS نهایی نیست.
+- commit `192584054cdcbc63080e86609c5e2c8573f65e22` ذخیرهٔ خودکار عنوان انتخاب‌شده در فیلد متناظر `title_fa` یا `title_en` را هنگام ساخت پروژه پروپوزال اضافه کرد؛ commit `3e5a36a486cd03f5ef8ef350c0e6bb64ae022c27` assertion smoke برای ماندگاری همین عنوان را اضافه کرد.
+- run `45427957011` برای commit `4ee3e71...` و run `45428262795` برای commit `1925840...` در زمان ثبت در حال اجرا بودند؛ نتیجهٔ آن‌ها جداگانه بررسی می‌شود.
+- نسخهٔ ارسالی `proposal.docx` و تفاوت فرم‌های مرجع همچنان گیت محتوایی/قالبی باز هستند؛ موفقیت smoke فنی به معنی انطباق کامل با فرم مرجع یا تکمیل علمی پروپوزال نیست.
