@@ -47,6 +47,30 @@ class ProposalGeneratorTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertTrue(all(kwargs["return_json"] for kwargs in calls))
 
+    def test_all_scientific_fields_are_generated_without_protected_fields(self):
+        payload = {
+            "language": "fa",
+            "project_title": "عنوان آزمون پژوهش",
+            "sections": [{"key": key, "label": key} for key in ALLOWED_SCIENTIFIC_KEYS],
+            "sources": [],
+        }
+        calls = []
+
+        def fake_llm_call(**kwargs):
+            calls.append(kwargs)
+            marker = "Required keys (JSON): "
+            keys_line = next(line for line in kwargs["prompt"].splitlines() if line.startswith(marker))
+            keys = json.loads(keys_line[len(marker):])
+            return {"parsed_response": {"sections": {
+                key: "متن علمی کامل و آزمون‌پذیر برای " + key for key in keys
+            }}}
+
+        result = generate_proposal_sections(payload, "nvidia/nemotron:free", fake_llm_call)
+        self.assertEqual(len(result), 36)
+        self.assertEqual(len(calls), 6)
+        self.assertTrue(set(result).issubset(ALLOWED_SCIENTIFIC_KEYS))
+        self.assertFalse(set(result).intersection(PROTECTED_KEYS))
+
     def test_rejects_identity_and_administrative_fields(self):
         payload = self.payload()
         payload["sections"].append({"key": "student_name", "label": "نام دانشجو"})
