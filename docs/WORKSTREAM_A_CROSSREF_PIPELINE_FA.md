@@ -29,3 +29,5 @@ python paper_writing_cli.py --help
 
 ### آزمون استاندارد-library
 برای اینکه Python Safety بدون نصب وابستگی‌های runtime اجرا شود، منطق non-blocking در `safe_crossref_verification_status` داخل `utils/crossref_utils.py` متمرکز است؛ تست‌های رفتاری آن در `tests/test_crossref_utils.py` هستند. فایل `tests/test_literature_crossref.py` اتصال pipeline را با AST و بررسی متن می‌سنجد و Literature Agent وابسته به Pydantic را import نمی‌کند.
+
+- رابط C++/Qt نیز در `app_cpp/src/main.cpp` چک‌باکس اختیاری فارسی/انگلیسی دارد و در صورت انتخاب، همان گزینهٔ CLI را ارسال می‌کند؛ این گزینه به‌صورت پیش‌فرض خاموش است.
