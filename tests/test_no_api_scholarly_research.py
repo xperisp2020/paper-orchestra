@@ -66,7 +66,7 @@ class NoApiScholarlyResearchTests(unittest.TestCase):
         atom = """<feed xmlns="http://www.w3.org/2005/Atom">
         <entry><id>https://arxiv.org/abs/2401.00001</id><title>arXiv scholarly paper number one</title>
         <published>2024-01-01T00:00:00Z</published><summary>Preprint abstract</summary>
-        <author><name>A. Researcher</name></author></entry></feed>"""
+        <author><name>A. Researcher</name></author></entry>\n        <entry><id>https://arxiv.org/abs/2401.00002</id><title>arXiv scholarly paper number two</title>\n        <published>2024-01-02T00:00:00Z</published><summary>Second preprint abstract</summary></entry></feed>"""
         with patch.object(research, "request_json", side_effect=fake_request), \
              patch.object(research, "request_xml", return_value=atom):
             records, errors = research.discover("research methods", target=12, sleeper=lambda _: None)
