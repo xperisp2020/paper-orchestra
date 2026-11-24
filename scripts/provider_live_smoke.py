@@ -109,8 +109,12 @@ def _send_request(provider: str, model: str, api_key: str) -> tuple[dict[str, An
             "model": model,
             "messages": [{"role": "user", "content": "Reply with exactly OK."}],
             "temperature": 0,
-            "max_tokens": 8,
+            # OpenRouter's default reasoning can consume a tiny smoke token budget
+            # before any user-visible text is produced. Disable it for this probe.
+            "max_tokens": 16,
         }
+        if provider == "openrouter":
+            body["reasoning"] = {"effort": "none"}
     else:
         raise ValueError("unsupported provider")
 
