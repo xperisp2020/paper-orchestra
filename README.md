@@ -75,7 +75,10 @@ python paper_writing_cli.py \
 *   `--use_plotting`: Enable the plotting agent workflow to generate figures from code (Default: `False`).
 *   `--writer_model_name`: LLM for writer and literature agents.
 *   `--reflection_model_name`: LLM for reflection agents.
+*   `--verify_dois_with_crossref`: Optional, opt-in Crossref verification for discovered DOI identifiers. Adds network requests and may add latency; a Crossref 404 only means the DOI was not found in Crossref, not that it is globally invalid. Verification status is written to `citation_map.json`; the original DOI is retained when verification is unavailable.
 *   `--resume`: Resume the newest matching attempt in an existing `--output_dir`. The CLI verifies the raw materials, template, model settings, agent/prompt source fingerprints, stage dependencies, and artifact hashes before reusing any stage. It refuses changed raw-material copies, corrupt checkpoints, active locks, and unverified existing final PDFs.
+
+To enable best-effort DOI checks for the literature review stage, add `--verify_dois_with_crossref` to the CLI command. The same option is available as an optional checkbox in the Qt desktop research dialog. It is disabled by default. You may optionally set `CROSSREF_MAILTO` in the process environment to identify polite API usage; no Crossref credential is required. A `verified` result confirms that the DOI is registered in Crossref; `not_found` is Crossref-specific and does not remove or rewrite the DOI.
 
 ### Selecting Gemini or OpenAI models
 
