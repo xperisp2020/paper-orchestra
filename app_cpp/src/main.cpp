@@ -504,6 +504,11 @@ public:
             !reopenedProposal.finalDetailsReviewed_)
             return 65;
         const auto detailsSaved = store_.loadSections(*projectId_, &storageError);
+        if (!storageError.isEmpty() ||
+            store_.loadProjectMetadata(*projectId_, QStringLiteral("final_details_status"),
+                                       &storageError) != QStringLiteral("completed") ||
+            !storageError.isEmpty())
+            return 63;
         for (const QString &key : finalDetailKeys()) {
             if (detailsSaved.value(key) != smokeFinalDetails.value(key))
                 return 63;
