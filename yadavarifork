@@ -1569,3 +1569,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Research Runtime run 45356069474: bootstrap-windows موفق؛ job مربوط به LaTeX smoke هنوز در مرحلهٔ نصب TeX Live/BibTeX بود و نتیجهٔ نهایی compile ثبت نشده است.
 - قابلیت Crossref در هر دو مسیر writer، Literature Agent، CLI و رابط Qt ادغام شده؛ پیش‌فرض خاموش است و فقط با گزینه/چک‌باکس صریح فعال می‌شود. فقط وضعیت verifier در citation_map ثبت می‌شود و DOI در BibTeX حفظ می‌شود.
 - آزمون Crossref در این مرحله mocked است؛ درخواست زندهٔ Crossref هنوز اجرا نشده و PASS زنده ادعا نمی‌شود.
+
+
+### 6.99.34 رفع شکست clean-runner Installer و به‌روزرسانی تحویل مسیر B (2026-11-24)
+- بررسی run 45356257643 نشان داد Portable روی clean runner با موفقیت اجرا و DOCX/PDF را در مسیر دارای فاصله و حروف فارسی صادر کرد؛ Installer به‌علت /DIR بدون نقل‌قول کامل، در مسیر پیش‌فرض نصب شده بود و تست مسیر انتخاب‌شده فایل اجرایی را پیدا نکرد. این یک ایراد quoting در آزمون نصب بود؛ نه شکست ساخت Portable.
+- اصلاح مسیر نصب با آرگومان ('/DIR="{0}"' -f $installDir) در commit f1d5cb39d90afb645d3820ab83c887eb5cbbcba2 ثبت شد.
+- اجرای مجدد Windows CI run 45356339161 با conclusion=success پایان یافت. Build، Smoke test، assemble/upload Portable، Inno Setup/Installer و clean-runner verification همگی success شدند. لاگ verification صریحاً این دو پیام را ثبت کرد: Clean-runner portable smoke, proposal save/reopen, and Unicode-path exports passed؛ Installer install, app smoke, uninstall, and user-data preservation passed.
+- artifactهای جدید run موفق: Portable id 14903375441, size 27091376, archive digest sha256:bd96c20e79558029fbbfe25841e6a3f54797eff50020eb5df63c8735b95d5646, expires 2027-02-22T08:27:57Z؛ Installer id 14902098063, size 19929671, archive digest sha256:f86742f3136f3344422fcda05a5798789bec3209fa94f4b532c6a41ada36bca5, همان تاریخ انقضا.
+- تأکید: این clean-runner ویندوزی است؛ تست رایانهٔ شخصی کاربر و Word 2010 واقعی هنوز انجام نشده است. providerهای live و درخواست live به Crossref هم جداگانه باز هستند.
+- فایل handoff مسیر B به artifactهای جدید و این نتیجه به‌روز شد؛ این تغییر مسیر B را بدون تعارض با فایل‌های کد مسیر A به‌روز می‌کند.
