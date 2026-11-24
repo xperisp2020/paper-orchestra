@@ -154,3 +154,13 @@ DOCX تولیدشده را فقط در Microsoft Word 2010 واقعی باز ک�
 - مسیر A در سند `docs/WORKSTREAM_A_CROSSREF_PIPELINE_FA.md` و دفتر `yadavarifork` با تست‌ها و شواهد latest ثبت شده است.
 - برای مسیر B فقط artifactهای جدید بخش 2 همین سند استفاده شوند؛ artifactهای قدیمی‌تر در تاریخچه صرفاً برای ممیزی باقی مانده‌اند.
 - تغییرات بعدی AI دوم باید روی HEAD واقعی جاری rebase/patch شوند؛ force-push یا overwrite ممنوع است.
+
+
+### نتیجهٔ به‌روزشده پس از اجرای چرخهٔ پذیرش UI (2026-11-24)
+- CI نهایی commit `6e81d54b57bc81631767db69f50a83fc07fdf3f6` در run `45418371460` با نتیجهٔ **SUCCESS** پایان یافت؛ jobهای Build و clean-runner هر دو موفق‌اند.
+- آزمون تعاملی dialog اطلاعات نهایی پروپوزال، هر دو مسیر Skip و Save، ذخیره/بازگشایی و تطبیق metadata و فیلدها را در Windows GitHub runner PASS کرد.
+- Portable artifact `14933312168` با ZIP SHA-256 `a4c38def161981617c51ecfda9a701006cbb121eda68bce5a9d5e26b398a78eb`؛ Installer artifact `14933357432` با ZIP SHA-256 `b914b77dad75269388c7782707a42f1b318b9127451ec0971c080a6df0234816`؛ هر دو تا `2027-02-22T14:49:19Z` معتبرند.
+- OpenRouter Free قبلاً در run `45415368110` به‌صورت live PASS تأیید شده است. Gemini/OpenAI به علت نبود credential/opt-in هزینه‌دار BLOCKED باقی می‌مانند؛ هیچ درخواست پولی ارسال نشده است.
+- Windows فیزیکی/VM کاربر و Microsoft Word 2010 واقعی همچنان BLOCKED هستند؛ CI runner جایگزین آزمون روی دستگاه یا Word واقعی نیست.
+- workspace محلی AI دوم همچنان در دسترس نیست؛ commitهای موجود در GitHub قابل مشاهده‌اند، اما انتساب آن‌ها به AI دوم اثبات نشده است. این محدودیت به معنی نبود تغییرات قبلی نیست.
+- گزارش شواهددار و دفتر پروژه به‌روزرسانی شدند. هیچ release، انتشار عمومی، merge به main یا هزینه‌کرد انجام نشد.
