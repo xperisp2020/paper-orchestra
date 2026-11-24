@@ -1649,3 +1649,9 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اجرای Research Runtime run `45364177815` در job ویندوز به تست جدید `test_crossref_opt_in_reaches_both_batch_process_pools` رسید، اما هر دو subtest به‌علت `TypeError: unhashable type: 'types.SimpleNamespace'` شکست خوردند؛ executor result به‌عنوان کلید دیکشنری futures استفاده می‌شد و SimpleNamespace قابل hash نبود.
 - این failure از fake future آزمون بود، نه از تابع‌های محصول؛ اکنون با `concurrent.futures.Future` واقعی که result آن از قبل تنظیم شده جایگزین می‌شود.
 - Research Runtime مجدداً پس از commit اجرا می‌شود؛ تا دریافت success ادعای عبور این تست runtime ثبت نمی‌شود.
+
+
+### 6.99.44 بستن گیت Crossref live در مأموریت هوش مصنوعی دوم (2026-11-24)
+- run `45363848472` از helper واقعی پروژه و DOI عمومی استفاده کرد و log صریح status=verified را ثبت کرد.
+- بنابراین Crossref live از TODO مسیر B خارج و در V3 به‌عنوان PASS علامت‌گذاری شد. تکرار آن فقط در صورت تغییر helper/normalizer یا مشاهدهٔ regression لازم است.
+- تمرکز باقی‌ماندهٔ AI دوم: inventory/patch تغییرات قبلی، provider smokeهای زنده، Windows واقعی/VM و Microsoft Word 2010 واقعی.
