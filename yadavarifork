@@ -1528,3 +1528,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - فایل راهنمای AI دوم: `docs/AI_HANDOFF_PROVIDER_WINDOWS_WORD2010_FA.md`؛ فایل مستند مسیر تکمیل‌شدهٔ Crossref: `docs/COMPLETED_CROSSREF_DOI_WORK_FA.md`.
 - لینک آزمون موفق: https://github.com/xperisp2020/paper-orchestra/actions/runs/45354114896
 - آخرین commit ثبت دفتر پیش از این append: `cf63859c05c9a82f77c24ff804c47fcecaf9fc7e`. آزمون‌های زندهٔ provider، اجرای روی دستگاه فیزیکی و Word 2010 همچنان به credential/device واقعی نیاز دارند و به AI دوم واگذار شده‌اند.
+
+
+### 6.99.29 تقسیم‌بندی اصلاح‌شدهٔ کارهای باقی‌مانده و اجرای مسیر A (2026-11-24)
+- کاربر روشن کرد منظور از دو فایل، تقسیم واقعی کارهای باز برای پیشبرد موازی است؛ گزارش Crossref قبلی به‌تنهایی این درخواست را پوشش نمی‌داد. تقسیم اصلاح شد.
+- مقصد پیش از عملیات: repo id=1467327081، owner=xperisp2020، repo=xperisp2020/paper-orchestra، branch=work/yadavarifork. HEAD مبنا=2b276289e619e3bc3e17db246e6c0bc6659b8df0.
+- مسیر A دستیار اصلی: اتصال اختیاری و non-blocking Crossref به Literature Agent، هر دو writer و CLI؛ حفظ DOI در حالت not_found/unavailable؛ ثبت وضعیت در citation_map؛ افزودن flag به fingerprint برای ایمنی resume؛ تست‌های integration.
+- مسیر B هوش مصنوعی دوم: provider smoke زنده (Gemini/OpenAI/OpenRouter Free) و آزمون‌های mock برای 429/timeout/cancellation/redaction؛ تست Portable/Installer روی Windows واقعی/VM و سازگاری DOCX در Word 2010. دستور کامل: docs/AI_HANDOFF_PROVIDER_WINDOWS_WORD2010_FA.md؛ نقشهٔ تقسیم: docs/PARALLEL_REMAINING_WORK_SPLIT_FA.md.
+- مسیر B نباید در جریان مسیر A فایل‌های اصلی آن را تغییر دهد؛ تعارض احتمالی باید با بررسی diff/HEAD گزارش شود.
+- وضعیت ثبت: پیاده‌سازی مسیر A در این دور آمادهٔ commit می‌شود؛ تا پایان آزمون‌ها هیچ نتیجهٔ CI جدید PASS اعلام نشده است.
