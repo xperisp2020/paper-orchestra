@@ -70,3 +70,8 @@
 - `docs/AI_HANDOFF_PROVIDER_WORD2010_V3_FA.md`
 - `docs/AI_CHANGE_INVENTORY_AND_PATCH_REQUEST_FA.md`
 V2 و handoff اولیه فقط برای سابقه نگه داشته شده‌اند و superseded هستند.
+
+
+## به‌روزرسانی پس از Crossref live (2026-11-24)
+- Crossref helper از داخل GitHub Actions با DOI `10.1038/nature12373` به API واقعی وصل شد؛ run `45363848472` success و log دارای `status=verified` است.
+- Crossref live دیگر مورد BLOCKED/untested نیست؛ تا وقتی regression جدید رخ ندهد، از موارد باز مسیر B خارج است.
