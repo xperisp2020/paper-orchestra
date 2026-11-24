@@ -2641,8 +2641,8 @@ private:
         auto *input = new QTextEdit(&dialog);
         input->setObjectName(QStringLiteral("scholarCitationBatchInput"));
         input->setPlaceholderText(persian
-            ? QStringLiteral("@article{...} یا TY  - JOUR ... ER  - را برای چند مقاله اینجا بچسبانید؛ هر رکورد BibTeX/RIS جداگانه.")
-            : QStringLiteral("Paste multiple @article{...} BibTeX entries or TY  - ... ER  - RIS records here."));
+            ? QStringLiteral("@article{...}، TY  - JOUR ... ER  - یا %0 Journal Article را برای چند مقاله اینجا بچسبانید؛ هر رکورد BibTeX/RIS/EndNote جداگانه.")
+            : QStringLiteral("Paste multiple BibTeX (@article{...}), RIS (TY  - ... ER  -), or EndNote tagged (%0 Journal Article) records here."));
         layout->addWidget(input, 1);
         auto *loadFiles = new QPushButton(persian ? QStringLiteral("افزودن فایل‌های خروجی Cite") :
                                                     QStringLiteral("Add citation files"), &dialog);
