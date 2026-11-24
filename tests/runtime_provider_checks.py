@@ -374,6 +374,38 @@ class ProviderRoutingIntegrationTests(unittest.TestCase):
                 self.assertIsNotNone(executor.submitted_kwargs)
                 self.assertIs(executor.submitted_kwargs.get("verify_dois_with_crossref"), True)
 
+    def test_crossref_flag_reaches_writer_from_both_batch_workers(self):
+        from methods import paper_writer, paper_writer_with_plotting
+
+        paper = {
+            "paper_id": "batch-worker-smoke",
+            "content_folder": "unused-content",
+            "pdf_path": "unused.pdf",
+        }
+
+        for module in (paper_writer, paper_writer_with_plotting):
+            with self.subTest(module=module.__name__), tempfile.TemporaryDirectory() as temp:
+                with (
+                    patch.object(module, "find_resumable_workspace", return_value=temp),
+                    patch.object(module, "write_single_paper", return_value=True) as writer,
+                ):
+                    if module is paper_writer:
+                        result = module.process_paper_task(
+                            paper, temp, temp, "idea_sparse.md",
+                            "experimental_log.md", "gpt-4o", "2024-12",
+                            verify_dois_with_crossref=True,
+                        )
+                    else:
+                        result = module.process_paper_task(
+                            paper, temp, temp, "idea_sparse.md",
+                            "experimental_log.md", "gpt-4o", "gemini-3.1-pro-preview",
+                            "gemini-3-pro-image-preview", 2, "2024-12",
+                            verify_dois_with_crossref=True,
+                        )
+
+                self.assertEqual(result["status"], "success")
+                self.assertIs(writer.call_args.kwargs["verify_dois_with_crossref"], True)
+
     def test_peer_review_routes_through_unified_backend(self):
         from autoraters import agent_review
 
