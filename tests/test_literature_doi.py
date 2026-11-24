@@ -17,7 +17,7 @@ class DoiMetadataTests(unittest.TestCase):
 
     def test_literature_pipeline_exports_normalized_doi_to_bibtex_and_citation_map(self):
         source = (Path(__file__).resolve().parents[1] / "methods" / "agents" / "literature_review_agent.py").read_text(encoding="utf-8")
-        self.assertIn('doi=normalize_doi((s2_data.get("externalIds") or {}).get("DOI"))', source)
+        self.assertIn('normalized_doi = normalize_doi((s2_data.get("externalIds") or {}).get("DOI"))', source)
         self.assertIn('entry += f",\\n  doi={{{p.doi}}}"', source)
         self.assertIn('"doi": p.doi,', source)
         self.assertIn("from utils.doi_utils import normalize_doi", source)
