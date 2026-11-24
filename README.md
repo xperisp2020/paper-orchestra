@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="app_cpp/assets/shiraztipsy.svg" alt="نشان سه‌بعدی پژوهشکده سرخوش شیرازی" width="144" height="144" />
+<picture>
+  <img src="app_cpp/assets/shiraztipsy.svg" alt="نشان سه‌بعدی پژوهشکده سرخوش شیرازی" width="144" height="144" />
+</picture>
 
 # پژوهشکده سرخوش شیرازی
 
