@@ -609,6 +609,11 @@ public:
             !jpgPage.read(3).startsWith(QByteArray::fromHex("ffd8ff")))
             return 82;
 
+        if (imageFormatFromFilter(QStringLiteral("JPEG images (*.jpg *.jpeg)")) != QStringLiteral("jpg") ||
+            imageFormatFromFilter(QStringLiteral("PNG images (*.png)")) != QStringLiteral("png") ||
+            imageFormatFromFilter(QStringLiteral("BMP images (*.bmp)")) != QStringLiteral("bmp"))
+            return 85;
+
         const QString bmpBase = QDir(exportRoot).filePath(QStringLiteral("proposal_bmp.bmp"));
         if (!DocumentExport::toImagePages(detailsSaved, labels, projectTitle_->text(),
                                           QStringLiteral("fa"), bmpBase, QStringLiteral("bmp"),
@@ -2100,6 +2105,14 @@ private:
             editorStatus_->setText(error);
     }
 
+    static QString imageFormatFromFilter(const QString &selectedFilter) {
+        if (selectedFilter.contains(QStringLiteral("PNG"), Qt::CaseInsensitive))
+            return QStringLiteral("png");
+        if (selectedFilter.contains(QStringLiteral("BMP"), Qt::CaseInsensitive))
+            return QStringLiteral("bmp");
+        return QStringLiteral("jpg");
+    }
+
     void exportPng() {
         if (!collectFinalDetails(false))
             return;
@@ -2121,18 +2134,8 @@ private:
         if (path.isEmpty())
             return;
 
-        QString format;
-        QString extension;
-        if (selectedFilter.contains(QStringLiteral("PNG"), Qt::CaseInsensitive)) {
-            format = QStringLiteral("png");
-            extension = QStringLiteral("png");
-        } else if (selectedFilter.contains(QStringLiteral("BMP"), Qt::CaseInsensitive)) {
-            format = QStringLiteral("bmp");
-            extension = QStringLiteral("bmp");
-        } else {
-            format = QStringLiteral("jpg");
-            extension = QStringLiteral("jpg");
-        }
+        const QString format = imageFormatFromFilter(selectedFilter);
+        const QString extension = format;
 
         QFileInfo selectedInfo(path);
         QString baseName = selectedInfo.completeBaseName().trimmed();
