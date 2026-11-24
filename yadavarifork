@@ -1696,3 +1696,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - گزارش مرحله‌ای مسیر B در `docs/AI_SECOND_PASS_RESULT_2026-11-24_FA.md` ثبت شد؛ شامل وضعیت فعلی providerها، Windows واقعی/VM، Word 2010 و شواهد Crossref.
 - در این مرحله هیچ credential خوانده/چاپ نشد؛ هیچ آزمون live provider اجرا نشد؛ هیچ کد محصول تغییر نکرد.
 - Crossref live و CI مسیر A طبق runهای ثبت‌شده PASS باقی مانده‌اند؛ providerهای زنده و دسترسی Windows واقعی/Word 2010 همچنان BLOCKED/باز هستند.
+
+
+### 6.99.40 بازبینی تکمیلی مسیر B و ثبت وضعیت دسترسی‌ها (2026-11-24)
+- مقصد پیش از write دوباره تأیید شد: repo id 1467327081، owner xperisp2020، branch work/yadavarifork؛ HEAD پیش از این ثبت `f6489c24a51acf5af151005b0d1d137a9bb5df2e`.
+- HEAD قبلی `6b651a052befe5bfa2a4c42fd5e4f9609b96b5a0` با checkpoint مسیر A `d68443e3d23cf9fcf435494dd9821f12e3e749d6` مقایسه شد: 4 commit جلوتر، 0 عقب‌تر؛ فقط سند V3، گزارش مسیر B و همین دفتر تغییر کرده‌اند. هیچ source code، test یا workflow محصول در این بازه تغییر نکرده است.
+- آخرین CIهای مرتبط: Python Safety `45366337200` success؛ Research Runtime `45366337215` success؛ Crossref live `45366313174` success؛ Windows build/clean-runner `45367143582` success. این شواهد به معنی تست روی Windows دستگاه کاربر یا Word 2010 نیستند.
+- وضعیت واقعی گیت‌ها: موجودی workspace محلی AI دوم = `NO LOCAL WORKSPACE ACCESS`؛ Gemini/OpenAI/OpenRouter = `BLOCKED`؛ Windows واقعی/VM = `BLOCKED`؛ Microsoft Word 2010 = `BLOCKED`؛ Crossref live مسیر A = `PASS`.
+- ابزار این نشست امکان دسترسی امن به Secretهای GitHub Actions یا اجرای provider smoke با credential ازپیش‌مجاز را ارائه نمی‌کند؛ هیچ کلیدی درخواست/خوانده/چاپ نشد و هیچ درخواست provider ساخته نشد.
+- گزارش تکمیلی در `docs/AI_SECOND_PASS_RESULT_2026-11-24_FA.md` افزوده شد. هیچ تغییر کد محصول یا مسیر A انجام نشد؛ هیچ release یا انتشار عمومی انجام نشد.
