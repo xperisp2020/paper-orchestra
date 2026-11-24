@@ -1,6 +1,7 @@
 name: Provider live smoke
 
 # Branch-scoped dispatch note: keep this workflow on work/yadavarifork; no default-branch changes.
+# Provider request behavior and reasoning budget are covered by tests/test_provider_live_smoke.py.
 
 on:
   push:
