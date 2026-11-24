@@ -20,6 +20,7 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayIcon={app}\{#MyAppExeName}
+SetupIconFile=..\\..\\app_cpp\\assets\\shiraztipsy.ico
 SetupLogging=yes
 CloseApplications=yes
 RestartApplications=no
