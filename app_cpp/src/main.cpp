@@ -60,7 +60,7 @@ public:
     explicit WelcomeWindow(ProjectStore &store, QWidget *parent = nullptr)
         : QMainWindow(parent), store_(store) {
         setObjectName(QStringLiteral("welcomeWindow"));
-        setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.svg")));
+        setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.png")));
         setMinimumSize(920, 640);
         pages_ = new QStackedWidget;
         pages_->setObjectName(QStringLiteral("wizardPages"));
@@ -1004,13 +1004,13 @@ private:
         dialog.setObjectName(QStringLiteral("aboutInstituteDialog"));
         dialog.setWindowTitle(persian ? QStringLiteral("درباره پژوهشکده سرخوش شیرازی")
                                       : QStringLiteral("About ShirazTipsy Research Institute"));
-        dialog.setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.svg")));
+        dialog.setWindowIcon(QIcon(QStringLiteral(":/brand/shiraztipsy.png")));
         dialog.setMinimumWidth(540);
         auto *layout = new QVBoxLayout(&dialog);
         auto *logo = new QLabel(&dialog);
         logo->setAlignment(Qt::AlignCenter);
         logo->setPixmap(QPixmap(QStringLiteral(":/brand/shiraztipsy.png")).scaled(
-            104, 104, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            72, 72, Qt::KeepAspectRatio, Qt::SmoothTransformation));
         layout->addWidget(logo);
         auto *brand = new QLabel;
         brand->setAlignment(Qt::AlignCenter);
