@@ -1717,3 +1717,17 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - نخستین run `45410733350` در Build به علت تعریف‌نشدن include directory target تست fail شد؛ علت از log دقیق GitHub تأیید و در commit `0b06ab88ae69ed29f846756b845b94227a2a7ca6` با افزودن `app_cpp/src` به include directories اصلاح شد.
 - CI اصلاح‌شده `45411318052` هنگام ثبت این checkpoint هنوز در حال اجرا بود؛ تا دریافت نتیجه، cancellation/redaction C++ PASS نیست.
 - هیچ Secretی چاپ یا ثبت نشد؛ هیچ live provider call انجام نشد. Windows فیزیکی/VM و Word 2010 واقعی همچنان BLOCKED هستند.
+
+
+### 6.99.41 بستن آزمون اجرایی QProcess و بسته‌بندی ویندوز (2026-11-24)
+- مقصد پیش از ثبت: repo id 1467327081، owner xperisp2020، branch work/yadavarifork؛ HEAD مبنا `691725d7a540a361b8de412240809051180a4f49`.
+- خطای compile در run `45410733350` علت‌یابی شد: include path برای `research_engine_runner.h` در target تست تعریف نشده بود. اصلاح در commit `0b06ab88ae69ed29f846756b845b94227a2a7ca6` اعمال شد.
+- run `45411318052` روی commit اصلاحی موفق شد؛ دو job Build و verify-portable-artifact هر دو success هستند.
+- CTest: `app_smoke` در 8.58s و `research_engine_runner_contract` در 5.15s Passed؛ نتیجهٔ کامل `100% tests passed, 0 tests failed out of 2`.
+- تست جدید QProcess اجرای child process، رد start هم‌زمان دوم، redaction مقدار OPENAI_API_KEY آزمایشی و Bearer/x-api-key و lifecycle واقعی cancel/terminate/kill را بررسی می‌کند.
+- Clean-runner صریحاً PASS کرد: Portable proposal save/reopen و export در مسیر Unicode؛ Installer install، اجرای اپ، uninstall و حفظ sentinel داده.
+- لینک: https://github.com/xperisp2020/paper-orchestra/actions/runs/45411318052
+- artifactهای آخر: Portable id `14930080169`, 27096591 bytes, ZIP SHA-256 `5c8677a86d1cc4dace61e4d523aeb406124ce5b9a424f0372ccbbace8bc59719`; Installer id `14930015297`, 19933400 bytes, ZIP SHA-256 `1ce08a97fcfbc7b3a595a6765549da7b01e59b5d46cd09d131c02999dea820d0`; expiry `2027-02-22T14:11:25Z`.
+- سند گزارش مسیر B `docs/AI_SECOND_PASS_RESULT_2026-11-24_FA.md` با علت failure اولیه، fix، PASSها و BLOCKEDهای provider/Word/دستگاه به‌روزرسانی شد.
+- Provider live همچنان BLOCKED است: اجرای `45409723175` برای Gemini، OpenAI و OpenRouter هر سه `credential_missing` گزارش کرد؛ هیچ درخواست واقعی ارسال نشد. Python Safety `45409722980` هر دو محیط Ubuntu/Windows را با 102 تست PASS کرد.
+- موارد خارج از دسترسی همچنان BLOCKED: workspace محلی AI دوم، Windows فیزیکی/VM کاربر و Microsoft Word 2010 واقعی. هیچ secret/token چاپ یا commit نشده است.
