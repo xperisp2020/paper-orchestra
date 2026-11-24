@@ -1,4 +1,9 @@
-# Yadavarifork — Native Windows desktop
+# ShirazTipsy Research Institute — Native Windows desktop
+
+**نام فارسی:** پژوهشکده سرخوش شیرازی  
+**English name:** ShirazTipsy Research Institute
+
+The desktop application uses a custom deep-navy and gold visual identity, a bundled vector emblem, bilingual application branding, and an About dialog. The About dialog links to Telegram and Instagram at `@shiraztipsy` (`https://t.me/shiraztipsy` and `https://www.instagram.com/shiraztipsy/`). The executable target remains `yadavarifork.exe` for upgrade and packaging compatibility.
 
 The primary desktop application is implemented in C++20 with Qt 6 Widgets. Windows portable is the first delivery target.
 
