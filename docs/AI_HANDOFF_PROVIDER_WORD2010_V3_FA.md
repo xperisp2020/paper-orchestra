@@ -33,20 +33,22 @@
 
 ## 2) وضعیت پایهٔ تأییدشده — دوباره اجرا نکن مگر regression یا نیاز مشخص
 گیت‌های زیر در حال حاضر PASS هستند:
-- **Python Safety** run `45356267071`: Ubuntu و Windows هر دو success، هرکدام 86 تست.
-  https://github.com/xperisp2020/paper-orchestra/actions/runs/45356267071
-- **Research Runtime** run `45356069474`: Windows Python 3.12 bootstrap و Ubuntu TeX Live 2025/BibTeX/PDF واقعی با bibliography هر دو success.
-  https://github.com/xperisp2020/paper-orchestra/actions/runs/45356069474
-- **Windows Build + clean-runner** run `45356339161`: build، app smoke، Portable، Installer، اجرای مسیر فارسی/دارای فاصله، تولید PDF/DOCX، نصب، اجرای نسخه نصب‌شده، uninstall و حفظ داده sentinel همگی success.
-  https://github.com/xperisp2020/paper-orchestra/actions/runs/45356339161
+- **Python Safety** run `45366337200`: Ubuntu و Windows هر دو success، هرکدام 94 تست؛ شامل cache immutability و normalization تست smoke.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45366337200
+- **Research Runtime** run `45366337215`: Windows Python 3.12 و Ubuntu LaTeX/BibTeX واقعی هر دو success؛ Windows runtime شامل 19 تست و تست مستقیم انتقال Crossref از هر دو Batch worker تا writer است.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45366337215
+- **Crossref Live** runs `45366306443` و `45366313174`: helper واقعی با DOI عمومی `10.1038/nature12373` روی GitHub runner پاسخ `verified` دریافت کرد؛ اجرای دوم پس از اصلاح normalization ورودی smoke script بود.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45366306443
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45366313174
+- **Windows Build + clean-runner** run `45367143582`: Build، app smoke، Portable، Installer، استخراج و اجرای هر دو بسته در clean runner، مسیر فارسی/دارای فاصله، تولید PDF/DOCX، نصب، اجرای نسخهٔ نصب‌شده، uninstall و حفظ sentinel همگی success.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45367143582
 
 ### Artifactهای تأییدشده
-### آخرین artifactهای تأییدشده (run 45364368515)
-- Portable artifact id `14905488281`, ZIP size `27093112` bytes, archive digest `sha256:e546ddb0c47fc304b878d4c2f267a68ba41a6e056940a853d26ba5e35d9d8819`.
-- Installer artifact id `14906087195`, ZIP size `19931075` bytes, archive digest `sha256:29bf8583fede4ec69eca0a7056ed3e0e658a635fdd9ebbdd98dcc5d0bc248363`.
-- Expiry: `2027-02-22T09:21:09Z`.
-- [Portable ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14905488281/zip)
-- [Installer ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14906087195/zip)
+- Portable artifact id `14906139648`, ZIP size `27093368` bytes, archive digest `sha256:dd4a8991fde4866163d545cf8339224c07739a920ebe6f2c8ab1b511399a45cb`.
+- Installer artifact id `14907232374`, ZIP size `19931308` bytes, archive digest `sha256:57dd5238c287f47dd431676e1fa19537c80ef98c7b5851ce079860400b05b65a`.
+- Expiry: `2027-02-22T09:38:40Z`.
+- [Portable ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14906139648/zip)
+- [Installer ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14907232374/zip)
 - These are archive ZIP digests, not hashes of the extracted executable.
 
 این نتایج روی Windows Server 2022 clean runner است؛ نه دستگاه اصلی کاربر و نه Word 2010 واقعی. hashهای بالا digest آرشیو ZIP هستند.
@@ -82,7 +84,11 @@ DOCX تولیدشده را فقط در Microsoft Word 2010 واقعی باز ک�
 
 ## 6) Crossref live — انجام شده، فقط در صورت regression باز شود
 - helper واقعی پروژه با DOI عمومی `10.1038/nature12373` از داخل GitHub Actions به Crossref وصل شد و `verified` دریافت کرد.
-- run موفق: https://github.com/xperisp2020/paper-orchestra/actions/runs/45363848472
+- آزمون live پس از hardening cache در run `45366306443` و پس از اصلاح DOI URL-prefixed در smoke script در run `45366313174` نیز با success پایان یافت.
+- log هر دو اجرا: `Crossref live smoke PASS: status=verified doi=10.1038/nature12373`.
+- run اولیهٔ live: https://github.com/xperisp2020/paper-orchestra/actions/runs/45363848472
+- run پس از cache hardening: https://github.com/xperisp2020/paper-orchestra/actions/runs/45366306443
+- run پس از اصلاح normalization smoke script: https://github.com/xperisp2020/paper-orchestra/actions/runs/45366313174
 - log: `Crossref live smoke PASS: status=verified doi=10.1038/nature12373`.
 - این بخش در حال حاضر PASS است؛ در مأموریت فعلی دوباره‌کاری لازم نیست.
 - اگر تغییر تازه‌ای در helper یا DOI normalization انجام دادی، workflow مربوطه پس از تغییر اجرا شود. خطای شبکه را invalid بودن DOI تلقی نکن و DOI را حذف/تغییر نده.
@@ -135,3 +141,9 @@ DOCX تولیدشده را فقط در Microsoft Word 2010 واقعی باز ک�
 - Research Runtime `45364548656`: Windows runtime 18 tests `OK`; Ubuntu LaTeX/BibTeX success.
 - Crossref live `45363848472`: helper واقعی پروژه status=verified برای DOI `10.1038/nature12373`.
 - Windows build + clean-runner `45364368515`: success؛ artifactهای جاری Portable `14905488281` و Installer `14906087195`.
+
+
+### آخرین به‌روزرسانی مسیر A و بسته‌ها (2026-11-24)
+- Python Safety 94 تست Ubuntu/Windows و Research Runtime هر دو job موفق شدند؛ اجرای runtime جدید 19 تست را در Windows Python 3.12 اجرا کرد و مسیر Crossref هر دو Batch worker تا writer را PASS کرد.
+- Windows run `45367143582` روی HEAD workflow `dbe12e9d32a0dc0d060a64a3f7c8a3b32c636aec` build و clean-runner هر دو را PASS کرد. این run پس از اصلاح trigger `scripts/**` اجرا شد تا هر تغییر در فایل‌های bundled scripts، Portable/Installer را rebuild کند.
+- لاگ clean-runner به‌صراحت PASS بودن Portable Unicode-path smoke/PDF/DOCX و Installer install/app smoke/uninstall/user-data preservation را ثبت می‌کند.
