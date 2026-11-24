@@ -39,6 +39,8 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
+      - name: Validate keyless scholarly discovery script
+        run: python -m py_compile scripts/no_api_scholarly_research.py
       - name: Validate research runtime bootstrap syntax
         shell: pwsh
         run: |
