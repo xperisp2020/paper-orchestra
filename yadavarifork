@@ -1599,3 +1599,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - وضعیت CI مجدداً بررسی شد: Python Safety run `45356267071` هر دو job Ubuntu/Windows success (86 تست هرکدام)؛ Research Runtime `45356069474` هر دو job success؛ Windows build+clean-runner `45356339161` هر دو job success.
 - موارد هنوز حل‌نشده: اثبات/دریافت patch تغییرات محلی AI دوم؛ provider live Gemini/OpenAI/OpenRouter؛ Microsoft Word 2010 واقعی؛ Windows دستگاه اصلی کاربر؛ Crossref live.
 - دو فایل جدید ساخته شد: `docs/AI_HANDOFF_PROVIDER_WORD2010_V3_FA.md` و `docs/AI_CHANGE_INVENTORY_AND_PATCH_REQUEST_FA.md`. گزارش قالب و audit و split و handoff قدیمی/ V2 به‌روزرسانی می‌شوند.
+
+
+### 6.99.37 تکمیل ممیزی مسیر Crossref — Batch propagation و cache transient (2026-11-24)
+- مقصد پیش از تغییر تأیید شد: repo id 1467327081، owner xperisp2020، branch work/yadavarifork؛ HEAD مبنا 646a49b84f3461cf6c8ff0866e27c1900f96e4ab.
+- ممیزی نشان داد هر دو تابع `run_batch_writeup` گزینهٔ `verify_dois_with_crossref` را نداشتند و `ProcessPoolExecutor.submit` آن را به worker نمی‌فرستاد؛ در نتیجه اجرای Batch عملاً نمی‌توانست Crossref را فعال کند. هر دو writer به‌روزرسانی شدند و تست AST این propagation را برای مسیر بدون plotting و مسیر plotting پوشش می‌دهد.
+- ممیزی cache نشان داد helper قبلی status موقت `unavailable` را با `lru_cache` ذخیره می‌کرد و retry پس از timeout/429/503 را در همان process مسدود می‌کرد. helper بازنویسی شد تا فقط status قطعی `verified` و `not_found` cache شود؛ transient errors با exception داخلی از LRU عبور می‌کنند و در فراخوانی مجدد بازیابی می‌شوند. timeout نامعتبر/غیرمثبت نیز بدون درخواست شبکه `unavailable` است.
+- تست‌های جدید: transient HTTP 503 سپس verified روی همان DOI، timeout نامعتبر بدون network، و Batch option propagation برای هر دو writer. README و راهنمای مسیر A همگام شدند.
+- نتیجهٔ CI برای این اصلاحات هنوز pending است؛ هیچ PASS جدیدی تا دریافت شواهد workflow ثبت نمی‌شود.
