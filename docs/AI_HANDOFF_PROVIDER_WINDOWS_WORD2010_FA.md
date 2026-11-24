@@ -17,8 +17,8 @@
 - Python Safety run: https://github.com/xperisp2020/paper-orchestra/actions/runs/45347795586 (۷۰ تست در Ubuntu و ۷۰ تست در Windows).
 - Research Runtime: https://github.com/xperisp2020/paper-orchestra/actions/runs/45347795580 (Python 3.12 روی Windows و LaTeX/BibTeX واقعی روی Ubuntu).
 - Windows packaging: https://github.com/xperisp2020/paper-orchestra/actions/runs/45347795650 (ساخت Portable/Installer، استخراج و smoke test، نصب بی‌صدا، اجرای اپ، uninstall و حفظ دادهٔ کاربر روی clean runner).
-- آخرین artifactها: Portable id `14899086663` با SHA-256 `64aa03a87db853c86864434f7c603d9af7d6a3eee7c4952d4024be90e04e1351`؛ Installer id `14898493121` با SHA-256 `902aae9a5bb479ae762bff648642288481b21346f9ba010f1ca5edbbdcc9a3c3`.
-- این نتایج CI هستند؛ تست روی رایانهٔ واقعی کاربر و Word 2010 نیستند.
+- آخرین artifactهای تأییدشده از run 45356339161: Portable id 14903375441 با SHA-256 archive digest برابر bd96c20e79558029fbbfe25841e6a3f54797eff50020eb5df63c8735b95d5646؛ Installer id 14902098063 با SHA-256 archive digest برابر f86742f3136f3344422fcda05a5798789bec3209fa94f4b532c6a41ada36bca5. اجرای clean-runner هر دو را با موفقیت استخراج/اجرا کرد، نصب و uninstall را انجام داد و حفظ دادهٔ sentinel را تأیید کرد. این digestها hash فایل ZIP artifact هستند، نه لزوماً hash باینری داخل ZIP.
+- این نتایج CI هستند؛ Portable و Installer روی Windows Server 2022 clean runner به‌همراه مسیر فاصله‌دار/فارسی، smoke export، نصب، uninstall و حفظ داده تست شده‌اند؛ اما تست روی رایانهٔ واقعی کاربر و Word 2010 نیستند.
 
 ### مأموریت A — آزمون Providerهای زنده (فقط با credential مجاز)
 1. کد routing را مرور کن: `utils/llm_backend_utils.py`، `utils/openai_utils.py`، `utils/gemini_utils.py`، `app_cpp/src/main.cpp` و CLI.
@@ -51,3 +51,10 @@
 
 ### اولویت اجرا
 ابتدا providerهای قابل دسترس و بدون هزینه/با کمترین هزینه را smoke-test کن؛ سپس Windows/Word. اگر دستگاه یا Word 2010 در دسترس نیست، تست را متوقف و BLOCKED ثبت کن و به‌جای حدس زدن، مراحل دقیق اجرای دستی را تحویل بده.
+
+
+### آخرین چرخهٔ عیب‌یابی بسته‌بندی (2026-11-24)
+- نخستین clean-runner run 45356257643 در مرحلهٔ نصب Installer شکست خورد، چون آرگومان /DIR برای مسیر دارای فاصله/فارسی بدون نقل‌قول کامل ارسال شده بود؛ Portable smoke و export همان run پاس شده بود.
+- اصلاح در commit f1d5cb39d90afb645d3820ab83c887eb5cbbcba2 نقل‌قول کامل مسیر نصب را در PowerShell اعمال کرد.
+- run بعدی 45356339161 با conclusion=success تمام شد: ساخت و smoke برنامه، ساخت هر دو artifact، clean-runner Portable smoke/export، نصب silent، اجرای نصب‌شده، uninstall و حفظ داده sentinel همگی پاس شدند.
+- این نتیجهٔ CI روی Windows Server 2022 است و جای تست فیزیکی user device/Word 2010 را نمی‌گیرد.
