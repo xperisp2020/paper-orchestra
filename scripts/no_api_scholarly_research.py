@@ -26,6 +26,7 @@ SEMANTIC_SCHOLAR = "https://api.semanticscholar.org/graph/v1/paper/search"
 EUROPE_PMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 ARXIV = "https://export.arxiv.org/api/query"
 DATACITE = "https://api.datacite.org/dois"
+OPENAIRE = "https://api.openaire.eu/graph/v3/research-products"
 MAX_PER_SOURCE = 50
 
 
@@ -170,6 +171,46 @@ def normalize_datacite(item: dict[str, Any]) -> dict[str, str]:
             "is_oa": "unknown"}
 
 
+
+def normalize_openaire(item: dict[str, Any]) -> dict[str, str]:
+    authors = []
+    for author in item.get("authors", []) or []:
+        if isinstance(author, dict):
+            name = clean_text(author.get("fullName") or author.get("name"))
+        else:
+            name = clean_text(author)
+        if name:
+            authors.append(name)
+    pids = item.get("pids") or []
+    doi = next((clean_text(pid.get("value")).lower() for pid in pids
+                if isinstance(pid, dict) and clean_text(pid.get("scheme")).lower() == "doi"), "")
+    if not doi:
+        for identifier in item.get("originalIds", []) or []:
+            match = re.search(r"10\.\d{4,9}/[^\s]+", clean_text(identifier), re.IGNORECASE)
+            if match:
+                doi = match.group(0).rstrip(".,;)")
+                break
+    instances = item.get("instances") or []
+    instance_urls = []
+    for instance in instances:
+        if isinstance(instance, dict):
+            instance_urls.extend(clean_text(url) for url in instance.get("urls", []) or [])
+    container = item.get("container") or {}
+    descriptions = item.get("descriptions") or []
+    return {
+        "title": clean_text(item.get("mainTitle")),
+        "authors": "; ".join(authors[:8]),
+        "year": clean_text(item.get("publicationDate"))[:4],
+        "doi": doi,
+        "url": ("https://doi.org/" + doi) if doi else next((url for url in instance_urls if url.startswith("http")), ""),
+        "abstract": clean_text(descriptions[:3]),
+        "venue": clean_text(container.get("name") or item.get("publisher")),
+        "provider": "OpenAIRE",
+        "type": clean_text(item.get("type") or "publication"),
+        "is_oa": str(bool(instance_urls)).lower(),
+    }
+
+
 def normalize_arxiv_entry(entry: ET.Element) -> dict[str, str]:
     ns = {"a": "http://www.w3.org/2005/Atom"}
     get = lambda tag: clean_text(entry.findtext("a:" + tag, default="", namespaces=ns))
@@ -199,6 +240,10 @@ def discover(query: str, target: int = 20, sleeper=time.sleep) -> tuple[list[dic
         ("Semantic Scholar", SEMANTIC_SCHOLAR + "?" + semantic_query),
         ("Europe PMC", EUROPE_PMC + "?" + urllib.parse.urlencode({"query": query, "format": "json", "pageSize": rows, "resultType": "core"})),
         ("DataCite", DATACITE + "?" + urllib.parse.urlencode({"query": query, "page[size]": rows, "sort": "relevance"})),
+        ("OpenAIRE", OPENAIRE + "?" + urllib.parse.urlencode({
+            "search": query, "type": "publication", "page": 1, "pageSize": rows,
+            "sortBy": "relevance DESC"
+        })),
         ("arXiv", ARXIV + "?" + urllib.parse.urlencode({"search_query": "all:" + query, "start": 0, "max_results": rows})),
     ]
     quota = max(2, (target + len(providers) - 1) // len(providers))
@@ -218,6 +263,8 @@ def discover(query: str, target: int = 20, sleeper=time.sleep) -> tuple[list[dic
                 raw_rows, normalize = (payload.get("resultList") or {}).get("result") or [], normalize_europe_pmc
             elif provider == "DataCite":
                 raw_rows, normalize = payload.get("data") or [], normalize_datacite
+            elif provider == "OpenAIRE":
+                raw_rows, normalize = payload.get("results") or [], normalize_openaire
             else:
                 root = ET.fromstring(payload.get("_xml", ""))
                 raw_rows, normalize = root.findall("{http://www.w3.org/2005/Atom}entry"), normalize_arxiv_entry
@@ -232,7 +279,7 @@ def discover(query: str, target: int = 20, sleeper=time.sleep) -> tuple[list[dic
                 seen.add(identity)
                 sources.append(record)
                 added += 1
-                if added >= quota or len(sources) >= target:
+                if added >= quota:
                     break
         except (OSError, ValueError, urllib.error.URLError, TimeoutError, ET.ParseError, KeyError, TypeError) as exc:
             errors.append(f"{provider}: {type(exc).__name__}: {exc}")
@@ -260,7 +307,7 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
         background = (
             f"موضوع جست‌وجو: «{query}».\n\n"
             f"این مرور مقدماتی بر پایهٔ فراداده‌های کتاب‌شناختی و چکیده‌های قابل‌دسترسی از "
-            f"{len(records)} رکورد بازیابی‌شده از OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite و arXiv تنظیم شده است. "
+            f"{len(records)} رکورد بازیابی‌شده از OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite، OpenAIRE و arXiv تنظیم شده است. "
             "این مجموعه، جست‌وجوی نظام‌مندِ ثبت‌شده در پایگاه‌های اشتراکی مانند Scopus یا Web of Science "
             "نیست و به‌تنهایی جایگزین بررسی متن کامل مقالات نمی‌شود."
         )
@@ -318,7 +365,7 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
     else:
         background = (
             f"Search topic: {query}.\n\nThis preliminary review uses bibliographic metadata and accessible abstracts "
-            f"from {len(records)} records retrieved from OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, and arXiv. It is not a registered systematic "
+            f"from {len(records)} records retrieved from OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, OpenAIRE, and arXiv. It is not a registered systematic "
             "search across subscription databases and does not replace full-text appraisal."
         )
         question = f"What findings, methods, and evidence gaps are reported in indexed literature about {query}?"
