@@ -84,3 +84,20 @@
 - تأیید عدم افشای secrets: بله/خیر
 
 **قاعده:** تست mock به‌جای live پذیرفته نیست؛ اجرای VM به‌جای دستگاه واقعی گزارش نشود؛ LibreOffice به‌جای Word 2010 پذیرفته نیست.
+
+
+## H) موجودی دقیق workspace و تحویل patch
+- workspace قبلی در دسترس بود؟ بله/خیر
+- remote و branch:
+- base HEAD:
+- workspace HEAD:
+- `git status --short`:
+- `git diff --stat`:
+- `git diff --cached --stat`:
+- untracked files:
+- modified/added/deleted/renamed counts:
+- commit SHAها:
+- patch/bundle path or URL:
+- patch SHA-256:
+- secrets/PII review:
+- وضعیت: PATCH READY / ALREADY PRESENT / NO LOCAL WORKSPACE ACCESS / NO PRIOR CHANGES
