@@ -1,6 +1,6 @@
-#define MyAppName "Yadavarifork"
+#define MyAppName "ShirazTipsy Research Institute"
 #define MyAppVersion "0.1.0"
-#define MyAppPublisher "xperisp2020"
+#define MyAppPublisher "ShirazTipsy Research Institute"
 #define MyAppExeName "yadavarifork.exe"
 
 [Setup]
@@ -8,14 +8,14 @@ AppId={{B2E0B31A-9C87-4A2F-A0D8-7A9C0E5F1142}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={localappdata}\Programs\{#MyAppName}
+DefaultDirName={localappdata}\Programs\ShirazTipsy Research Institute
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 OutputDir=..\..\build\installer
-OutputBaseFilename=Yadavarifork-Setup-0.1.0
+OutputBaseFilename=ShirazTipsyResearchInstitute-Setup-0.1.0
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -26,7 +26,7 @@ RestartApplications=no
 Uninstallable=yes
 VersionInfoVersion=0.1.0.0
 VersionInfoCompany={#MyAppPublisher}
-VersionInfoDescription=Yadavarifork research and proposal assistant
+VersionInfoDescription=ShirazTipsy Research Institute academic research assistant
 VersionInfoProductName={#MyAppName}
 
 [Dirs]
