@@ -1667,3 +1667,11 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - آخرین artifactهای Windows: Portable id `14905488281`, size 27093112, archive digest `sha256:e546ddb0c47fc304b878d4c2f267a68ba41a6e056940a853d26ba5e35d9d8819`; Installer id `14906087195`, size 19931075, archive digest `sha256:29bf8583fede4ec69eca0a7056ed3e0e658a635fdd9ebbdd98dcc5d0bc248363`; expires `2027-02-22T09:21:09Z`.
 - لینک artifacts: https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14905488281/zip و https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14906087195/zip.
 - این پایان Workstream A در سطح CI است؛ مواردی که خارج از این مسیر مانده‌اند: live Gemini/OpenAI/OpenRouter با credential مجاز، Word 2010 واقعی و دستگاه اصلی کاربر. ادعای تست این موارد نشده است.
+
+
+### 6.99.37 سخت‌سازی cache و پوشش کامل Batch worker و Live smoke script (2026-11-24)
+- ممیزی کد HEAD ef27db75cbfe9a3508b0cdb79869b7f022e3244c دو بهبود مشخص یافت: helper نتیجهٔ mutable ذخیره‌شده در LRU را بدون کپی برمی‌گرداند؛ live smoke script DOI ورودی URL-prefixed را با پاسخ normalized اشتباه مقایسه می‌کرد.
+- verify_doi_with_crossref اصلاح شد تا دیکشنری مستقل برگرداند و caller نتواند cache process-local را mutate کند.
+- scripts/crossref_live_smoke.py اکنون input و output را با normalize_doi مقایسه می‌کند؛ تست‌های بدون شبکه برای DOI خام، URL-prefixed، case-insensitive، mismatch و status ناموفق اضافه شدند.
+- در tests/runtime_provider_checks.py تست اجرایی جدید اضافه شد که هر دو تابع واقعی batch worker را اجرا می‌کند و assert می‌کند verify_dois_with_crossref=True تا فراخوانی write_single_paper منتقل می‌شود؛ تست قبلی فقط submit به executor را می‌سنجید.
+- این تغییرات هنوز منتظر Python Safety، Research Runtime و Crossref live workflow هستند؛ تا ثبت conclusion موفق، PASS جدید اعلام نمی‌شود.
