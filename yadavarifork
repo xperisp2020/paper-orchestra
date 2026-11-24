@@ -1621,3 +1621,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - اسکریپت با افزودن صریح ریشهٔ مخزن به `sys.path` اصلاح شد. workflow همان یک DOI عمومی، بدون credential، را مجدداً آزمایش می‌کند.
 - نتیجهٔ درخواست مستقیم وب به Crossref برای DOI `10.1038/nature12373` در همان تاریخ پاسخ `status=ok` و DOI مطابق بازگرداند؛ این صرفاً تأیید endpoint از منبع مستقل web است و جای اجرای helper در GitHub Actions را نمی‌گیرد.
 - live workflow جدید پس از commit اصلاح باید دوباره ارزیابی شود؛ تا آن زمان هیچ PASS از helper زنده اعلام نمی‌شود.
+
+
+### 6.99.40 نتایج مثبت مسیر A — 89 تست، Research Runtime و Crossref live (2026-11-24)
+- مقصد پیش از ثبت: repo id 1467327081، owner xperisp2020، branch work/yadavarifork؛ HEAD مبنا 71b4c1f18c0d96cfc05e0f29da98b40ce1226320.
+- Python Safety run `45363478938` روی Ubuntu و Windows هر دو success شدند؛ لاگ هر دو job `Ran 89 tests` را ثبت کرد. این نسخه شامل اصلاح cache transient و Batch propagation بود.
+- Research Runtime run `45363463950` با conclusion=success پایان یافت: Windows Python 3.12 bootstrap و Ubuntu TeX Live/BibTeX bibliography-backed PDF smoke هر دو success.
+- Crossref live run `45363848472` با conclusion=success پایان یافت؛ log: `Crossref live smoke PASS: status=verified doi=10.1038/nature12373`. درخواست از کد helper خود پروژه روی GitHub runner انجام شد؛ API key لازم نبود.
+- اولین live run `45363737924` به‌علت import path نادرست در اسکریپت smoke شکست خورد؛ `sys.path` به ریشهٔ مخزن اصلاح شد و run جدید موفق شد. این failure اولیه و علت آن حفظ می‌شود، نه اینکه از تاریخچه حذف شود.
+- C++/Windows build + clean-runner verification روی نسخهٔ جدید کد در run `45363487717` هنوز pending بود؛ نتیجهٔ artifact جدید تا تکمیل آن pending می‌ماند.
