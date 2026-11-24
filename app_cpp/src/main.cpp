@@ -2239,6 +2239,12 @@ private:
         taskMode_->setEnabled(false);
         projectTitle_->setEnabled(false);
         if (taskMode_->currentData().toString() == QStringLiteral("proposal")) {
+            const QString titleKey = language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("title_fa") : QStringLiteral("title_en");
+            if (!store_.saveSection(*projectId_, titleKey, projectTitle_->text().trimmed(), &error)) {
+                summaryStatus_->setText(error);
+                return;
+            }
             populateSectionList();
             pages_->setCurrentIndex(4);
         } else {
