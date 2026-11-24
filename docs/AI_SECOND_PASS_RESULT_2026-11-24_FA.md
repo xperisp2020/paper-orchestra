@@ -309,3 +309,21 @@
 - commit کد تکمیلی: `6e81d54b57bc81631767db69f50a83fc07fdf3f6`؛ فقط `app_cpp/src/main.cpp` تغییر کرد.
 - پس از ذخیره از طریق dialog واقعی و بازگشایی پروژه، smoke اکنون علاوه بر تطبیق تمام فیلدهای نهایی، خالی‌بودن خطای ذخیره‌سازی و metadata برابر `final_details_status=completed` را نیز assert می‌کند.
 - درخواست فهرست workflowهای Actions با `head_sha` این commit در زمان بررسی `total_count=0` برگرداند؛ بنابراین trigger/اجرای CI هنوز مشاهده نشده و نتیجه همچنان **PENDING** است. هیچ PASS جدیدی ادعا نمی‌شود.
+
+
+### تأیید نهایی CI برای آزمون تعاملی فرم اطلاعات پروپوزال (2026-11-24)
+- CI برای commit کد `6e81d54b57bc81631767db69f50a83fc07fdf3f6` در run `45418371460` اکنون **COMPLETED / SUCCESS** است.
+- هر دو job موفق شدند: `build-windows` و `verify-portable-artifact`.
+- تمام مراحل build job موفق بودند: Configure، Build، Smoke test، ساخت Portable، بارگذاری Portable، نصب compiler نسخه‌ثابت Inno Setup و بارگذاری Installer.
+- clean-runner هر دو artifact را دریافت، استخراج و بررسی کرد و موفق شد.
+- این اجرا assertionهای جدید مسیر Save را نیز روی Windows runner اجرا کرد: ذخیره از dialog واقعی، بازگشایی پروژه، تطبیق فیلدها، نبود خطای ذخیره‌سازی و metadata برابر `final_details_status=completed`. مسیر Skip و خالی‌ماندن فیلدهای اداری نیز در smoke تعاملی پوشش داده شده است.
+- لینک اجرا: https://github.com/xperisp2020/paper-orchestra/actions/runs/45418371460
+- Artifactهای دقیق همین commit:
+  - Portable id `14933312168`, حجم 27,098,091 bytes، ZIP SHA-256 `a4c38def161981617c51ecfda9a701006cbb121eda68bce5a9d5e26b398a78eb`.
+  - Installer id `14933357432`, حجم 19,934,286 bytes، ZIP SHA-256 `b914b77dad75269388c7782707a42f1b318b9127451ec0971c080a6df0234816`.
+  - انقضای هر دو: `2027-02-22T14:49:19Z`. SHA-256ها مربوط به فایل ZIP هستند.
+- لینک‌ها:
+  - [Portable ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14933312168/zip)
+  - [Installer ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14933357432/zip)
+- این CI تأیید اجرای خودکار روی Windows clean runner است؛ آزمون روی دستگاه فیزیکی/VM کاربر و باز/ذخیره/چاپ در Microsoft Word 2010 واقعی را اثبات نمی‌کند.
+- نتیجه: گیت CI برای آزمون تعاملی فرم و بسته‌بندی Windows **PASS**؛ گیت‌های محیط واقعی Windows/VM و Word 2010 همچنان **BLOCKED / نیازمند محیط واقعی** هستند. Gemini/OpenAI پولی نیز بدون مجوز مالی صریح فعال نشده‌اند.
