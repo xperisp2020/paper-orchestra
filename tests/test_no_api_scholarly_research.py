@@ -81,7 +81,7 @@ class NoApiScholarlyResearchTests(unittest.TestCase):
         self.assertEqual(len(records), 14)
         self.assertEqual({r["provider"] for r in records},
                          {"OpenAlex", "Crossref", "Semantic Scholar", "Europe PMC", "DataCite", "OpenAIRE", "arXiv"})
-        self.assertEqual(len({r["doi"] or r["title"] for r in records}), 12)
+        self.assertEqual(len({r["doi"] or r["title"] for r in records}), 14)
         self.assertEqual(len(requested), 6)
         self.assertEqual(records[-1]["provider"], "arXiv")
 
