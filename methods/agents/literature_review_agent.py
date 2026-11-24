@@ -29,6 +29,7 @@ from utils.gemini_utils import call_gemini_with_contents, parse_gemini_latex_res
 from utils.llm_backend_utils import call_llm_with_text_prompt, is_openai_model
 from utils.scholar_utils import s2_title_search, s2_keyword_search
 from utils.doi_utils import normalize_doi
+from utils.crossref_utils import verify_doi_with_crossref
 
 
 class CandidatePaper(BaseModel):
@@ -57,6 +58,7 @@ class PaperData(BaseModel):
     volume: Optional[str] = None
     pages: Optional[str] = None
     publication_date: Optional[str] = None
+    doi_verification_status: Optional[str] = None
 
 
 class WriterOutput(BaseModel):
@@ -74,12 +76,14 @@ class HybridLiteratureAgent:
         output_dir: str,
         model_name: str = "gemini-3.1-pro-preview",
         max_workers: int = 5,
+        verify_dois_with_crossref: bool = False,
     ):
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
 
         self.model_name = model_name
         self.max_workers = max_workers
+        self.verify_dois_with_crossref = bool(verify_dois_with_crossref)
         self.context_paths = {
             "idea.md": idea_path,
             "experimental_log.md": experimental_log_path,
@@ -357,6 +361,27 @@ class HybridLiteratureAgent:
                 if len(abstract_text) > 1500:
                     abstract_text = abstract_text[:1500] + "... [Truncated]"
 
+                normalized_doi = normalize_doi((s2_data.get("externalIds") or {}).get("DOI"))
+                doi_verification_status = None
+                if self.verify_dois_with_crossref and normalized_doi:
+                    try:
+                        verification = verify_doi_with_crossref(normalized_doi)
+                        reported_status = (
+                            verification.get("status")
+                            if isinstance(verification, dict) else None
+                        )
+                        allowed_statuses = {"verified", "not_found", "unavailable", "invalid"}
+                        doi_verification_status = (
+                            reported_status if reported_status in allowed_statuses else "unavailable"
+                        )
+                    except Exception:
+                        # Crossref is an optional, best-effort check. Never discard a paper
+                        # or alter its DOI because the registry is unavailable.
+                        doi_verification_status = "unavailable"
+                    self._safe_print(
+                        f"      -> Crossref DOI check: {doi_verification_status}"
+                    )
+
                 full_obj = PaperData(
                     citation_key=self._generate_key(
                         s2_data.get("authors", []),
@@ -375,7 +400,8 @@ class HybridLiteratureAgent:
                     volume=j_info.get("volume"),
                     pages=j_info.get("pages"),
                     publication_date=s2_data.get("publicationDate"),
-                    doi=normalize_doi((s2_data.get("externalIds") or {}).get("DOI")),
+                    doi=normalized_doi,
+                    doi_verification_status=doi_verification_status,
                 )
 
                 final_norm_title = self._normalize_title(full_obj.title)
@@ -606,6 +632,7 @@ class HybridLiteratureAgent:
                 "year": p.year,
                 "abstract": p.abstract.strip(),
                 "doi": p.doi,
+                "doi_verification_status": p.doi_verification_status,
             }
             for p in papers
             if p.abstract
