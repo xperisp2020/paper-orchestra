@@ -1655,3 +1655,15 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - run `45363848472` از helper واقعی پروژه و DOI عمومی استفاده کرد و log صریح status=verified را ثبت کرد.
 - بنابراین Crossref live از TODO مسیر B خارج و در V3 به‌عنوان PASS علامت‌گذاری شد. تکرار آن فقط در صورت تغییر helper/normalizer یا مشاهدهٔ regression لازم است.
 - تمرکز باقی‌ماندهٔ AI دوم: inventory/patch تغییرات قبلی، provider smokeهای زنده، Windows واقعی/VM و Microsoft Word 2010 واقعی.
+
+
+### 6.99.45 تکمیل و تأیید نهایی مسیر A در CI (2026-11-24)
+- مقصد هنگام شروع ثبت: repo id 1467327081، owner xperisp2020، branch work/yadavarifork، HEAD مبنا 0fcea6f732c96dfdaf4c0413940e347a713ccf07.
+- اصلاحات مسیر A: Batch opt-in propagation به هر دو writer؛ cache فقط status قطعی Crossref و عدم cache transient unavailable؛ live smoke واقعی Crossref؛ runtime regression برای Batch workers؛ README و اسناد به‌روز.
+- Python Safety run `45364548308`: Ubuntu و Windows success. این run بعد از جایگزینی fake SimpleNamespace با concurrent.futures.Future انجام شد.
+- Research Runtime run `45364548656`: Windows Python 3.12 bootstrap/runtime checks موفق؛ لاگ می‌گوید تست `test_crossref_opt_in_reaches_both_batch_process_pools ... ok` و `Ran 18 tests ... OK`. Ubuntu real LaTeX/BibTeX نیز success.
+- Crossref live run `45363848472`: success؛ log واقعی `Crossref live smoke PASS: status=verified doi=10.1038/nature12373`.
+- C++ Windows build/clean-runner run `45364368515`: هر دو job success؛ Build، smoke، Portable و Installer، استخراج/اجرای Portable در مسیر فارسی، DOCX/PDF exports، install، smoke نسخه نصب‌شده، uninstall و حفظ داده sentinel موفق.
+- آخرین artifactهای Windows: Portable id `14905488281`, size 27093112, archive digest `sha256:e546ddb0c47fc304b878d4c2f267a68ba41a6e056940a853d26ba5e35d9d8819`; Installer id `14906087195`, size 19931075, archive digest `sha256:29bf8583fede4ec69eca0a7056ed3e0e658a635fdd9ebbdd98dcc5d0bc248363`; expires `2027-02-22T09:21:09Z`.
+- لینک artifacts: https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14905488281/zip و https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14906087195/zip.
+- این پایان Workstream A در سطح CI است؛ مواردی که خارج از این مسیر مانده‌اند: live Gemini/OpenAI/OpenRouter با credential مجاز، Word 2010 واقعی و دستگاه اصلی کاربر. ادعای تست این موارد نشده است.
