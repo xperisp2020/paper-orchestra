@@ -27,3 +27,12 @@
 
 ## تحویل نهایی
 مسیر A باید commit و CI قابل اثبات ارائه کند؛ مسیر B باید ماتریس provider و Windows/Word را با شواهد و موارد BLOCKED تحویل دهد. سپس دو نتیجه در ممیزی نهایی ادغام می‌شوند.
+
+
+## وضعیت به‌روزشده پس از ممیزی (2026-11-24)
+- مسیر A (اتصال Crossref) پیاده‌سازی شده و Python Safety، Research Runtime/LaTeX و Windows clean-runner verification شواهد PASS دارند.
+- کارهای خودکار قبلی در این نقطه نباید بدون regression تکرار شوند.
+- مسیر B اکنون بر ارائهٔ قابل ممیزی تغییرات قبلی AI دوم، providerهای واقعی، Windows واقعی/VM و Microsoft Word 2010 واقعی متمرکز است.
+- در ممیزی GitHub با HEAD `743d19e11805e4e33f02c8133acde826187a0a31` commit تازه/PR جدید قابل انتساب به AI دوم پیدا نشد؛ ممکن است تغییرات در محیط محلی و pushنشده باشند.
+- برای ادامه، از `docs/AI_HANDOFF_PROVIDER_WORD2010_V2_FA.md` و `docs/AI_SECOND_PASS_RESULT_TEMPLATE_FA.md` استفاده شود.
+- گزارش ممیزی: `docs/AI_SECOND_PASS_AUDIT_FA.md`.
