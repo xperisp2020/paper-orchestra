@@ -51,3 +51,25 @@ def verify_doi_with_crossref(doi, timeout=6):
     except (URLError, socket.timeout, TimeoutError, OSError, ValueError, TypeError):
         return {"status": "unavailable", "doi": normalized,
                 "message": "Crossref could not be reached or returned invalid metadata"}
+
+
+def safe_crossref_verification_status(doi, enabled=False):
+    """Return an allowed Crossref status without allowing verification to block research.
+
+    Disabled checks and missing/malformed DOIs return None. Any unexpected
+    registry response or exception returns unavailable; the caller must retain
+    the original DOI in its citation records.
+    """
+    normalized = normalize_doi(doi)
+    if not enabled or not normalized:
+        return None
+    try:
+        result = verify_doi_with_crossref(normalized)
+    except Exception:
+        return "unavailable"
+    if not isinstance(result, dict):
+        return "unavailable"
+    status = result.get("status")
+    if status not in {"verified", "not_found", "unavailable", "invalid"}:
+        return "unavailable"
+    return status
