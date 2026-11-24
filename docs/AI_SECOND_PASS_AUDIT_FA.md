@@ -84,3 +84,13 @@ V2 و handoff اولیه فقط برای سابقه نگه داشته شده‌�
 - Windows run `45364368515`: build و clean-runner هر دو success؛ Portable/Installer، مسیر فارسی/دارای فاصله، export PDF/DOCX، install/uninstall و حفظ داده موفق.
 - artifactهای جاری: Portable id `14905488281`, digest `sha256:e546ddb0c47fc304b878d4c2f267a68ba41a6e056940a853d26ba5e35d9d8819`; Installer id `14906087195`, digest `sha256:29bf8583fede4ec69eca0a7056ed3e0e658a635fdd9ebbdd98dcc5d0bc248363`; expiry `2027-02-22T09:21:09Z`.
 - موارد باز مسیر B همچنان providerهای live، Word 2010 واقعی و دستگاه اصلی کاربر هستند؛ Crossref live از موارد باز خارج شده است.
+
+
+## بازآزمون نهایی مسیر A پس از hardening defensive (2026-11-24)
+- Python Safety run 45366337200: Ubuntu و Windows success؛ 94 تست هر job.
+- Research Runtime run 45366337215: Windows Python 3.12 runtime و Ubuntu real LaTeX/BibTeX success؛ Windows 19 تست از جمله انتقال مستقیم Crossref option از دو Batch worker تا writer.
+- Crossref live runهای 45366306443 و 45366313174: هر دو success؛ DOI عمومی 10.1038/nature12373 پاسخ verified گرفت.
+- Windows packaging/clean-runner run 45367143582: دو job success؛ Build، Smoke، PDF/DOCX/PNG export validation، ساخت Portable/Installer، اجرای Portable/Installer از مسیر فارسی/دارای فاصله، نصب، uninstall و حفظ داده sentinel.
+- artifactهای جدید: Portable id 14906139648، size 27093368، archive digest sha256:dd4a8991fde4866163d545cf8339224c07739a920ebe6f2c8ab1b511399a45cb؛ Installer id 14907232374، size 19931308، archive digest sha256:57dd5238c287f47dd431676e1fa19537c80ef98c7b5851ce079860400b05b65a؛ expiry 2027-02-22T09:38:40Z.
+- Python Safety و Research Runtime روی commit 4c4daa28 و Windows بسته‌بندی روی HEAD workflow دbe12e9 اجرا شدند. آخرین HEAD شاخه پس از ثبت سند/دفتر باید دوباره از GitHub خوانده شود.
+- مسیر A تکمیل شد؛ موارد واقعی خارج از آن: providerهای live با credentials، Word 2010 واقعی، دستگاه Windows اصلی کاربر.
