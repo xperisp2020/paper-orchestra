@@ -229,3 +229,52 @@
 - patch محلی قابل انتقال: **NOT AVAILABLE**؛ هیچ patch ناشناخته‌ای اعمال یا overwrite نشد.
 - تغییرات مسیر A دست‌نخورده باقی ماندند.
 - این inventory پیش از شروع اصلاح تازهٔ Provider ثبت شد؛ secrets/credential در آن درج نشده است.
+
+
+## 13) عیب‌یابی Provider، اصلاح OpenRouter و چرخهٔ آزمون مجدد (2026-11-24)
+
+### علت‌یابی failure اولیه
+- Provider run `45413396317` روی commit `fcc508910de9c5e4e2c655d12cea642b40a06ce7` برای OpenRouter پاسخ HTTP 200 گرفت، اما harness متن مورد انتظار را تشخیص نداد و `LIVE FAIL reason=empty_or_unexpected_response` ثبت کرد.
+- بررسی request نشان داد smoke برای همهٔ Chat Completions فقط `max_tokens=8` می‌فرستاد؛ در حالی که مدل پیش‌فرض `nvidia/nemotron-3.5-super-vl:free` reasoning را به‌طور پیش‌فرض فعال می‌کند. مستند رسمی OpenRouter می‌گوید reasoning را می‌توان با پارامتر `reasoning` کنترل کرد؛ مستند مدل نیز همین مدل را رایگان و OpenRouter-compatible معرفی می‌کند.
+- اصلاح کم‌هزینه: برای OpenRouter مقدار `reasoning.effort=none` اضافه شد و سقف پاسخ کوتاه از 8 به 16 token افزایش یافت. هیچ retry، درخواست دوم در همان probe، یا provider پولی اضافه نشد.
+
+### اصلاح و آزمون‌ها
+- Commit اصلاحی: `9412064616b8e5bc7f51be02fc3674dc62b077b3`؛ اسکریپت `scripts/provider_live_smoke.py` و تست `tests/test_provider_live_smoke.py` تغییر کردند. تست request اکنون وجود `reasoning.effort=none` و `max_tokens=16` را بررسی می‌کند.
+- یادداشت شفافیت تاریخچه: هنگام ساخت Git tree اصلاحی، base tree به‌درستی به ابزار داده نشده بود و commit `9412064...` موقتاً tree ناقصی ساخت. بلافاصله commit بازیابی `175d9075bff98edaf889ab83e818b90ada4171cd` با parent tree کامل ساخته شد؛ compare از parent قبلی `676919a9c6fe5aa1d25fcbc595a5cc6b4b184c03` تا commit بازیابی فقط دو فایل اسکریپت و تست Provider را modified نشان می‌دهد. tree بازگشتی 137 entry داشت و README، CMake، workflowها، اسناد و فایل‌های اصلی دوباره از GitHub خوانده و موجود بودنشان تأیید شد. هیچ force-push یا reset مخرب انجام نشد. هر دو commit در تاریخچه باقی مانده‌اند.
+- Commit توضیحی برای trigger کردن workflow: `5f8fc56578a9297dba57f32ec88f83eab4069365`.
+- Provider run `45415368110`: **PASS در سطح job**؛ OpenRouter Free نتیجهٔ `LIVE PASS`، مدل `nvidia/nemotron-3.5-super-vl:free`، HTTP 200، زمان 478ms. Gemini و OpenAI به‌صورت عمدی `BLOCKED reason=not_enabled` باقی ماندند؛ هیچ آزمون پولی انجام نشد.
+- Python Safety run `45415328764`: Ubuntu و Windows هر دو success؛ هر کدام **102 تست** اجرا کردند.
+- Research Runtime run `45415328732`: job ویندوز bootstrap و job Ubuntu LaTeX/BibTeX هر دو success.
+- Portable Windows CI run `45415328651`: success.
+- Windows MiKTeX smoke run `45415328550`: success؛ PDF مبتنی بر bibliography واقعی در runner ویندوز ساخته شد.
+- C++ Windows portable CI run `45415328570`: هر دو job Build و clean-runner success؛ CTest شامل `app_smoke` و `research_engine_runner_contract`، نتیجه `100% tests passed, 0 tests failed out of 2`. clean runner موفقیت Portable save/reopen و export در مسیر Unicode، و Installer install/app smoke/uninstall/user-data preservation را ثبت کرد.
+- Artifactهای همین run:
+  - Portable id `14932002540`, size 27096756 bytes, ZIP SHA-256 `c1b24adea5081f8000441b8188e94ce8e65667647f9d0939053d55e0ec2ed473`.
+  - Installer id `14932192574`, size 19933340 bytes, ZIP SHA-256 `ed0d829e98e6e2a1c0cd614bee899cb31f48bcdcb38c4f2db6404d727bf9cd61`.
+  - هر دو artifact تا `2027-02-22T14:33:01Z` معتبرند؛ digestها مربوط به ZIP هستند.
+- Crossref live run `45415328728`: success؛ مسیر A بدون تغییر باقی ماند.
+
+### تغییرات هم‌زمان بعدی در شاخه
+- دو commit موازی روی همان شاخه و توسط جریان کاری دیگری ثبت شد:
+  - `2398f960066a9746d97eb55f0b1eb2a2cf5e1562` — افزودن پوشش محتوای فارسی و RTL در DOCX.
+  - `0e9cc4ae54860c479eb8fa0fb69ad5592310df3f` — اعتبارسنجی XML مربوط به RTL و خالی‌ماندن فیلدهای اداری.
+- این تغییرات فقط بازبینی و حفظ شدند؛ هیچ‌کدام overwrite نشدند. C++ Windows CIهای مرتبط `45415689848` و `45415730486` هنگام آخرین بررسی در حال اجرا بودند؛ تا نتیجهٔ نهایی آن‌ها PASS جدید برای این تغییرات ادعا نمی‌شود.
+
+### وضعیت گیت‌ها پس از چرخهٔ اصلاح
+| Gate | Result |
+|---|---|
+| OpenRouter Free live smoke | **LIVE PASS** — run `45415368110` |
+| Gemini live smoke | **BLOCKED** — عمداً not enabled؛ opt-in هزینه‌دار داده نشده |
+| OpenAI live smoke | **BLOCKED** — عمداً not enabled؛ opt-in هزینه‌دار داده نشده |
+| Python Safety | **PASS** — 102 tests در Ubuntu و Windows |
+| Research Runtime / LaTeX-BibTeX | **PASS** |
+| Windows GitHub build + clean-runner | **PASS** — run `45415328570` |
+| Windows MiKTeX real bibliography PDF smoke | **PASS** — run `45415328550` |
+| Crossref live | **PASS** — run `45415328728` |
+| Windows دستگاه فیزیکی یا VM کاربر | **BLOCKED** — محیط تعاملی در دسترس نیست |
+| Microsoft Word 2010 واقعی | **BLOCKED** — نسخه/build/bitness و آزمون باز/ذخیره/چاپ قابل دسترسی نیست |
+| workspace محلی AI دوم | **NO LOCAL WORKSPACE ACCESS** |
+
+- هیچ Secret یا Authorization header در log/commit/artifact چاپ نشد. پاسخ provider و متن exception خام ذخیره یا نمایش داده نشد.
+- هیچ Gemini/OpenAI پولی، Release، انتشار عمومی، merge به `main` یا تغییر مسیر A انجام نشد.
+- وضعیت پروژه هنوز **کامل نیست**؛ گیت‌های Word 2010 و Windows فیزیکی/VM و opt-in هزینه‌دار Gemini/OpenAI باز هستند.
