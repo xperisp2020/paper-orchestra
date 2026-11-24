@@ -472,7 +472,8 @@ public:
         QString storageError;
         const auto saved = store_.loadSections(*projectId_, &storageError);
         if (saved.value(QStringLiteral("problem_statement")) !=
-            QStringLiteral("Persisted by GUI smoke test"))
+                QStringLiteral("Persisted by GUI smoke test") ||
+            saved.value(QStringLiteral("title_fa")) != projectTitle_->text())
             return 29;
         for (const QString &key : finalDetailKeys()) {
             if (!saved.value(key).isEmpty())
