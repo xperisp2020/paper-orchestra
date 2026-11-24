@@ -49,3 +49,13 @@ python paper_writing_cli.py --help
 - workflow جدید `.github/workflows/crossref-live-smoke.yml` فقط هنگام تغییر helper/normalizer/script یا اجرای دستی فعال می‌شود.
 - `scripts/crossref_live_smoke.py` یک درخواست عمومی با DOI شناخته‌شدهٔ `10.1038/nature12373` می‌فرستد؛ هیچ credential لازم نیست و فقط status و DOI عمومی در log چاپ می‌شود.
 - این workflow از تست‌های mock و Python Safety جداست؛ نتیجهٔ PASS آن به معنی دسترسی endpoint از GitHub runner است، نه تضمین دسترسی از تمام شبکه‌های کاربر.
+
+### نتایج تأییدشدهٔ مسیر A پس از اصلاح Batch و cache
+- Python Safety run `45363478938`: Ubuntu و Windows هر دو success؛ هر کدام 89 تست. شامل آزمون انتقال Crossref به دو batch worker و retry پس از HTTP 503.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45363478938
+- Research Runtime run `45363463950`: bootstrap Windows و LaTeX/BibTeX واقعی روی Ubuntu هر دو success.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45363463950
+- Live Crossref run `45363848472`: success؛ log صریحاً `Crossref live smoke PASS: status=verified doi=10.1038/nature12373` را ثبت کرد.
+  https://github.com/xperisp2020/paper-orchestra/actions/runs/45363848472
+- live smoke یک درخواست عمومی و کم‌هزینه با DOI شناخته‌شده انجام می‌دهد؛ این فقط دسترسی helper از GitHub runner را ثابت می‌کند و دسترسی تمام دستگاه‌ها/شبکه‌ها را تضمین نمی‌کند.
+- C++/Windows بسته‌بندی با کد منبع Batch و Crossref در workflow جاری `45363487717` هنوز باید به conclusion نهایی برسد؛ artifact نسخهٔ قبلی تا قبل از آن آخرین بستهٔ تأییدشده باقی می‌ماند.
