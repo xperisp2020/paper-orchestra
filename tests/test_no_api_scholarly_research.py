@@ -31,7 +31,7 @@ class NoApiScholarlyResearchTests(unittest.TestCase):
         self.assertEqual(record["provider"], "Semantic Scholar")
         self.assertIn("useful evidence", record["abstract"])
 
-    def test_discovery_uses_six_indexes_and_deduplicates_records(self):
+    def test_discovery_uses_seven_indexes_and_deduplicates_records(self):
         def openalex_record(i):
             return {"title": f"OpenAlex scholarly paper number {i}", "doi": f"10.1111/openalex{i}",
                     "publication_year": 2024, "authorships": [], "abstract_inverted_index": None}
