@@ -2345,12 +2345,19 @@ int main(int argc, char *argv[]) {
         return window.runSmokeTest();
     }
 
-    const QString dataDirectory = QDir(QCoreApplication::applicationDirPath())
-                                      .filePath(QStringLiteral("data"));
-    if (!QDir().mkpath(dataDirectory)) {
-        QMessageBox::critical(nullptr, QStringLiteral("Yadavarifork"),
-                              QStringLiteral("Cannot create the portable data directory."));
-        return 5;
+    QString dataDirectory = qEnvironmentVariable("YADAVARIFORK_DATA_DIR").trimmed();
+    if (dataDirectory.isEmpty()) {
+        dataDirectory = QDir(QCoreApplication::applicationDirPath())
+                            .filePath(QStringLiteral("data"));
+    }
+    if (!QDir().mkpath(dataDirectory) || !QFileInfo(dataDirectory).isWritable()) {
+        dataDirectory = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        if (dataDirectory.isEmpty() || !QDir().mkpath(dataDirectory) ||
+            !QFileInfo(dataDirectory).isWritable()) {
+            QMessageBox::critical(nullptr, QStringLiteral("Yadavarifork"),
+                                  QStringLiteral("Cannot create a writable application data directory."));
+            return 5;
+        }
     }
     ProjectStore store(QDir(dataDirectory).filePath(QStringLiteral("projects.sqlite3")));
     QString error;
