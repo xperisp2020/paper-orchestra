@@ -272,7 +272,7 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
             "۴) مشخص‌کردن خلأهای قابل‌آزمون برای پژوهش بعدی."
         )
         strategy = (
-            "جست‌وجوی ماشینی با عبارت موضوعی عنوان پروژه در رابط عمومی OpenAlex Works و Crossref REST انجام شد. "
+            "جست‌وجوی ماشینی با عبارت موضوعی عنوان پروژه در رابط‌های عمومی OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite و arXiv انجام شد. "
             "نتایج بر اساس ارتباط/ترتیب ارائه‌شده توسط هر سرویس دریافت و بر مبنای DOI یا عنوان یکتا شدند. "
             "Google Scholar در این نسخه به‌صورت خودکار خزش نمی‌شود؛ برای تکمیل پوشش، جست‌وجوی دستی همان عبارت در "
             "Google Scholar و ثبت نتایج واجد شرایط توصیه می‌شود."
@@ -298,7 +298,7 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
             "رکوردها و چکیده‌های قابل دسترس:\n" + evidence + "\n\nمنابع کتاب‌شناختی:\n" + refs
         )
         methodology = (
-            "طرح پیشنهادی: مرور دامنه‌ای مقدماتی با پروتکل قابل تکرار. پایگاه‌ها: OpenAlex و Crossref؛ "
+            "طرح پیشنهادی: مرور دامنه‌ای مقدماتی با پروتکل قابل تکرار. پایگاه‌ها: OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite و arXiv؛ "
             "Google Scholar فقط از طریق جست‌وجوی دستی و مطابق شرایط استفاده. ثبت تاریخ جست‌وجو، عبارت‌ها، "
             "تعداد نتایج، DOI، معیارهای ورود/خروج و دلایل حذف ضروری است. پس از حذف موارد تکراری، "
             "دو مرحله غربالگری عنوان/چکیده و متن کامل، سپس استخراج داده و ارزیابی کیفیت انجام شود."
@@ -323,12 +323,12 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
         )
         question = f"What findings, methods, and evidence gaps are reported in indexed literature about {query}?"
         objectives = "1. Identify relevant indexed studies.\n2. Summarize recurring topics and methods in available abstracts.\n3. Separate direct evidence from metadata-only information.\n4. Identify testable research gaps."
-        strategy = "Automated topic search was run against the public OpenAlex Works and Crossref REST endpoints. Records were deduplicated by DOI or normalized title. Google Scholar is not scraped automatically; a manual supplementary search is recommended."
+        strategy = "Automated topic search was run against the public OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, and arXiv endpoints. Records were deduplicated by DOI or normalized title. Google Scholar is not scraped automatically; a manual supplementary search is recommended."
         inclusion = "Clearly topic-relevant titles with identifiable bibliographic records; DOI, publication year, and venue are preferred. This is preliminary screening, not quality appraisal."
         exclusion = "Records without valid titles, duplicates, and records whose relevance cannot be defended from their metadata. Full-text quality exclusions have not yet been performed."
         synthesis = f"Unique records retrieved: {len(records)}.\nAbstracts available: {len(abstracts)}.\n\nAbstracts for preliminary content analysis:\n{evidence}"
         findings = "At this stage, the defensible findings are the retrieved records and their bibliographic metadata. Substantive conclusions require full-text review and extraction of each study's design, sample, methods, and results.\n\n" + evidence
-        methodology = "Proposed design: a preliminary scoping review. Search OpenAlex and Crossref; supplement with manual Google Scholar and subject-database searches where licensed. Record dates, queries, result counts, DOI, inclusion/exclusion decisions, and reasons. Deduplicate, screen titles/abstracts and full texts, extract data, and appraise quality."
+        methodology = "Proposed design: a preliminary scoping review. Search OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, and arXiv; supplement with manual Google Scholar and subject-database searches where licensed. Record dates, queries, result counts, DOI, inclusion/exclusion decisions, and reasons. Deduplicate, screen titles/abstracts and full texts, extract data, and appraise quality."
         limitations = "Public metadata APIs do not provide abstracts/full text for every record. Provider ranking is not quality appraisal. Google Scholar was not automatically crawled. Independent screening, risk-of-bias appraisal, and manual DOI verification remain outstanding."
         future = "1. Supplement with manual Google Scholar and institutionally available databases.\n2. Retrieve and screen full texts.\n3. Extract design, sample, instruments, results, and limitations.\n4. Appraise quality and update the synthesis."
         sources_text = refs
