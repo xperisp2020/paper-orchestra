@@ -1643,3 +1643,9 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - مستند README اکنون علاوه بر CLI و Qt، پارامتر برنامه‌نویسی هر دو تابع `run_batch_writeup` را نیز معرفی می‌کند: `verify_dois_with_crossref=True`; مقدار پیش‌فرض همچنان False است.
 - این تغییر مستنداتی است و مسیرهای کد Batch در commitهای قبلی تست شده‌اند؛ C++ Windows packaging با مسیر README به‌صورت خودکار اجرا می‌شود تا artifactهای جدید با آخرین README/فایل‌های scripts همگام بمانند.
 - وضعیت runtime Batch integration test run 45364177815 در زمان این ثبت: Ubuntu LaTeX smoke success؛ Windows bootstrap هنوز در حال اجرا بود.
+
+
+### 6.99.43 اصلاح harness آزمون runtime دسته‌ای (2026-11-24)
+- اجرای Research Runtime run `45364177815` در job ویندوز به تست جدید `test_crossref_opt_in_reaches_both_batch_process_pools` رسید، اما هر دو subtest به‌علت `TypeError: unhashable type: 'types.SimpleNamespace'` شکست خوردند؛ executor result به‌عنوان کلید دیکشنری futures استفاده می‌شد و SimpleNamespace قابل hash نبود.
+- این failure از fake future آزمون بود، نه از تابع‌های محصول؛ اکنون با `concurrent.futures.Future` واقعی که result آن از قبل تنظیم شده جایگزین می‌شود.
+- Research Runtime مجدداً پس از commit اجرا می‌شود؛ تا دریافت success ادعای عبور این تست runtime ثبت نمی‌شود.
