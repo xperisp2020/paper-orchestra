@@ -105,9 +105,12 @@ def verify_doi_with_crossref(doi, timeout=6):
 
     mailto = os.environ.get("CROSSREF_MAILTO", "").strip()
     try:
-        return _cached_crossref_lookup(normalized, timeout_value, mailto)
+        cached_result = _cached_crossref_lookup(normalized, timeout_value, mailto)
     except _TransientCrossrefResult as transient:
-        return transient.result
+        cached_result = transient.result
+    # The LRU stores mutable dictionaries. Return a copy so callers cannot
+    # accidentally corrupt the process-wide cached result for later papers.
+    return dict(cached_result)
 
 
 # Keep the small testing/diagnostic cache-reset interface on the public function.
