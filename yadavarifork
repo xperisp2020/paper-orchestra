@@ -1598,4 +1598,4 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - V2 handoff و audit مفیدند اما گزارش آن‌ها در زمان HEAD اولیهٔ `743d19e` نوشته شده؛ برای جلوگیری از تناقض، audit با addendum شش commit به‌روز و V2 superseded شد. split document اکنون به V3 ارجاع می‌دهد.
 - وضعیت CI مجدداً بررسی شد: Python Safety run `45356267071` هر دو job Ubuntu/Windows success (86 تست هرکدام)؛ Research Runtime `45356069474` هر دو job success؛ Windows build+clean-runner `45356339161` هر دو job success.
 - موارد هنوز حل‌نشده: اثبات/دریافت patch تغییرات محلی AI دوم؛ provider live Gemini/OpenAI/OpenRouter؛ Microsoft Word 2010 واقعی؛ Windows دستگاه اصلی کاربر؛ Crossref live.
-- دو فایل جدید ساخته می‌شود: `docs/AI_HANDOFF_PROVIDER_WORD2010_V3_FA.md` و `docs/AI_CHANGE_INVENTORY_AND_PATCH_REQUEST_FA.md`. گزارش قالب و audit و split و handoff قدیمی/ V2 به‌روزرسانی می‌شوند.
+- دو فایل جدید ساخته شد: `docs/AI_HANDOFF_PROVIDER_WORD2010_V3_FA.md` و `docs/AI_CHANGE_INVENTORY_AND_PATCH_REQUEST_FA.md`. گزارش قالب و audit و split و handoff قدیمی/ V2 به‌روزرسانی می‌شوند.
