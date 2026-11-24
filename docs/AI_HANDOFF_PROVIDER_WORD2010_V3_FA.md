@@ -41,11 +41,13 @@
   https://github.com/xperisp2020/paper-orchestra/actions/runs/45356339161
 
 ### Artifactهای تأییدشده
-- Portable artifact id `14903375441`, ZIP size `27091376` bytes, archive digest `sha256:bd96c20e79558029fbbfe25841e6a3f54797eff50020eb5df63c8735b95d5646`.
-- Installer artifact id `14902098063`, ZIP size `19929671` bytes, archive digest `sha256:f86742f3136f3344422fcda05a5798789bec3209fa94f4b532c6a41ada36bca5`.
-- Expiry: `2027-02-22T08:27:57Z`.
-- [Portable ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14903375441/zip)
-- [Installer ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14902098063/zip)
+### آخرین artifactهای تأییدشده (run 45364368515)
+- Portable artifact id `14905488281`, ZIP size `27093112` bytes, archive digest `sha256:e546ddb0c47fc304b878d4c2f267a68ba41a6e056940a853d26ba5e35d9d8819`.
+- Installer artifact id `14906087195`, ZIP size `19931075` bytes, archive digest `sha256:29bf8583fede4ec69eca0a7056ed3e0e658a635fdd9ebbdd98dcc5d0bc248363`.
+- Expiry: `2027-02-22T09:21:09Z`.
+- [Portable ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14905488281/zip)
+- [Installer ZIP](https://api.github.com/repos/xperisp2020/paper-orchestra/actions/artifacts/14906087195/zip)
+- These are archive ZIP digests, not hashes of the extracted executable.
 
 این نتایج روی Windows Server 2022 clean runner است؛ نه دستگاه اصلی کاربر و نه Word 2010 واقعی. hashهای بالا digest آرشیو ZIP هستند.
 
@@ -126,3 +128,10 @@ DOCX تولیدشده را فقط در Microsoft Word 2010 واقعی باز ک�
 ### وضعیت جدید مسیر A در نسخهٔ بعدی (2026-11-24)
 - Crossref live، Batch propagation و cache transient در مسیر A تکمیل شده‌اند؛ جزئیات و CIها در `docs/WORKSTREAM_A_CROSSREF_PIPELINE_FA.md` و دفتر `yadavarifork` ثبت است.
 - مسیر B اکنون Crossref live را از scope عادی خود خارج می‌کند، مگر آنکه regression جدیدی رخ دهد.
+
+
+### شواهد تکمیلی مسیر A (2026-11-24)
+- Python Safety `45364548308`: Ubuntu/Windows success.
+- Research Runtime `45364548656`: Windows runtime 18 tests `OK`; Ubuntu LaTeX/BibTeX success.
+- Crossref live `45363848472`: helper واقعی پروژه status=verified برای DOI `10.1038/nature12373`.
+- Windows build + clean-runner `45364368515`: success؛ artifactهای جاری Portable `14905488281` و Installer `14906087195`.
