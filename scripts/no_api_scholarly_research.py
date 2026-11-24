@@ -109,14 +109,20 @@ def normalize_crossref(item: dict[str, Any]) -> dict[str, str]:
 
 def discover(query: str, target: int = 20, sleeper=time.sleep) -> tuple[list[dict[str, str]], list[str]]:
     target = max(10, min(MAX_PER_SOURCE, target))
-    encoded = urllib.parse.urlencode({"search": query, "per-page": min(100, target * 2), "sort": "relevance_score:desc"})
+    crossref_query = urllib.parse.urlencode({
+        "query.bibliographic": query,
+        "rows": min(100, target * 2),
+        "select": "DOI,title,author,published,published-print,published-online,created,container-title,URL,abstract,type",
+        "sort": "score",
+        "order": "desc",
+    })
     sources: list[dict[str, str]] = []
     errors: list[str] = []
     seen: set[str] = set()
 
     providers = [
         ("OpenAlex", OPENALEX + "?" + urllib.parse.urlencode({"search": query, "per-page": min(100, target * 2), "sort": "relevance_score:desc"})),
-        ("Crossref", CROSSREF + "?" + encoded),
+        ("Crossref", CROSSREF + "?" + crossref_query),
     ]
     provider_quota = max(5, target // 2)
     for provider, url in providers:
