@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Sql PrintSupport)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Sql PrintSupport Svg)
 
 enable_testing()
 
@@ -24,7 +24,7 @@ set(YADAVARIFORK_SOURCES
 )
 
 qt_add_executable(yadavarifork ${YADAVARIFORK_SOURCES})
-target_link_libraries(yadavarifork PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport Qt6::Core)
+target_link_libraries(yadavarifork PRIVATE Qt6::Widgets Qt6::Sql Qt6::PrintSupport Qt6::Svg Qt6::Core)
 
 # A console-subsystem test binary keeps diagnostics visible to CTest on Windows.
 qt_add_executable(yadavarifork_smoke EXCLUDE_FROM_ALL ${YADAVARIFORK_SOURCES})
