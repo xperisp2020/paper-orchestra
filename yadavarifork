@@ -1687,3 +1687,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - Windows artifacts: Portable `14906139648`, size 27093368, ZIP SHA-256 `dd4a8991fde4866163d545cf8339224c07739a920ebe6f2c8ab1b511399a45cb`; Installer `14907232374`, size 19931308, ZIP SHA-256 `57dd5238c287f47dd431676e1fa19537c80ef98c7b5851ce079860400b05b65a`; expiry `2027-02-22T09:38:40Z`.
 - workflow Windows اکنون `scripts/**` را monitor می‌کند تا تغییر هر فایل bundled script بسته‌بندی را trigger کند.
 - مسیر A در سطح کد، helper/live smoke، Single-run/Batch، CLI/Qt، Python Safety، Research Runtime و Windows clean-runner بسته شد. باقی‌مانده‌های کل پروژه مربوط به مسیر B هستند: provider live با credentials امن، Word 2010 واقعی، دستگاه اصلی کاربر، و موجودی/patch تغییرات قبلی AI دوم.
+
+
+### 6.99.39 موجودی اولیهٔ مسیر B و ثبت گیت‌های باز (2026-11-24)
+- مقصد پیش از ثبت کنترل شد: repo id 1467327081، owner xperisp2020، branch work/yadavarifork، HEAD `de2f3f15c4eb6f7b36d06be615309ee94b0b074a`.
+- workspace محلی هوش مصنوعی دوم در دسترس نبود؛ وضعیت دقیق `NO LOCAL WORKSPACE ACCESS` است، نه `NO PRIOR CHANGES`. هیچ patch محلی برای review ارائه نشده است.
+- مقایسهٔ checkpoint مسیر A با HEAD فعلی نشان داد دو commit اخیر صرفاً مستندات/دفتر را تغییر داده‌اند؛ هیچ source code، test یا workflow در آن بازه تغییر نکرده است.
+- گزارش مرحله‌ای مسیر B در `docs/AI_SECOND_PASS_RESULT_2026-11-24_FA.md` ثبت شد؛ شامل وضعیت فعلی providerها، Windows واقعی/VM، Word 2010 و شواهد Crossref.
+- در این مرحله هیچ credential خوانده/چاپ نشد؛ هیچ آزمون live provider اجرا نشد؛ هیچ کد محصول تغییر نکرد.
+- Crossref live و CI مسیر A طبق runهای ثبت‌شده PASS باقی مانده‌اند؛ providerهای زنده و دسترسی Windows واقعی/Word 2010 همچنان BLOCKED/باز هستند.
