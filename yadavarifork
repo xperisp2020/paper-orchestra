@@ -1578,3 +1578,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - artifactهای جدید run موفق: Portable id 14903375441, size 27091376, archive digest sha256:bd96c20e79558029fbbfe25841e6a3f54797eff50020eb5df63c8735b95d5646, expires 2027-02-22T08:27:57Z؛ Installer id 14902098063, size 19929671, archive digest sha256:f86742f3136f3344422fcda05a5798789bec3209fa94f4b532c6a41ada36bca5, همان تاریخ انقضا.
 - تأکید: این clean-runner ویندوزی است؛ تست رایانهٔ شخصی کاربر و Word 2010 واقعی هنوز انجام نشده است. providerهای live و درخواست live به Crossref هم جداگانه باز هستند.
 - فایل handoff مسیر B به artifactهای جدید و این نتیجه به‌روز شد؛ این تغییر مسیر B را بدون تعارض با فایل‌های کد مسیر A به‌روز می‌کند.
+
+
+### 6.99.35 ممیزی ادعای تغییرات AI دوم و انتشار دستورالعمل نسخهٔ 2 (2026-11-24)
+- مخزن/شاخه پیش از عملیات دوباره تأیید شد: repo id 1467327081، owner xperisp2020، branch work/yadavarifork، HEAD آغاز ممیزی 743d19e11805e4e33f02c8133acde826187a0a31.
+- بررسی branches نشان داد فقط main و work/yadavarifork وجود دارد؛ بررسی Pull Requests نتیجهٔ خالی داشت. تاریخچهٔ branch تا HEAD ثبت‌شده commit جدیدی از زمان تحویل قبلی AI دوم نشان نداد. فایل تازه‌ای از AI دوم در پیوست‌های همین گفتگو موجود نبود. بنابراین تغییرات محلی/commitنشده یا workspace مستقل آن AI از راه GitHub/فایل‌های موجود قابل مشاهده نبود؛ نباید دربارهٔ آن‌ها حدس زد.
+- شواهد تأییدشدهٔ فعلی: Python Safety run 45356267071 موفق (86 تست Ubuntu و Windows)؛ Research Runtime run 45356069474 موفق (Windows Python 3.12 bootstrap و Ubuntu TeX Live 2025/BibTeX/PDF compile)؛ C++ Windows run 45356339161 موفق (build, smoke, Portable/Installer, clean-runner smoke/export, install/uninstall/data sentinel).
+- artifactهای Windows جاری: Portable id 14903375441، archive digest bd96c20e79558029fbbfe25841e6a3f54797eff50020eb5df63c8735b95d5646؛ Installer id 14902098063، archive digest f86742f3136f3344422fcda05a5798789bec3209fa94f4b532c6a41ada36bca5؛ expiry 2027-02-22T08:27:57Z.
+- موارد واقعی باز: provider live (Gemini/OpenAI/OpenRouter)، Microsoft Word 2010 واقعی، اجرای روی دستگاه واقعی کاربر، و Crossref live. Mock و clean-runner به‌جای این تست‌ها پذیرفته نیستند.
+- فایل‌های جدید ساخته شدند: docs/AI_SECOND_PASS_AUDIT_FA.md، docs/AI_HANDOFF_PROVIDER_WORD2010_V2_FA.md، docs/AI_SECOND_PASS_RESULT_TEMPLATE_FA.md. نسخهٔ قبلی handoff به‌عنوان superseded علامت‌گذاری و split document نیز به‌روز شد.
+- هوش مصنوعی دوم باید قبل از هر کار تازه، تغییرات قبلی خود را با commit SHA/diff/patch قابل بررسی ارائه کند؛ اگر تغییرات فقط local هستند باید patch تحویل دهد یا پس از بررسی مقصد مجاز آن‌ها را بدون force-push منتقل کند.
