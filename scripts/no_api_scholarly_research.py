@@ -118,10 +118,12 @@ def discover(query: str, target: int = 20, sleeper=time.sleep) -> tuple[list[dic
         ("OpenAlex", OPENALEX + "?" + urllib.parse.urlencode({"search": query, "per-page": min(100, target * 2), "sort": "relevance_score:desc"})),
         ("Crossref", CROSSREF + "?" + encoded),
     ]
+    provider_quota = max(5, target // 2)
     for provider, url in providers:
         try:
             payload = request_json(url)
             rows = payload.get("results") or (payload.get("message") or {}).get("items") or []
+            provider_added = 0
             for raw in rows:
                 if not isinstance(raw, dict):
                     continue
@@ -134,10 +136,9 @@ def discover(query: str, target: int = 20, sleeper=time.sleep) -> tuple[list[dic
                     continue
                 seen.add(identity)
                 sources.append(record)
-                if len(sources) >= target:
+                provider_added += 1
+                if provider_added >= provider_quota or len(sources) >= target:
                     break
-            if len(sources) >= target:
-                break
         except (OSError, ValueError, urllib.error.URLError, TimeoutError) as exc:
             errors.append(f"{provider}: {type(exc).__name__}: {exc}")
         sleeper(0.25)
@@ -195,12 +196,12 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
             f"چکیده‌های قابل‌دسترسی: {len(abstracts)}.\n\n"
             "متن چکیده‌های قابل‌دسترسی برای تحلیل محتوای مقدماتی در زیر آورده شده است. "
             "تا زمانی که متن کامل و روش هر مطالعه بررسی نشده، از این داده‌ها نتیجهٔ علّی، اندازه اثر، "
-            "یا ادعای اجماع علمی استنتاج نمی‌شود.\n\n" + evidence
+            "یا ادعای اجماع علمی استنتاج نمی‌شود.\n\n" + evidence + "\n\nمنابع کتاب‌شناختی:\n" + refs
         )
         findings = (
             "یافتهٔ قابل اتکا در این مرحله، فهرست مطالعات بازیابی‌شده و اطلاعات کتاب‌شناختی آن‌هاست. "
             "جمع‌بندی ماهوی باید پس از بررسی متن کامل، استخراج نمونه/روش/نتایج هر مطالعه و ارزیابی خطر سوگیری تکمیل شود.\n\n"
-            "رکوردها و چکیده‌های قابل دسترس:\n" + evidence
+            "رکوردها و چکیده‌های قابل دسترس:\n" + evidence + "\n\nمنابع کتاب‌شناختی:\n" + refs
         )
         methodology = (
             "طرح پیشنهادی: مرور دامنه‌ای مقدماتی با پروتکل قابل تکرار. پایگاه‌ها: OpenAlex و Crossref؛ "
