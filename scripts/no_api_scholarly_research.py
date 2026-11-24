@@ -18,9 +18,10 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-USER_AGENT = "PaperOrchestra-NoAPI-Research/1.0 (mailto:research@example.org)"
+USER_AGENT = "PaperOrchestra/0.1 (https://github.com/xperisp2020/paper-orchestra)"
 OPENALEX = "https://api.openalex.org/works"
 CROSSREF = "https://api.crossref.org/works"
+SEMANTIC_SCHOLAR = "https://api.semanticscholar.org/graph/v1/paper/search"
 MAX_PER_SOURCE = 30
 
 
@@ -107,6 +108,28 @@ def normalize_crossref(item: dict[str, Any]) -> dict[str, str]:
     }
 
 
+
+def normalize_semantic_scholar(item: dict[str, Any]) -> dict[str, str]:
+    authors = []
+    for author in item.get("authors", []) or []:
+        if isinstance(author, dict) and author.get("name"):
+            authors.append(clean_text(author["name"]))
+    external_ids = item.get("externalIds") or {}
+    doi = clean_text(external_ids.get("DOI")).lower()
+    return {
+        "title": clean_text(item.get("title")),
+        "authors": "; ".join(authors[:8]),
+        "year": str(item.get("year") or ""),
+        "doi": doi,
+        "url": ("https://doi.org/" + doi) if doi else clean_text(item.get("url")),
+        "abstract": clean_text(item.get("abstract")),
+        "venue": clean_text(item.get("venue")),
+        "provider": "Semantic Scholar",
+        "type": "; ".join(item.get("publicationTypes") or []),
+        "is_oa": str(bool(item.get("isOpenAccess"))).lower(),
+    }
+
+
 def discover(query: str, target: int = 20, sleeper=time.sleep) -> tuple[list[dict[str, str]], list[str]]:
     target = max(10, min(MAX_PER_SOURCE, target))
     crossref_query = urllib.parse.urlencode({
@@ -120,20 +143,31 @@ def discover(query: str, target: int = 20, sleeper=time.sleep) -> tuple[list[dic
     errors: list[str] = []
     seen: set[str] = set()
 
+    semantic_query = urllib.parse.urlencode({
+        "query": query,
+        "limit": min(100, target * 2),
+        "fields": "title,authors,year,abstract,venue,externalIds,url,publicationTypes,isOpenAccess",
+    })
     providers = [
         ("OpenAlex", OPENALEX + "?" + urllib.parse.urlencode({"search": query, "per-page": min(100, target * 2), "sort": "relevance_score:desc"})),
         ("Crossref", CROSSREF + "?" + crossref_query),
+        ("Semantic Scholar", SEMANTIC_SCHOLAR + "?" + semantic_query),
     ]
-    provider_quota = max(5, target // 2)
+    provider_quota = max(4, (target + len(providers) - 1) // len(providers))
     for provider, url in providers:
         try:
             payload = request_json(url)
-            rows = payload.get("results") or (payload.get("message") or {}).get("items") or []
+            rows = payload.get("results") or (payload.get("message") or {}).get("items") or payload.get("data") or []
             provider_added = 0
             for raw in rows:
                 if not isinstance(raw, dict):
                     continue
-                record = normalize_openalex(raw) if provider == "OpenAlex" else normalize_crossref(raw)
+                if provider == "OpenAlex":
+                    record = normalize_openalex(raw)
+                elif provider == "Crossref":
+                    record = normalize_crossref(raw)
+                else:
+                    record = normalize_semantic_scholar(raw)
                 title = record["title"]
                 if len(title) < 8:
                     continue
