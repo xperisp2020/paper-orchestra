@@ -104,6 +104,23 @@ jobs:
                   assert line_index + 1 < len(paragraph_texts) and paragraph_texts[line_index + 1] == "Second line", (
                       f"{first_line} second line was not exported as a separate paragraph"
                   )
+              for rtl_text in ("متن فارسی & <بررسی>", "متن فارسی & <بررسی استاد>"):
+                  assert rtl_text in paragraph_texts, f"Persian/escaped text missing from DOCX: {rtl_text}"
+              assert any(True for _ in doc.iter(ns + "bidi")), "DOCX paragraphs are missing RTL bidi properties"
+              assert any(True for _ in doc.iter(ns + "rtl")), "DOCX runs are missing RTL text properties"
+              administrative_labels = (
+                  "شماره بایگانی", "تاریخ تصویب", "تأیید استاد راهنما",
+                  "تأیید استاد مشاور", "اطلاعات فرم طرح", "تعهدنامه دانشجو",
+                  "تعهدنامه استاد راهنما", "سایر تعهدات پژوهش", "نظر کمیته تخصصی",
+                  "ارزیابی علمی", "صورت‌جلسه شورای گروه",
+                  "نظر شورای پژوهشی دانشکده", "تأیید نهایی",
+              )
+              for label in administrative_labels:
+                  assert label in paragraph_texts, f"Administrative field label missing: {label}"
+                  label_index = paragraph_texts.index(label)
+                  assert label_index + 1 < len(paragraph_texts) and paragraph_texts[label_index + 1] == "", (
+                      f"Administrative field must remain blank: {label}"
+                  )
               page_breaks = sum(1 for node in doc.iter(ns + "br") if node.attrib.get(ns + "type") == "page")
               assert page_breaks == 15, f"expected 15 page breaks for 16 form groups, got {page_breaks}"
           pngs = list((root / "proposal_png").glob("*.png"))
