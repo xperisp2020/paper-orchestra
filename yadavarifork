@@ -1851,3 +1851,13 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - run `45428262795` روی commit `192584054cdcbc63080e86609c5e2c8573f65e22`: Python unit tests، Configure، Build و app smoke تا زمان ثبت **PASS**؛ Assemble/clean-runner هنوز ادامه داشت.
 - run `45428312203` روی commit `3e5a36a486cd03f5ef8ef350c0e6bb64ae022c27` (شامل assertion ذخیره عنوان): Python unit tests، Configure و Build **PASS**؛ app smoke در زمان ثبت در حال اجرا بود.
 - هیچ artifactی از run قدیمی‌تر به‌عنوان build نهایی HEAD فعلی ارائه نمی‌شود؛ artifact نهایی فقط پس از موفقیت هر دو job روی commit جاری معرفی خواهد شد.
+
+
+### 6.99.53 نتیجهٔ نهایی build و clean-runner و صحت artifactها (2026-11-24)
+- مقصد: `xperisp2020/paper-orchestra`، branch `work/yadavarifork`؛ HEAD ثبت‌شده پیش از append `87ede9c526a4566b2228b3c910d0979f3156d893`.
+- run `45428312203` روی commit کد `3e5a36a486cd03f5ef8ef350c0e6bb64ae022c27`: job `build-windows` **SUCCESS** و job `verify-portable-artifact` **SUCCESS**. در job اول: Python syntax check، تست‌های واحد no-API، CMake Configure، C++ Build، app_smoke، export smoke، ساخت Portable و Installer موفق شدند. در job دوم هر دو بسته روی clean runner استخراج و بررسی شدند.
+- artifact Portable id `14937252468`، اندازهٔ 27,138,776 bytes؛ ZIP در محیط محلی با `unzip -t` بدون خطا بررسی شد؛ SHA-256: `1015ebca0733ee48aa0245569dd936ab14475e655058af981bc784411733280e`.
+- artifact Installer id `14937872083`، اندازهٔ 19,962,135 bytes؛ ZIP در محیط محلی با `unzip -t` بدون خطا بررسی شد؛ SHA-256: `8dddddbee209aecb5e58fb45e9d561de2e42db27d7eeb4baf273cf379a81907a`.
+- این artifactها شامل تغییرات ذخیره خودکار عنوان، فیلدهای نهایی، مخفی‌سازی فیلدهای اداری، فیلترهای تصویر، مسیر بدون API سه‌منبعی و fallback پوشهٔ داده هستند. آن‌ها را می‌توان به‌عنوان build فنی تأییدشده برای همین commit تحویل داد.
+- تأیید نشده/باز: اجرای واقعی شبکه‌ای OpenAlex/Crossref/Semantic Scholar از سیستم کاربر؛ اعتبارسنجی محتوایی هر مقاله و peer-review؛ crawler خودکار Google Scholar (عمداً اضافه نشده)؛ تولید علمی خودکار در workflow پروپوزال؛ تطبیق کامل صفحه‌آرایی Word/PDF با فرم مرجع ۱۶ صفحه‌ای؛ آزمون واقعی Microsoft Word 2010 و Windows فیزیکی/VM.
+- نکتهٔ فایل‌های ارسالی: `proposal.docx` هنوز خروجی ناقص قبلی با متن آزمایشی است؛ artifact جدید برنامه آن فایل را به‌طور خودکار به محتوای علمی کامل تبدیل نمی‌کند. PDF در دسترس، نمونهٔ مرجع است و PDF خروجی جداگانه‌ای در فایل‌های قابل دسترسی پیدا نشد.
