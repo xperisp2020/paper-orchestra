@@ -1,0 +1,116 @@
+name: Research runtime bootstrap
+
+on:
+  push:
+    branches: [work/yadavarifork]
+    paths:
+      - "requirements-research.txt"
+      - "scripts/setup_research_runtime.ps1"
+      - "paper_writing_cli.py"
+      - "methods/**"
+      - "utils/**"
+      - "tests/runtime_provider_checks.py"
+      - ".github/workflows/research-runtime-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  latex-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install real LaTeX and BibTeX tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends texlive-latex-base
+
+      - name: Compile a real bibliography-backed PDF
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/latex-smoke"
+          mkdir -p "$work"
+          cd "$work"
+          cat > paper.tex <<'EOF'
+          \documentclass{article}
+          \begin{document}
+          A minimal bibliography-backed compilation test \cite{doe2020}.
+          \bibliographystyle{plain}
+          \bibliography{references}
+          \end{document}
+          EOF
+          cat > references.bib <<'EOF'
+          @article{doe2020,
+            author = {Jane Doe},
+            title = {A Minimal Test Reference},
+            journal = {Test Journal},
+            year = {2020}
+          }
+          EOF
+          pdflatex -interaction=nonstopmode paper.tex
+          bibtex paper
+          pdflatex -interaction=nonstopmode paper.tex
+          pdflatex -interaction=nonstopmode paper.tex
+          test -s paper.pdf
+          test "$(head -c 4 paper.pdf)" = "%PDF"
+          grep -q "doe2020" paper.bbl
+
+  bootstrap-windows:
+    runs-on: windows-2022
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-research.txt
+
+      - name: Provide deterministic LaTeX command stubs for bootstrap detection
+        shell: pwsh
+        run: |
+          $tools = Join-Path $env:RUNNER_TEMP 'latex-command-stubs'
+          New-Item -ItemType Directory -Force -Path $tools | Out-Null
+          @'
+          @echo off
+          exit /b 0
+          '@ | Set-Content -LiteralPath (Join-Path $tools 'pdflatex.cmd') -Encoding Ascii
+          @'
+          @echo off
+          exit /b 0
+          '@ | Set-Content -LiteralPath (Join-Path $tools 'bibtex.cmd') -Encoding Ascii
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $tools
+
+      - name: Create isolated research runtime and verify dependencies
+        shell: pwsh
+        run: |
+          $tools = Join-Path $env:RUNNER_TEMP 'latex-command-stubs'
+          $env:PATH = "$tools;$env:PATH"
+          $python = (Get-Command python -ErrorAction Stop).Source
+          $runtime = Join-Path $env:RUNNER_TEMP 'paper-orchestra-research-runtime'
+          & .\scripts\setup_research_runtime.ps1 -PythonExecutable $python -RuntimeDirectory $runtime
+          if ($LASTEXITCODE -ne 0) { throw "Research runtime bootstrap failed: $LASTEXITCODE" }
+
+          $venvPython = Join-Path $runtime 'Scripts\python.exe'
+          if (!(Test-Path -LiteralPath $venvPython -PathType Leaf)) {
+            throw "Research venv Python was not created."
+          }
+          & $venvPython -c "import google.genai, openai, fitz, pymupdf4llm, numpy, matplotlib, pypdf"
+          if ($LASTEXITCODE -ne 0) { throw "Research runtime imports failed." }
+          & $venvPython -c "import methods.paper_writer, methods.paper_writer_with_plotting"
+          if ($LASTEXITCODE -ne 0) { throw "Research agent modules failed to import." }
+
+          & $venvPython .\tests\runtime_provider_checks.py
+          if ($LASTEXITCODE -ne 0) { throw "Provider routing integration checks failed." }
+
+          & $venvPython -c "from paper_writing_cli import validate_runtime_prerequisites; missing = validate_runtime_prerequisites(); print(missing); raise SystemExit(1 if missing else 0)"
+          if ($LASTEXITCODE -ne 0) { throw "CLI runtime preflight disagrees with the bootstrap environment." }
+
+          & $venvPython .\paper_writing_cli.py --help
+          if ($LASTEXITCODE -ne 0) { throw "Research CLI help failed in the isolated runtime." }

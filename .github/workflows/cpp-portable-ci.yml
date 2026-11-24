@@ -1,0 +1,260 @@
+name: C++ Windows portable CI
+on:
+  push:
+    branches: [work/yadavarifork]
+    paths:
+      - 'app_cpp/**'
+      - 'packaging/windows/**'
+      - 'methods/**'
+      - 'utils/**'
+      - 'autoraters/**'
+      - 'templates/**'
+      - 'assets/**'
+      - 'paper_writing_cli.py'
+      - 'README.md'
+      - 'LICENSE'
+      - 'scripts/**'
+      - 'requirements-research.txt'
+      - '.github/workflows/cpp-portable-ci.yml'
+  pull_request:
+    branches: [work/yadavarifork]
+    paths:
+      - 'app_cpp/**'
+      - 'packaging/windows/**'
+      - 'methods/**'
+      - 'utils/**'
+      - 'autoraters/**'
+      - 'templates/**'
+      - 'assets/**'
+      - 'paper_writing_cli.py'
+      - 'README.md'
+      - 'LICENSE'
+      - 'scripts/**'
+      - 'requirements-research.txt'
+      - '.github/workflows/cpp-portable-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate research runtime bootstrap syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $PWD 'scripts/setup_research_runtime.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "Research runtime bootstrap PowerShell syntax is valid."
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.12.0'
+          cache: true
+          aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+      - name: Configure
+        run: cmake -S app_cpp -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel --target yadavarifork yadavarifork_smoke research_engine_runner_tests
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          ctest --test-dir build -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) {
+            $exe = Join-Path $PWD 'build/Release/yadavarifork_smoke.exe'
+            $env:QT_QPA_PLATFORM = 'offscreen'
+            & $exe --smoke-test
+            Write-Host "Console smoke test exit code: $LASTEXITCODE"
+            exit 1
+          }
+          @'
+          import pathlib, zipfile, xml.etree.ElementTree as ET
+          root = pathlib.Path("build/smoke-output")
+          docx = root / "proposal.docx"
+          pdf = root / "proposal.pdf"
+          assert pdf.read_bytes().startswith(b"%PDF"), "invalid PDF signature"
+          with zipfile.ZipFile(docx) as package:
+              assert package.testzip() is None, "DOCX ZIP CRC failure"
+              required = {"[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/styles.xml", "word/_rels/document.xml.rels"}
+              assert required.issubset(package.namelist()), "missing required Office Open XML part"
+              xml_parts = [name for name in package.namelist() if name.endswith((".xml", ".rels"))]
+              parsed = {name: ET.fromstring(package.read(name)) for name in xml_parts}
+              doc = parsed["word/document.xml"]
+              ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+              paragraph_texts = [
+                  "".join(node.text or "" for node in paragraph.iter(ns + "t"))
+                  for paragraph in doc.iter(ns + "p")
+              ]
+              for first_line in (
+                  "Smoke test: student_information",
+                  "Smoke test: supervisor_information",
+              ):
+                  assert first_line in paragraph_texts, f"{first_line} missing from DOCX"
+                  line_index = paragraph_texts.index(first_line)
+                  assert line_index + 1 < len(paragraph_texts) and paragraph_texts[line_index + 1] == "Second line", (
+                      f"{first_line} second line was not exported as a separate paragraph"
+                  )
+              page_breaks = sum(1 for node in doc.iter(ns + "br") if node.attrib.get(ns + "type") == "page")
+              assert page_breaks == 15, f"expected 15 page breaks for 16 form groups, got {page_breaks}"
+          pngs = list((root / "proposal_png").glob("*.png"))
+          assert pngs and all(p.read_bytes().startswith(b"\x89PNG\r\n\x1a\n") for p in pngs), "invalid PNG page output"
+          print(f"PDF, DOCX package/XML, {len(pngs)} PNG pages, and 15 page breaks verified")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "Export package validation failed." }
+      - name: Assemble portable directory
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'build/Release/yadavarifork.exe'
+          if (!(Test-Path $exe)) { throw "Application executable not found: $exe" }
+          $deploy = Get-Command windeployqt -ErrorAction Stop
+          & $deploy.Source --release --no-translations --sql $exe
+          if ($LASTEXITCODE -ne 0) { throw "windeployqt failed with exit code $LASTEXITCODE" }
+          Remove-Item build/Release/yadavarifork_smoke.exe -ErrorAction SilentlyContinue
+          Remove-Item build/Release/yadavarifork_smoke.pdb -ErrorAction SilentlyContinue
+          Remove-Item build/Release/research_engine_runner_tests.exe -ErrorAction SilentlyContinue
+          Remove-Item build/Release/research_engine_runner_tests.pdb -ErrorAction SilentlyContinue
+          Copy-Item app_cpp/README.md build/Release/README.txt
+          $engineDirectories = @('methods', 'utils', 'autoraters', 'templates', 'assets', 'scripts')
+          foreach ($directory in $engineDirectories) {
+            if (!(Test-Path -LiteralPath $directory -PathType Container)) {
+              throw "Research engine directory is missing: $directory"
+            }
+            Copy-Item -LiteralPath $directory -Destination 'build/Release' -Recurse -Force
+          }
+          Copy-Item -LiteralPath 'paper_writing_cli.py' -Destination 'build/Release' -Force
+          Copy-Item -LiteralPath 'requirements-research.txt' -Destination 'build/Release' -Force
+          Copy-Item -LiteralPath 'README.md' -Destination 'build/Release/RESEARCH_README.md' -Force
+          Copy-Item -LiteralPath 'LICENSE' -Destination 'build/Release/LICENSE.txt' -Force
+          $env:GITHUB_SHA | Set-Content -LiteralPath 'build/Release/RESEARCH_ENGINE_COMMIT.txt' -Encoding Ascii
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          & $exe --smoke-test
+          if ($LASTEXITCODE -ne 0) { throw "Deployed executable smoke test failed with exit code $LASTEXITCODE" }
+          Compress-Archive -Path 'build/Release/*' -DestinationPath 'build/yadavarifork-windows-portable.zip' -Force
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yadavarifork-windows-portable
+          path: build/yadavarifork-windows-portable.zip
+          if-no-files-found: error
+      - name: Install pinned Inno Setup compiler
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'innosetup-7.1.1-x64.exe'
+          Invoke-WebRequest -Uri 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_1/innosetup-7.1.1-x64.exe' -OutFile $installer
+          $actual = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          $expected = '8a5a6711c3766a6e5fb74f280ba0e3551e719ce94538d901fdbd1f8f9920b3f0'
+          if ($actual -ne $expected) { throw "Inno Setup installer SHA256 mismatch: $actual" }
+          $install = Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/DIR=C:\InnoSetup') -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Inno Setup installation failed: $($install.ExitCode)" }
+          $compiler = 'C:\InnoSetup\ISCC.exe'
+          if (!(Test-Path $compiler)) { throw "Inno Setup compiler not found: $compiler" }
+          & $compiler 'packaging/windows/yadavarifork.iss'
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed: $LASTEXITCODE" }
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yadavarifork-windows-installer
+          path: build/installer/Yadavarifork-Setup-0.1.0.exe
+          if-no-files-found: error
+
+  verify-portable-artifact:
+    needs: build-windows
+    runs-on: windows-2022
+    steps:
+      - name: Download portable artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: yadavarifork-windows-portable
+          path: artifact
+      - name: Download installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: yadavarifork-windows-installer
+          path: installer-artifact
+      - name: Extract and verify on a clean runner
+        shell: pwsh
+        run: |
+          $archive = Join-Path $PWD 'artifact/yadavarifork-windows-portable.zip'
+          if (!(Test-Path $archive)) { throw "Portable archive is missing." }
+          $portableRoot = Join-Path $PWD 'Portable With Spaces - آزمون فارسی'
+          Expand-Archive -LiteralPath $archive -DestinationPath $portableRoot
+          $root = $portableRoot
+          $exe = Join-Path $root 'yadavarifork.exe'
+          if (!(Test-Path $exe)) { throw "Portable executable is missing." }
+          foreach ($required in @(
+            'README.txt', 'RESEARCH_README.md', 'LICENSE.txt',
+            'Qt6Core.dll', 'Qt6Widgets.dll', 'platforms/qwindows.dll', 'sqldrivers/qsqlite.dll',
+            'paper_writing_cli.py', 'requirements-research.txt',
+            'scripts/setup_research_runtime.ps1', 'methods/agents/outline_agent.py',
+            'utils/llm_backend_utils.py', 'autoraters/agent_review.py', 'templates'
+          )) {
+            if (!(Test-Path (Join-Path $root $required))) { throw "Required portable file is missing: $required" }
+          }
+          if (Get-ChildItem -LiteralPath $root -Filter '.env' -Recurse -File -ErrorAction SilentlyContinue) {
+            throw "A .env file must never be packaged."
+          }
+          if (!(Test-Path (Join-Path $root 'RESEARCH_ENGINE_COMMIT.txt'))) {
+            throw "Research engine source revision marker is missing."
+          }
+          if (Test-Path (Join-Path $root 'yadavarifork_smoke.exe')) { throw "Test-only executable leaked into portable package." }
+          $env:QT_QPA_PLATFORM = 'windows'
+          $smokeOutput = Join-Path $root 'Smoke Output - آزمون فارسی'
+          $env:YADAVARIFORK_SMOKE_OUTPUT_DIR = $smokeOutput
+          $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -WorkingDirectory $root -WindowStyle Hidden -PassThru
+          if (!$process.WaitForExit(30000)) {
+            $process.Kill()
+            throw "Clean-runner portable smoke test timed out after 30 seconds."
+          }
+          $process.Refresh()
+          if ($process.ExitCode -ne 0) { throw "Clean-runner portable smoke test failed with exit code $($process.ExitCode)." }
+          Remove-Item Env:YADAVARIFORK_SMOKE_OUTPUT_DIR -ErrorAction SilentlyContinue
+          foreach ($output in @('proposal.pdf', 'proposal.docx')) {
+            if (!(Test-Path -LiteralPath (Join-Path $smokeOutput $output))) {
+              throw "Portable Unicode-path smoke output is missing: $output"
+            }
+          }
+          Write-Host "Clean-runner portable smoke, proposal save/reopen, and Unicode-path exports passed."
+          $setup = Join-Path $PWD 'installer-artifact/Yadavarifork-Setup-0.1.0.exe'
+          if (!(Test-Path $setup)) { throw "Windows installer artifact is missing." }
+          $installDir = Join-Path $PWD 'Installer With Spaces - آزمون فارسی'
+          $installProcess = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',('/DIR="{0}"' -f $installDir)) -Wait -PassThru
+          if ($installProcess.ExitCode -ne 0) { throw "Silent installer failed: $($installProcess.ExitCode)" }
+          $installedExe = Join-Path $installDir 'yadavarifork.exe'
+          if (!(Test-Path $installedExe)) { throw "Installed application executable is missing." }
+          $env:QT_QPA_PLATFORM = 'windows'
+          $installedSmokeOutput = Join-Path $installDir 'Smoke Output - آزمون فارسی'
+          $env:YADAVARIFORK_SMOKE_OUTPUT_DIR = $installedSmokeOutput
+          $installedProcess = Start-Process -FilePath $installedExe -ArgumentList '--smoke-test' -WorkingDirectory $installDir -WindowStyle Hidden -PassThru
+          if (!$installedProcess.WaitForExit(30000)) {
+            $installedProcess.Kill()
+            throw "Installed application smoke test timed out after 30 seconds."
+          }
+          $installedProcess.Refresh()
+          if ($installedProcess.ExitCode -ne 0) { throw "Installed application smoke test failed: $($installedProcess.ExitCode)" }
+          Remove-Item Env:YADAVARIFORK_SMOKE_OUTPUT_DIR -ErrorAction SilentlyContinue
+          foreach ($output in @('proposal.pdf', 'proposal.docx')) {
+            if (!(Test-Path -LiteralPath (Join-Path $installedSmokeOutput $output))) {
+              throw "Installer Unicode-path smoke output is missing: $output"
+            }
+          }
+          $dataDir = Join-Path $installDir 'data'
+          New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
+          $sentinel = Join-Path $dataDir 'user-data-preservation-check.txt'
+          Set-Content -LiteralPath $sentinel -Value 'preserve across uninstall'
+          $uninstaller = Join-Path $installDir 'unins000.exe'
+          if (!(Test-Path $uninstaller)) { throw "Uninstaller executable is missing." }
+          $uninstallProcess = Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -PassThru
+          if ($uninstallProcess.ExitCode -ne 0) { throw "Silent uninstall failed: $($uninstallProcess.ExitCode)" }
+          if (Test-Path $installedExe) { throw "Application executable remains after uninstall." }
+          if (!(Test-Path $sentinel)) { throw "Installer removed user data; preservation test failed." }
+          Write-Host "Installer install, app smoke, uninstall, and user-data preservation passed."
