@@ -49,3 +49,9 @@
 ### وضعیت تازهٔ مأموریت‌ها
 - مسیر A: اتصال opt-in، UI/CLI، Batch API، عدم cache کردن خطاهای موقت و Crossref live smoke انجام شده؛ Python Safety، Research Runtime و Windows clean-runner شواهد موفق دارند.
 - مسیر B: Crossref live از scope جاری خارج شده (run `45363848472` PASS)؛ تمرکز روی گزارش قابل ممیزی تغییرات قبلی AI دوم، providerهای واقعی، Windows دستگاه اصلی/VM و Word 2010 واقعی است.
+
+
+### شواهد و بستهٔ به‌روز مسیر A
+- Python Safety `45364548308`، Research Runtime `45364548656`، Crossref live `45363848472` و Windows build/clean-runner `45364368515` همگی success هستند.
+- artifactهای جاری: Portable `14905488281` و Installer `14906087195`؛ لینک و digest در V3 و audit ثبت شده‌اند.
+- Crossref live دیگر جزو کارهای باز هوش مصنوعی دوم نیست؛ تمرکز آن روی providerهای واقعی، Word 2010 و دستگاه Windows واقعی باقی می‌ماند.
