@@ -1389,6 +1389,58 @@ private:
         dialog.exec();
     }
 
+    void startNoApiScholarlyResearch() {
+        if (!projectId_ || !saveActiveResearchSection() || (engineRunner_ && engineRunner_->isRunning()))
+            return;
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        QString python = QStandardPaths::findExecutable(QStringLiteral("python"));
+        if (python.isEmpty()) python = QStandardPaths::findExecutable(QStringLiteral("python3"));
+#ifdef Q_OS_WIN
+        if (python.isEmpty()) python = QStandardPaths::findExecutable(QStringLiteral("py"));
+#endif
+        const QString script = QDir(QCoreApplication::applicationDirPath())
+            .filePath(QStringLiteral("scripts/no_api_scholarly_research.py"));
+        if (python.isEmpty() || !QFileInfo(script).isFile()) {
+            researchStatus_->setText(persian
+                ? QStringLiteral("برای جست‌وجوی علمی رایگان، Python 3 و فایل scripts/no_api_scholarly_research.py لازم است.")
+                : QStringLiteral("Free scholarly discovery requires Python 3 and scripts/no_api_scholarly_research.py."));
+            return;
+        }
+        const QString root = QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("data/research_runs"));
+        const QString output = QDir(root).filePath(QStringLiteral("no_api_project_%1_%2")
+            .arg(*projectId_).arg(QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz"))));
+        if (QFileInfo::exists(output) || !QDir().mkpath(output)) return;
+        currentResearchRunOutput_ = output;
+        currentResearchRunProjectId_ = projectId_;
+        noApiResearchRun_ = true;
+        noApiImportedSourceCount_ = 0;
+        researchRunCancellationRequested_ = false;
+        if (!writeResearchRunManifest(QStringLiteral("starting"), QStringLiteral("keyless_scholarly_discovery"))) {
+            noApiResearchRun_ = false;
+            currentResearchRunOutput_.clear();
+            currentResearchRunProjectId_.reset();
+            return;
+        }
+        researchStatus_->setText(persian
+            ? QStringLiteral("جست‌وجوی رایگان در OpenAlex و Crossref آغاز شد؛ هدف ۲۰ منبع یکتا است و کلید API لازم نیست.")
+            : QStringLiteral("Free OpenAlex and Crossref discovery started; target is 20 unique records, no API key required."));
+        const QStringList arguments{
+            script, QStringLiteral("--query"), projectTitle_->text().trimmed(),
+            QStringLiteral("--language"), language_->currentData().toString(),
+            QStringLiteral("--target"), QStringLiteral("20"),
+            QStringLiteral("--output"), QDir(output).filePath(QStringLiteral("result.json"))
+        };
+        const QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+        if (!engineRunner_->start(python, arguments, QFileInfo(script).absolutePath(), environment)) {
+            writeResearchRunManifest(QStringLiteral("failed"), QStringLiteral("process_start_failed"));
+            noApiResearchRun_ = false;
+            currentResearchRunOutput_.clear();
+            currentResearchRunProjectId_.reset();
+            researchStatus_->setText(persian ? QStringLiteral("راه‌اندازی جست‌وجوی علمی ممکن نشد؛ Python را بررسی کنید.") :
+                                               QStringLiteral("Could not start scholarly discovery; verify Python."));
+        }
+    }
+
     void configureAndRunResearchEngine() {
         if (!projectId_ || taskMode_->currentData().toString() != QStringLiteral("research"))
             return;
@@ -1401,9 +1453,7 @@ private:
         const QString selectedAiMode = aiMode_->currentData().toString();
         const bool freeTierMode = selectedAiMode == QStringLiteral("free_tier");
         if (selectedAiMode == QStringLiteral("no_api")) {
-            researchStatus_->setText(persian
-                ? QStringLiteral("حالت بدون API فقط کارگاه محلی است و موتور مولد را اجرا نمی‌کند.")
-                : QStringLiteral("No-API mode is a local workspace and cannot run the generative engine."));
+            startNoApiScholarlyResearch();
             return;
         }
         QDialog dialog(this);
@@ -2114,6 +2164,8 @@ private:
     std::optional<qint64> currentResearchRunProjectId_;
     QPushButton *researchRunHistory_{};
     bool researchRunCancellationRequested_{false};
+    bool noApiResearchRun_{false};
+    int noApiImportedSourceCount_{0};
     bool proposalSectionDirty_{false};
     bool researchSectionDirty_{false};
     bool finalDetailsReviewed_{false};
