@@ -745,7 +745,8 @@ public:
         if (!reopenedProposal.openProjectById(*projectId_) ||
             reopenedProposal.pages_->currentIndex() != 4 ||
             reopenedProposal.sectionList_->count() !=
-                ProjectStore::proposalSectionKeys().size() - finalDetailKeys().size())
+                ProjectStore::proposalSectionKeys().size() - finalDetailKeys().size() -
+                    administrativeSectionKeys().size())
             return 54;
         reopenedProposal.sectionEditor_->setPlainText(QStringLiteral("Saved when proposal window closes."));
         if (!reopenedProposal.close())
