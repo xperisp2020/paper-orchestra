@@ -1551,3 +1551,12 @@ C) پولی: اتصال opt-in به ارائه‌دهندگان پولی؛ کل�
 - تست integration اولیه در run `45355798918` به‌دلیل import ناخواستهٔ Pydantic در workflow standard-library-only و یک assertion متنی قدیمی شکست خورد؛ این خطا با helper استاندارد-library `safe_crossref_verification_status`، تست wiring مبتنی بر AST و اصلاح assertion برطرف شد.
 - بازبینی مسیر کاربر نشان داد flag فقط از CLI قابل تنظیم است؛ برای دسترسی از برنامهٔ Qt، یک چک‌باکس اختیاری فارسی/انگلیسی به dialog اجرای پژوهش اضافه شد. در حالت پیش‌فرض خاموش است و فقط هنگام انتخاب، `--verify_dois_with_crossref` به CLI افزوده می‌شود. راهنما توضیح می‌دهد درخواست شبکه برای DOI عمومی انجام می‌شود و خطا/404 منبع را حذف یا اصلاح نمی‌کند.
 - آزمون build C++ و Python Safety پس از این تغییر UI باید از CI تأیید شود؛ در این لحظه هنوز conclusion آن‌ها ثبت نشده است.
+
+
+### 6.99.32 نتیجهٔ Python Safety و وضعیت سایر CIها پس از اتصال Crossref (2026-11-24)
+- هویت مقصد پیش از ثبت: repo id 1467327081، owner xperisp2020، branch work/yadavarifork؛ HEAD مبنا f1d5cb39d90afb645d3820ab83c887eb5cbbcba2.
+- Python Safety run 45356267071 روی تست‌ها و رابط نهایی: conclusion=success؛ Ubuntu و Windows هر دو 86 تست را اجرا کردند، Ubuntu صریحاً `Ran 86 tests` و `OK` ثبت کرد، Windows نیز job با success پایان یافت.
+- Research Runtime run 45356069474 شامل کد Literature Agent و هر دو writer: job `bootstrap-windows` موفق شد؛ job `latex-smoke` در زمان ثبت هنوز در مرحله نصب TeX Live و در حال اجرا بود.
+- C++ Windows portable CI run 45356257643 پس از افزودن چک‌باکس Qt: نصب Qt و Configure موفق؛ مرحله Build در زمان ثبت هنوز in_progress بود. نتیجه build/smoke/portable/installer تا تکمیل job باز می‌ماند.
+- بنابراین در این ثبت، اتصال Crossref و تست‌های Python با شواهد CI تأیید شده‌اند؛ build ویندوز و LaTeX واقعی هنوز PASS اعلام نمی‌شوند تا runهایشان completed/success شوند.
+- فایل‌های تقسیم و handoff: `docs/PARALLEL_REMAINING_WORK_SPLIT_FA.md`, `docs/WORKSTREAM_A_CROSSREF_PIPELINE_FA.md`, `docs/AI_HANDOFF_PROVIDER_WINDOWS_WORD2010_FA.md`.
