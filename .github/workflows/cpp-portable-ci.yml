@@ -225,7 +225,7 @@ jobs:
           $setup = Join-Path $PWD 'installer-artifact/Yadavarifork-Setup-0.1.0.exe'
           if (!(Test-Path $setup)) { throw "Windows installer artifact is missing." }
           $installDir = Join-Path $PWD 'Installer With Spaces - آزمون فارسی'
-          $installProcess = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/DIR=$installDir") -Wait -PassThru
+          $installProcess = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',('/DIR="{0}"' -f $installDir)) -Wait -PassThru
           if ($installProcess.ExitCode -ne 0) { throw "Silent installer failed: $($installProcess.ExitCode)" }
           $installedExe = Join-Path $installDir 'yadavarifork.exe'
           if (!(Test-Path $installedExe)) { throw "Installed application executable is missing." }
