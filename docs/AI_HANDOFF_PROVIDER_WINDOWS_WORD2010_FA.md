@@ -61,3 +61,6 @@
 
 
 > **این نسخه قدیمی شده است.** وضعیت CI، artifactها و مأموریت‌های باز به‌روزرسانی شده‌اند. از نسخهٔ جدید `docs/AI_HANDOFF_PROVIDER_WORD2010_V2_FA.md` و قالب `docs/AI_SECOND_PASS_RESULT_TEMPLATE_FA.md` استفاده کن.
+
+
+> **Superseded:** نسخه‌های فعال بعدی به‌ترتیب `docs/AI_HANDOFF_PROVIDER_WORD2010_V2_FA.md` و سپس `docs/AI_HANDOFF_PROVIDER_WORD2010_V3_FA.md` هستند. از V3 استفاده کن.
