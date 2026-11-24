@@ -1,5 +1,7 @@
 name: Provider live smoke
 
+# Branch-scoped dispatch note: keep this workflow on work/yadavarifork; no default-branch changes.
+
 on:
   push:
     branches: [work/yadavarifork]
