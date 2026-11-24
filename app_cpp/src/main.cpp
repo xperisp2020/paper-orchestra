@@ -1632,7 +1632,7 @@ private:
                     : QStringLiteral("The free route sends the project title and source metadata/notes to third-party OpenRouter. Do not submit confidential information."))
                 : (persian
                     ? QStringLiteral("مسیر پولی داده‌های پژوهش را به ارائه‌دهنده بیرونی می‌فرستد و ممکن است طبق تعرفه حساب شما هزینه داشته باشد. تا تأیید و شروع صریح شما هیچ درخواستی ارسال نمی‌شود.")
-                    : QStringLiteral("The paid route sends research data to an external provider and may incur charges under your provider account. No request is sent until you explicitly confirm and start."));
+                    : QStringLiteral("The paid route sends research data to an external provider and may incur charges under your provider account. No request is sent until you explicitly confirm and start.")));
             privacyConsent->setVisible(free);
             paidConsent->setVisible(!free);
             if (free)
