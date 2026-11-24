@@ -1425,6 +1425,376 @@ private:
         updateNavigation();
     }
 
+    void generateProposalWithAI() {
+        if (!projectId_ || taskMode_->currentData().toString() != QStringLiteral("proposal"))
+            return;
+        if (proposalRunner_ && proposalRunner_->isRunning())
+            return;
+        if (!saveActiveProposalSection())
+            return;
+
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        QString storageError;
+        const auto existingSections = store_.loadSections(*projectId_, &storageError);
+        if (!storageError.isEmpty()) {
+            editorStatus_->setText(storageError);
+            return;
+        }
+        bool hasExistingScientificContent = false;
+        for (const QString &key : ProjectStore::proposalSectionKeys()) {
+            if (finalDetailKeys().contains(key) || administrativeSectionKeys().contains(key))
+                continue;
+            if (!existingSections.value(key).trimmed().isEmpty()) {
+                hasExistingScientificContent = true;
+                break;
+            }
+        }
+        if (hasExistingScientificContent) {
+            const auto answer = QMessageBox::question(
+                this, persian ? QStringLiteral("تولید دوباره پروپوزال")
+                              : QStringLiteral("Regenerate proposal"),
+                persian
+                    ? QStringLiteral("بعضی بخش‌های علمی قبلاً محتوا دارند. تولید دوباره، محتوای علمی فعلی را با خروجی جدید جایگزین می‌کند. ادامه می‌دهید؟")
+                    : QStringLiteral("Some scientific sections already contain content. Regeneration will replace their current text with the new AI draft. Continue?"),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+            if (answer != QMessageBox::Yes)
+                return;
+        }
+
+        QDialog dialog(this);
+        dialog.setWindowTitle(persian ? QStringLiteral("تنظیم تولید هوشمند پروپوزال")
+                                      : QStringLiteral("Configure AI proposal generation"));
+        dialog.resize(650, 360);
+        auto *form = new QFormLayout(&dialog);
+        auto *providerField = new QComboBox(&dialog);
+        providerField->addItem(persian ? QStringLiteral("مدل رایگان OpenRouter")
+                                       : QStringLiteral("OpenRouter free-tier model"),
+                               QStringLiteral("free_tier"));
+        providerField->addItem(persian ? QStringLiteral("مدل پولی Gemini / OpenAI / OpenRouter")
+                                       : QStringLiteral("Paid Gemini / OpenAI / OpenRouter model"),
+                               QStringLiteral("paid"));
+        if (aiMode_->currentData().toString() == QStringLiteral("paid"))
+            providerField->setCurrentIndex(1);
+        form->addRow(persian ? QStringLiteral("مسیر تولید") : QStringLiteral("Generation route"), providerField);
+
+        auto *modelField = new QLineEdit(&dialog);
+        auto defaultModel = [](const QString &route) {
+            return route == QStringLiteral("free_tier")
+                ? QStringLiteral("nvidia/nemotron-3.5-super-vl:free")
+                : QStringLiteral("gemini-3.1-pro-preview");
+        };
+        modelField->setText(defaultModel(providerField->currentData().toString()));
+        form->addRow(persian ? QStringLiteral("شناسه مدل") : QStringLiteral("Model ID"), modelField);
+        connect(providerField, qOverload<int>(&QComboBox::currentIndexChanged),
+                &dialog, [providerField, modelField, defaultModel](int) {
+            modelField->setText(defaultModel(providerField->currentData().toString()));
+        });
+
+        QString pythonDefault = QDir(
+            QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
+                .filePath(QStringLiteral("research-runtime/Scripts/python.exe"));
+        if (!QFileInfo(pythonDefault).isFile()) {
+            pythonDefault = QStandardPaths::findExecutable(QStringLiteral("python"));
+            if (pythonDefault.isEmpty())
+                pythonDefault = QStandardPaths::findExecutable(QStringLiteral("python3"));
+        }
+        auto *pythonRow = new QWidget(&dialog);
+        auto *pythonLayout = new QHBoxLayout(pythonRow);
+        pythonLayout->setContentsMargins(0, 0, 0, 0);
+        auto *pythonField = new QLineEdit(pythonDefault, pythonRow);
+        auto *browsePython = new QPushButton(persian ? QStringLiteral("انتخاب") : QStringLiteral("Browse"), pythonRow);
+        pythonLayout->addWidget(pythonField, 1);
+        pythonLayout->addWidget(browsePython);
+        form->addRow(persian ? QStringLiteral("مفسر Python") : QStringLiteral("Python executable"), pythonRow);
+        connect(browsePython, &QPushButton::clicked, &dialog, [pythonField, &dialog, persian] {
+            const QString selected = QFileDialog::getOpenFileName(
+                &dialog, persian ? QStringLiteral("انتخاب مفسر Python") : QStringLiteral("Select Python executable"),
+                pythonField->text(), QStringLiteral("Programs (*.exe);;All files (*)"));
+            if (!selected.isEmpty())
+                pythonField->setText(QDir::cleanPath(selected));
+        });
+
+        auto *privacyNotice = new QLabel(&dialog);
+        privacyNotice->setWordWrap(true);
+        privacyNotice->setText(persian
+            ? QStringLiteral("در مسیر رایگان، عنوان و اطلاعات پژوهشی به ارائه‌دهنده ثالث OpenRouter ارسال می‌شود. اطلاعات محرمانه وارد نکنید.")
+            : QStringLiteral("The free route sends the project title and research context to the third-party OpenRouter provider. Do not submit confidential information."));
+        form->addRow(privacyNotice);
+        auto *privacyConsent = new QCheckBox(
+            persian ? QStringLiteral("ارسال داده‌ها به ارائه‌دهنده ثالث را می‌پذیرم.")
+                    : QStringLiteral("I acknowledge that data is sent to a third-party provider."), &dialog);
+        form->addRow(privacyConsent);
+        auto updatePrivacy = [providerField, privacyNotice, privacyConsent] {
+            const bool free = providerField->currentData().toString() == QStringLiteral("free_tier");
+            privacyNotice->setVisible(free);
+            privacyConsent->setVisible(free);
+            if (!free)
+                privacyConsent->setChecked(false);
+        };
+        connect(providerField, qOverload<int>(&QComboBox::currentIndexChanged),
+                &dialog, [updatePrivacy](int) { updatePrivacy(); });
+        updatePrivacy();
+
+        auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+        buttons->button(QDialogButtonBox::Save)->setText(
+            persian ? QStringLiteral("شروع تولید") : QStringLiteral("Start generation"));
+        buttons->button(QDialogButtonBox::Cancel)->setText(
+            persian ? QStringLiteral("انصراف") : QStringLiteral("Cancel"));
+        form->addRow(buttons);
+        connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+        if (dialog.exec() != QDialog::Accepted)
+            return;
+
+        const QString route = providerField->currentData().toString();
+        const QString model = modelField->text().trimmed();
+        const QString python = QFileInfo(pythonField->text().trimmed()).absoluteFilePath();
+        const QString appDirectory = QCoreApplication::applicationDirPath();
+        QString script = QDir(appDirectory).filePath(QStringLiteral("scripts/generate_proposal.py"));
+        if (!QFileInfo(script).isFile())
+            script = QDir::current().filePath(QStringLiteral("scripts/generate_proposal.py"));
+        auto showFailure = [&](const QString &message) {
+            editorStatus_->setText(message);
+            QMessageBox::warning(this, QStringLiteral("ShirazTipsy Research Institute"), message);
+        };
+        if (route == QStringLiteral("free_tier") && !privacyConsent->isChecked()) {
+            showFailure(persian
+                ? QStringLiteral("برای استفاده از مدل رایگان، ابتدا رضایت ارسال داده به ارائه‌دهنده ثالث را تأیید کنید.")
+                : QStringLiteral("Acknowledge third-party data processing before using the free model."));
+            return;
+        }
+        if (!QFileInfo(python).isFile() || !QFileInfo(script).isFile()) {
+            showFailure(persian
+                ? QStringLiteral("مفسر Python یا فایل scripts/generate_proposal.py پیدا نشد. ابتدا محیط پژوهش را با scripts/setup_research_runtime.ps1 آماده کنید.")
+                : QStringLiteral("Python or scripts/generate_proposal.py was not found. Prepare the research runtime with scripts/setup_research_runtime.ps1 first."));
+            return;
+        }
+
+        const QString normalizedModel = model.toLower();
+        const bool openRouterModel = normalizedModel.contains(QLatin1Char('/'));
+        const bool geminiModel = normalizedModel.startsWith(QStringLiteral("gemini-"));
+        const bool openAiModel = normalizedModel.startsWith(QStringLiteral("gpt-")) ||
+            normalizedModel.startsWith(QStringLiteral("o1")) ||
+            normalizedModel.startsWith(QStringLiteral("o3")) ||
+            normalizedModel.startsWith(QStringLiteral("o4"));
+        const bool freeOpenRouterModel = normalizedModel == QStringLiteral("openrouter/free") ||
+            normalizedModel.endsWith(QStringLiteral(":free"));
+        if (model.isEmpty() || (!openRouterModel && !geminiModel && !openAiModel) ||
+            (route == QStringLiteral("free_tier") && (!openRouterModel || !freeOpenRouterModel))) {
+            showFailure(persian
+                ? QStringLiteral("شناسه مدل معتبر نیست. در مسیر رایگان فقط شناسه OpenRouter با پسوند :free یا openrouter/free مجاز است.")
+                : QStringLiteral("Invalid model ID. Free-tier accepts only OpenRouter IDs ending in :free or openrouter/free."));
+            return;
+        }
+
+        const QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+        const bool hasOpenRouterKey = !environment.value(QStringLiteral("OPENROUTER_API_KEY")).trimmed().isEmpty();
+        const bool hasOpenAiKey = !environment.value(QStringLiteral("OPENAI_API_KEY")).trimmed().isEmpty();
+        const bool hasGeminiKey =
+            !environment.value(QStringLiteral("GEMINI_API_KEY")).trimmed().isEmpty() ||
+            !environment.value(QStringLiteral("GOOGLE_API_KEY")).trimmed().isEmpty() ||
+            !environment.value(QStringLiteral("GOOGLE_GENAI_API_KEY")).trimmed().isEmpty() ||
+            (!environment.value(QStringLiteral("VERTEX_AI_PROJECT")).trimmed().isEmpty() &&
+             !environment.value(QStringLiteral("VERTEX_AI_LOCATION")).trimmed().isEmpty());
+        if ((openRouterModel && !hasOpenRouterKey) ||
+            (geminiModel && !hasGeminiKey) ||
+            (openAiModel && !hasOpenAiKey)) {
+            showFailure(persian
+                ? QStringLiteral("کلید لازم برای این مدل در متغیرهای محیطی سیستم پیدا نشد. کلیدها در برنامه ذخیره نمی‌شوند.")
+                : QStringLiteral("The required provider credential was not found in system environment variables. Keys are never stored by the application."));
+            return;
+        }
+
+        const QString dataRoot = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        if (dataRoot.isEmpty()) {
+            showFailure(persian ? QStringLiteral("مسیر امن داده‌های برنامه در دسترس نیست.")
+                                : QStringLiteral("The application data directory is unavailable."));
+            return;
+        }
+        const QString attemptDirectory = QDir(dataRoot).filePath(
+            QStringLiteral("proposal_runs/project_%1_%2")
+                .arg(*projectId_)
+                .arg(QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz"))));
+        if (QFileInfo::exists(attemptDirectory) || !QDir().mkpath(attemptDirectory)) {
+            showFailure(persian ? QStringLiteral("ساخت پوشه اجرای مستقل پروپوزال ناموفق بود.")
+                                : QStringLiteral("Could not create an isolated proposal generation directory."));
+            return;
+        }
+
+        QJsonObject payload;
+        payload.insert(QStringLiteral("language"), language_->currentData().toString());
+        payload.insert(QStringLiteral("project_title"), projectTitle_->text().trimmed());
+        QJsonArray requestedSections;
+        for (const QString &key : ProjectStore::proposalSectionKeys()) {
+            if (finalDetailKeys().contains(key) || administrativeSectionKeys().contains(key))
+                continue;
+            QJsonObject descriptor;
+            descriptor.insert(QStringLiteral("key"), key);
+            descriptor.insert(QStringLiteral("label"), sectionLabel(key, persian));
+            requestedSections.append(descriptor);
+        }
+        payload.insert(QStringLiteral("sections"), requestedSections);
+        QJsonArray sourceArray;
+        const auto sources = store_.loadResearchSources(*projectId_, &storageError);
+        if (!storageError.isEmpty()) {
+            showFailure(storageError);
+            return;
+        }
+        for (const ResearchSource &source : sources) {
+            QJsonObject item;
+            item.insert(QStringLiteral("title"), source.title);
+            item.insert(QStringLiteral("authors"), source.authors);
+            item.insert(QStringLiteral("year"), source.publicationYear);
+            item.insert(QStringLiteral("doi"), source.doi);
+            item.insert(QStringLiteral("url"), source.url);
+            item.insert(QStringLiteral("notes"), source.notes);
+            sourceArray.append(item);
+        }
+        payload.insert(QStringLiteral("sources"), sourceArray);
+
+        const QString inputPath = QDir(attemptDirectory).filePath(QStringLiteral("proposal_input.json"));
+        proposalGenerationOutput_ = QDir(attemptDirectory).filePath(QStringLiteral("proposal_generated.json"));
+        QSaveFile inputFile(inputPath);
+        if (!inputFile.open(QIODevice::WriteOnly) ||
+            inputFile.write(QJsonDocument(payload).toJson(QJsonDocument::Indented)) < 0 ||
+            !inputFile.commit()) {
+            showFailure(persian ? QStringLiteral("ذخیره ورودی تولید پروپوزال ناموفق بود.")
+                                : QStringLiteral("Could not safely write the proposal generation input."));
+            proposalGenerationOutput_.clear();
+            return;
+        }
+        if (!store_.saveProjectMetadata(*projectId_, QStringLiteral("proposal_generation_status"),
+                                        QStringLiteral("running"), &storageError)) {
+            showFailure(storageError);
+            proposalGenerationOutput_.clear();
+            return;
+        }
+        store_.saveProjectMetadata(*projectId_, QStringLiteral("proposal_generation_model"), model, nullptr);
+        store_.saveProjectMetadata(*projectId_, QStringLiteral("proposal_generation_attempt"),
+                                   attemptDirectory, nullptr);
+        proposalGenerationModel_ = model;
+        proposalGenerationLastError_.clear();
+        proposalGenerationCancelRequested_ = false;
+        const QStringList arguments{
+            QStringLiteral("-u"), script,
+            QStringLiteral("--input"), inputPath,
+            QStringLiteral("--output"), proposalGenerationOutput_,
+            QStringLiteral("--model"), model
+        };
+        if (!proposalRunner_->start(python, arguments, appDirectory, environment)) {
+            failProposalGeneration(persian
+                ? QStringLiteral("اجرای worker تولید پروپوزال شروع نشد. مسیر Python و فایل‌های محیط پژوهش را بررسی کنید.")
+                : QStringLiteral("The proposal worker could not be started. Check Python and the research runtime files."));
+            return;
+        }
+        generateProposal_->setEnabled(false);
+        cancelProposalGeneration_->setEnabled(true);
+        editorStatus_->setText(persian
+            ? QStringLiteral("درخواست تولید ارسال شد؛ پس از تکمیل همه بخش‌ها، محتوا به‌صورت یکجا ذخیره می‌شود.")
+            : QStringLiteral("Generation started; all sections will be saved together only after full validation."));
+    }
+
+    void failProposalGeneration(const QString &message) {
+        proposalGenerationRunning_ = false;
+        generateProposal_->setEnabled(true);
+        cancelProposalGeneration_->setEnabled(false);
+        const bool persian = language_->currentData().toString() == QStringLiteral("fa");
+        QString finalMessage = message.trimmed();
+        if (proposalGenerationCancelRequested_) {
+            finalMessage = persian ? QStringLiteral("تولید پروپوزال لغو شد؛ هیچ بخش ناقصی ذخیره نشد.")
+                                   : QStringLiteral("Proposal generation was cancelled; no incomplete sections were saved.");
+        } else if (finalMessage.isEmpty()) {
+            finalMessage = persian ? QStringLiteral("تولید پروپوزال ناموفق بود؛ هیچ بخش ناقصی ذخیره نشد.")
+                                   : QStringLiteral("Proposal generation failed; no incomplete sections were saved.");
+        }
+        if (projectId_)
+            store_.saveProjectMetadata(*projectId_, QStringLiteral("proposal_generation_status"),
+                                       proposalGenerationCancelRequested_ ? QStringLiteral("cancelled")
+                                                                          : QStringLiteral("failed"), nullptr);
+        editorStatus_->setText(finalMessage);
+        proposalGenerationOutput_.clear();
+        proposalGenerationCancelRequested_ = false;
+    }
+
+    void finishProposalGeneration(int exitCode, bool normalExit) {
+        if (!normalExit || exitCode != 0) {
+            failProposalGeneration(proposalGenerationLastError_.isEmpty()
+                ? QStringLiteral("AI proposal worker exited unsuccessfully (code %1).").arg(exitCode)
+                : proposalGenerationLastError_);
+            return;
+        }
+        QFile outputFile(proposalGenerationOutput_);
+        if (!outputFile.open(QIODevice::ReadOnly)) {
+            failProposalGeneration(language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("فایل خروجی کامل تولید پروپوزال پیدا نشد؛ محتوای ناقص ذخیره نشد.")
+                : QStringLiteral("The completed proposal output file is missing; incomplete content was not saved."));
+            return;
+        }
+        QJsonParseError parseError;
+        const QJsonDocument document = QJsonDocument::fromJson(outputFile.readAll(), &parseError);
+        outputFile.close();
+        if (parseError.error != QJsonParseError::NoError || !document.isObject() ||
+            !document.object().value(QStringLiteral("sections")).isObject()) {
+            failProposalGeneration(language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("ساختار خروجی هوش مصنوعی معتبر نیست؛ هیچ بخشی ذخیره نشد.")
+                : QStringLiteral("The AI output structure is invalid; no sections were saved."));
+            return;
+        }
+        const QJsonObject outputSections = document.object().value(QStringLiteral("sections")).toObject();
+        QMap<QString, QString> generatedSections;
+        QStringList expectedKeys;
+        for (const QString &key : ProjectStore::proposalSectionKeys()) {
+            if (finalDetailKeys().contains(key) || administrativeSectionKeys().contains(key))
+                continue;
+            expectedKeys.append(key);
+            const QJsonValue value = outputSections.value(key);
+            if (!value.isString() || value.toString().trimmed().size() < 8) {
+                failProposalGeneration(language_->currentData().toString() == QStringLiteral("fa")
+                    ? QStringLiteral("بخش «%1» ناقص است؛ برای جلوگیری از ذخیره محتوای ناقص، هیچ بخشی ثبت نشد.")
+                        .arg(sectionLabel(key, true))
+                    : QStringLiteral("Section '%1' is incomplete; no sections were saved.")
+                        .arg(key));
+                return;
+            }
+            generatedSections.insert(key, value.toString().trimmed());
+        }
+        if (outputSections.size() != expectedKeys.size()) {
+            failProposalGeneration(language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("تعداد بخش‌های خروجی با فرم پروپوزال تطابق ندارد؛ هیچ بخشی ذخیره نشد.")
+                : QStringLiteral("The generated section set does not match the proposal form; nothing was saved."));
+            return;
+        }
+        QString error;
+        if (!store_.saveSections(*projectId_, generatedSections, &error)) {
+            failProposalGeneration(error);
+            return;
+        }
+        const bool metadataSaved =
+            store_.saveProjectMetadata(*projectId_, QStringLiteral("proposal_generation_status"),
+                                       QStringLiteral("completed"), &error) &&
+            store_.saveProjectMetadata(*projectId_, QStringLiteral("proposal_generation_completed_at"),
+                                       QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs), &error);
+        proposalGenerationRunning_ = false;
+        generateProposal_->setEnabled(true);
+        cancelProposalGeneration_->setEnabled(false);
+        proposalGenerationCancelRequested_ = false;
+        proposalGenerationOutput_.clear();
+        populateSectionList();
+        if (sectionList_->count() > 0) {
+            sectionList_->setCurrentRow(0);
+            loadSelectedSection();
+        }
+        editorStatus_->setText(metadataSaved
+            ? (language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("%1 بخش علمی پروپوزال با موفقیت تولید و به‌صورت یکجا ذخیره شد. مشخصات فردی و استاد همچنان برای مرحله پایانی باقی مانده‌اند.")
+                    .arg(generatedSections.size())
+                : QStringLiteral("%1 scientific proposal sections were generated and saved atomically. Student and supervisor details remain for the final step.")
+                    .arg(generatedSections.size()))
+            : (language_->currentData().toString() == QStringLiteral("fa")
+                ? QStringLiteral("محتوای علمی ذخیره شد، اما ثبت فراداده وضعیت کامل نشد: %1").arg(error)
+                : QStringLiteral("Scientific content was saved, but generation metadata could not be finalized: %1").arg(error)));
+    }
+
     QString researchSectionLabel(const QString &key, bool persian) const {
         static const QMap<QString, QPair<QString, QString>> labels = {
             {QStringLiteral("research_question"), {QStringLiteral("پرسش پژوهش"), QStringLiteral("Research question")}},
