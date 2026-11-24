@@ -13,6 +13,9 @@ bool toPdf(const QMap<QString, QString> &sections, const QMap<QString, QString> 
 bool toDocx(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
             const QString &title, const QString &language, const QString &outputPath,
             QString *error = nullptr);
+bool toImagePages(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
+                  const QString &title, const QString &language, const QString &outputBasePath,
+                  const QString &imageFormat, QString *error = nullptr);
 bool toPngPages(const QMap<QString, QString> &sections, const QMap<QString, QString> &labels,
                 const QString &title, const QString &language, const QString &outputDirectory,
                 QString *error = nullptr);
