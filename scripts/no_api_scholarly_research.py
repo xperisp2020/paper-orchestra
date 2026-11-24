@@ -14,6 +14,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -22,7 +23,10 @@ USER_AGENT = "PaperOrchestra/0.1 (https://github.com/xperisp2020/paper-orchestra
 OPENALEX = "https://api.openalex.org/works"
 CROSSREF = "https://api.crossref.org/works"
 SEMANTIC_SCHOLAR = "https://api.semanticscholar.org/graph/v1/paper/search"
-MAX_PER_SOURCE = 30
+EUROPE_PMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+ARXIV = "https://export.arxiv.org/api/query"
+DATACITE = "https://api.datacite.org/dois"
+MAX_PER_SOURCE = 50
 
 
 def request_json(url: str, timeout: int = 25) -> dict[str, Any]:
@@ -130,59 +134,109 @@ def normalize_semantic_scholar(item: dict[str, Any]) -> dict[str, str]:
     }
 
 
+
+def request_xml(url: str, timeout: int = 25) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/atom+xml, application/xml"})
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        return response.read().decode("utf-8")
+
+
+def normalize_europe_pmc(item: dict[str, Any]) -> dict[str, str]:
+    doi = clean_text(item.get("doi")).lower()
+    urls = item.get("fullTextUrlList", {}).get("fullTextUrl", []) or []
+    full_url = next((clean_text(x.get("url")) for x in urls if x.get("url")), "")
+    return {"title": clean_text(item.get("title")), "authors": clean_text(item.get("authorString")),
+            "year": clean_text(item.get("firstPublicationDate") or item.get("pubYear"))[:4],
+            "doi": doi, "url": ("https://doi.org/" + doi) if doi else full_url,
+            "abstract": clean_text(item.get("abstractText")), "venue": clean_text(item.get("journalTitle")),
+            "provider": "Europe PMC", "type": clean_text(item.get("pubType")),
+            "is_oa": str(item.get("isOpenAccess", "")).lower() or "unknown"}
+
+
+def normalize_datacite(item: dict[str, Any]) -> dict[str, str]:
+    attrs = item.get("attributes") or {}
+    creators = attrs.get("creators") or []
+    authors = [clean_text(x.get("name")) for x in creators if x.get("name")]
+    titles = attrs.get("titles") or []
+    descriptions = attrs.get("descriptions") or []
+    abstract = next((clean_text(x.get("description")) for x in descriptions
+                     if x.get("descriptionType") == "Abstract"), "")
+    doi = clean_text(attrs.get("doi") or item.get("id")).lower()
+    return {"title": clean_text(titles[0].get("title")) if titles else "",
+            "authors": "; ".join(authors[:8]), "year": str(attrs.get("publicationYear") or ""),
+            "doi": doi, "url": ("https://doi.org/" + doi) if doi else clean_text(attrs.get("url")),
+            "abstract": abstract, "venue": clean_text(attrs.get("publisher")),
+            "provider": "DataCite", "type": clean_text(attrs.get("resourceTypeGeneral")),
+            "is_oa": "unknown"}
+
+
+def normalize_arxiv_entry(entry: ET.Element) -> dict[str, str]:
+    ns = {"a": "http://www.w3.org/2005/Atom"}
+    get = lambda tag: clean_text(entry.findtext("a:" + tag, default="", namespaces=ns))
+    authors = [clean_text(x.findtext("a:name", default="", namespaces=ns)) for x in entry.findall("a:author", ns)]
+    published = get("published")
+    return {"title": get("title"), "authors": "; ".join(x for x in authors if x)[:1000],
+            "year": published[:4], "doi": "", "url": get("id"), "abstract": get("summary"),
+            "venue": get("journal_ref") or "arXiv", "provider": "arXiv",
+            "type": "preprint", "is_oa": "true"}
+
+
 def discover(query: str, target: int = 20, sleeper=time.sleep) -> tuple[list[dict[str, str]], list[str]]:
     target = max(10, min(MAX_PER_SOURCE, target))
+    rows = min(100, target * 2)
     crossref_query = urllib.parse.urlencode({
-        "query.bibliographic": query,
-        "rows": min(100, target * 2),
+        "query.bibliographic": query, "rows": rows,
         "select": "DOI,title,author,published,published-print,published-online,created,container-title,URL,abstract,type",
-        "sort": "score",
-        "order": "desc",
+        "sort": "score", "order": "desc",
     })
-    sources: list[dict[str, str]] = []
-    errors: list[str] = []
-    seen: set[str] = set()
-
     semantic_query = urllib.parse.urlencode({
-        "query": query,
-        "limit": min(100, target * 2),
+        "query": query, "limit": rows,
         "fields": "title,authors,year,abstract,venue,externalIds,url,publicationTypes,isOpenAccess",
     })
     providers = [
-        ("OpenAlex", OPENALEX + "?" + urllib.parse.urlencode({"search": query, "per-page": min(100, target * 2), "sort": "relevance_score:desc"})),
+        ("OpenAlex", OPENALEX + "?" + urllib.parse.urlencode({"search": query, "per-page": rows, "sort": "relevance_score:desc"})),
         ("Crossref", CROSSREF + "?" + crossref_query),
         ("Semantic Scholar", SEMANTIC_SCHOLAR + "?" + semantic_query),
+        ("Europe PMC", EUROPE_PMC + "?" + urllib.parse.urlencode({"query": query, "format": "json", "pageSize": rows, "resultType": "core"})),
+        ("DataCite", DATACITE + "?" + urllib.parse.urlencode({"query": query, "page[size]": rows, "sort": "relevance"})),
+        ("arXiv", ARXIV + "?" + urllib.parse.urlencode({"search_query": "all:" + query, "start": 0, "max_results": rows})),
     ]
-    provider_quota = max(4, (target + len(providers) - 1) // len(providers))
+    quota = max(2, (target + len(providers) - 1) // len(providers))
+    sources: list[dict[str, str]] = []
+    errors: list[str] = []
+    seen: set[str] = set()
     for provider, url in providers:
         try:
-            payload = request_json(url)
-            rows = payload.get("results") or (payload.get("message") or {}).get("items") or payload.get("data") or []
-            provider_added = 0
-            for raw in rows:
-                if not isinstance(raw, dict):
+            payload = {"_xml": request_xml(url)} if provider == "arXiv" else request_json(url)
+            if provider == "OpenAlex":
+                raw_rows, normalize = payload.get("results") or [], normalize_openalex
+            elif provider == "Crossref":
+                raw_rows, normalize = (payload.get("message") or {}).get("items") or [], normalize_crossref
+            elif provider == "Semantic Scholar":
+                raw_rows, normalize = payload.get("data") or [], normalize_semantic_scholar
+            elif provider == "Europe PMC":
+                raw_rows, normalize = (payload.get("resultList") or {}).get("result") or [], normalize_europe_pmc
+            elif provider == "DataCite":
+                raw_rows, normalize = payload.get("data") or [], normalize_datacite
+            else:
+                root = ET.fromstring(payload.get("_xml", ""))
+                raw_rows, normalize = root.findall("{http://www.w3.org/2005/Atom}entry"), normalize_arxiv_entry
+            added = 0
+            for raw in raw_rows:
+                record = normalize(raw)
+                if len(record["title"]) < 8:
                     continue
-                if provider == "OpenAlex":
-                    record = normalize_openalex(raw)
-                elif provider == "Crossref":
-                    record = normalize_crossref(raw)
-                else:
-                    record = normalize_semantic_scholar(raw)
-                title = record["title"]
-                if len(title) < 8:
-                    continue
-                identity = record["doi"] or re.sub(r"\W+", "", title.lower())
+                identity = record["doi"] or re.sub(r"\W+", "", record["title"].lower())
                 if not identity or identity in seen:
                     continue
                 seen.add(identity)
                 sources.append(record)
-                provider_added += 1
-                if provider_added >= provider_quota or len(sources) >= target:
+                added += 1
+                if added >= quota or len(sources) >= target:
                     break
-        except (OSError, ValueError, urllib.error.URLError, TimeoutError) as exc:
+        except (OSError, ValueError, urllib.error.URLError, TimeoutError, ET.ParseError, KeyError, TypeError) as exc:
             errors.append(f"{provider}: {type(exc).__name__}: {exc}")
         sleeper(0.25)
-
     return sources[:target], errors
 
 
@@ -206,7 +260,7 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
         background = (
             f"موضوع جست‌وجو: «{query}».\n\n"
             f"این مرور مقدماتی بر پایهٔ فراداده‌های کتاب‌شناختی و چکیده‌های قابل‌دسترسی از "
-            f"{len(records)} رکورد بازیابی‌شده از OpenAlex و Crossref تنظیم شده است. "
+            f"{len(records)} رکورد بازیابی‌شده از OpenAlex، Crossref، Semantic Scholar، Europe PMC، DataCite و arXiv تنظیم شده است. "
             "این مجموعه، جست‌وجوی نظام‌مندِ ثبت‌شده در پایگاه‌های اشتراکی مانند Scopus یا Web of Science "
             "نیست و به‌تنهایی جایگزین بررسی متن کامل مقالات نمی‌شود."
         )
@@ -264,7 +318,7 @@ def draft_sections(query: str, records: list[dict[str, str]], language: str) -> 
     else:
         background = (
             f"Search topic: {query}.\n\nThis preliminary review uses bibliographic metadata and accessible abstracts "
-            f"from {len(records)} records retrieved from OpenAlex and Crossref. It is not a registered systematic "
+            f"from {len(records)} records retrieved from OpenAlex, Crossref, Semantic Scholar, Europe PMC, DataCite, and arXiv. It is not a registered systematic "
             "search across subscription databases and does not replace full-text appraisal."
         )
         question = f"What findings, methods, and evidence gaps are reported in indexed literature about {query}?"
